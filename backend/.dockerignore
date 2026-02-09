@@ -1,0 +1,7 @@
+vendor
+node_modules
+.env
+storage/framework/testing
+storage/logs
+storage/app/public
+.git

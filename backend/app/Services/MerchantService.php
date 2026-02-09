@@ -1,0 +1,305 @@
+<?php
+
+namespace App\Services;
+
+use App\Data\MerchantData;
+use App\Data\ServiceData;
+use App\Models\Merchant;
+use App\Models\MerchantDocument;
+use App\Models\MerchantSocialLink;
+use App\Models\Service;
+use App\Repositories\Contracts\MerchantRepositoryInterface;
+use App\Services\Contracts\MerchantServiceInterface;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use Spatie\LaravelData\Optional;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
+
+class MerchantService implements MerchantServiceInterface
+{
+    private const VALID_TRANSITIONS = [
+        'pending' => ['approved', 'rejected'],
+        'approved' => ['active', 'suspended'],
+        'active' => ['suspended'],
+        'rejected' => ['pending'],
+        'suspended' => ['active'],
+    ];
+
+    public function __construct(
+        protected MerchantRepositoryInterface $merchantRepository
+    ) {}
+
+    public function getAllMerchants(array $filters = []): LengthAwarePaginator
+    {
+        $perPage = $filters['per_page'] ?? 15;
+
+        return QueryBuilder::for(Merchant::class)
+            ->allowedFilters([
+                AllowedFilter::partial('name'),
+                AllowedFilter::exact('type'),
+                AllowedFilter::exact('status'),
+                AllowedFilter::exact('business_type_id'),
+                AllowedFilter::exact('user_id'),
+                AllowedFilter::callback('search', fn ($query, $value) => $query->where(function ($q) use ($value) {
+                    $q->where('name', 'like', "%{$value}%")
+                        ->orWhere('contact_email', 'like', "%{$value}%")
+                        ->orWhere('contact_phone', 'like', "%{$value}%");
+                })),
+            ])
+            ->allowedSorts(['id', 'name', 'type', 'status', 'created_at'])
+            ->defaultSort('-created_at')
+            ->with(['user', 'businessType', 'media'])
+            ->paginate($perPage)
+            ->appends(request()->query());
+    }
+
+    public function getAllMerchantsWithoutPagination(): Collection
+    {
+        return Merchant::with(['user', 'businessType', 'media'])->orderBy('name')->get();
+    }
+
+    public function getMerchantById(int $id): Merchant
+    {
+        return Merchant::with([
+            'user',
+            'businessType',
+            'address.region',
+            'address.province',
+            'address.geoCity',
+            'address.barangay',
+            'paymentMethods',
+            'socialLinks.socialPlatform',
+            'documents.documentType',
+            'documents.media',
+            'media',
+        ])->findOrFail($id);
+    }
+
+    public function createMerchant(MerchantData $data): Merchant
+    {
+        $createData = collect($data->toArray())
+            ->reject(fn ($value) => $value instanceof Optional)
+            ->except('address')
+            ->toArray();
+
+        return $this->merchantRepository->create($createData);
+    }
+
+    public function createMerchantForUser(int $userId, MerchantData $data): Merchant
+    {
+        $createData = collect($data->toArray())
+            ->reject(fn ($value) => $value instanceof Optional)
+            ->except('address')
+            ->toArray();
+
+        $createData['user_id'] = $userId;
+
+        return $this->merchantRepository->create($createData);
+    }
+
+    public function updateMerchant(int $id, MerchantData $data): Merchant
+    {
+        $addressData = $data->address;
+
+        $updateData = collect($data->toArray())
+            ->reject(fn ($value) => $value instanceof Optional)
+            ->except('address')
+            ->toArray();
+
+        $merchant = $this->merchantRepository->update($id, $updateData);
+
+        if (! $addressData instanceof Optional && $addressData !== null) {
+            $merchant->updateOrCreateAddress($addressData->toArray());
+        }
+
+        return $merchant;
+    }
+
+    public function updateMerchantAccount(int $id, array $data): Merchant
+    {
+        $merchant = $this->merchantRepository->findOrFail($id);
+        $user = $merchant->user;
+
+        $updateData = [];
+        if (isset($data['email'])) {
+            $updateData['email'] = $data['email'];
+        }
+        if (isset($data['password'])) {
+            $updateData['password'] = Hash::make($data['password']);
+        }
+
+        if (! empty($updateData)) {
+            $user->update($updateData);
+        }
+
+        if (isset($data['email'])) {
+            $merchant->update(['contact_email' => $data['email']]);
+        }
+
+        return $merchant->load('user');
+    }
+
+    public function deleteMerchant(int $id): bool
+    {
+        return $this->merchantRepository->delete($id);
+    }
+
+    public function updateStatus(int $id, string $status, ?string $reason = null): Merchant
+    {
+        $merchant = $this->merchantRepository->findOrFail($id);
+
+        $allowedTransitions = self::VALID_TRANSITIONS[$merchant->status] ?? [];
+
+        if (! in_array($status, $allowedTransitions)) {
+            throw ValidationException::withMessages([
+                'status' => ["Cannot transition from '{$merchant->status}' to '{$status}'."],
+            ]);
+        }
+
+        $updateData = [
+            'status' => $status,
+            'status_changed_at' => now(),
+            'status_reason' => $reason,
+        ];
+
+        if ($status === 'approved') {
+            $updateData['approved_at'] = now();
+        }
+
+        return $this->merchantRepository->update($id, $updateData);
+    }
+
+    public function updateBusinessHours(int $merchantId, array $hours): Merchant
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        foreach ($hours as $hour) {
+            $merchant->businessHours()->updateOrCreate(
+                ['day_of_week' => $hour['day_of_week']],
+                [
+                    'open_time' => $hour['open_time'] ?? null,
+                    'close_time' => $hour['close_time'] ?? null,
+                    'is_closed' => $hour['is_closed'] ?? false,
+                ]
+            );
+        }
+
+        return $merchant->load('businessHours');
+    }
+
+    public function syncPaymentMethods(int $merchantId, array $paymentMethodIds): Merchant
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        $merchant->paymentMethods()->sync($paymentMethodIds);
+
+        return $merchant->load('paymentMethods');
+    }
+
+    public function syncSocialLinks(int $merchantId, array $socialLinks): Merchant
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        // Delete existing and recreate
+        $merchant->socialLinks()->delete();
+
+        foreach ($socialLinks as $link) {
+            $merchant->socialLinks()->create([
+                'social_platform_id' => $link['social_platform_id'],
+                'url' => $link['url'],
+            ]);
+        }
+
+        return $merchant->load('socialLinks.socialPlatform');
+    }
+
+    public function createDocument(int $merchantId, int $documentTypeId, ?string $notes = null): MerchantDocument
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        return $merchant->documents()->updateOrCreate(
+            ['document_type_id' => $documentTypeId],
+            ['notes' => $notes]
+        );
+    }
+
+    public function deleteDocument(int $merchantId, int $documentId): bool
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        $document = $merchant->documents()->findOrFail($documentId);
+        $document->clearMediaCollection('document');
+
+        return $document->delete();
+    }
+
+    public function getMerchantServices(int $merchantId, array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $this->merchantRepository->findOrFail($merchantId);
+
+        $perPage = $filters['per_page'] ?? 15;
+
+        return QueryBuilder::for(Service::where('merchant_id', $merchantId))
+            ->allowedFilters([
+                AllowedFilter::partial('name'),
+                AllowedFilter::exact('service_category_id'),
+                AllowedFilter::exact('is_active'),
+                AllowedFilter::callback('search', fn ($query, $value) => $query->where('name', 'like', "%{$value}%")),
+            ])
+            ->allowedSorts(['id', 'name', 'price', 'is_active', 'created_at'])
+            ->defaultSort('-created_at')
+            ->with(['serviceCategory', 'media'])
+            ->paginate($perPage)
+            ->appends(request()->query());
+    }
+
+    public function getMerchantServiceById(int $merchantId, int $serviceId): Service
+    {
+        $this->merchantRepository->findOrFail($merchantId);
+
+        return Service::where('merchant_id', $merchantId)
+            ->with(['serviceCategory', 'media'])
+            ->findOrFail($serviceId);
+    }
+
+    public function createMerchantService(int $merchantId, ServiceData $data): Service
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        $createData = collect($data->toArray())
+            ->reject(fn ($value) => $value instanceof Optional)
+            ->toArray();
+
+        $service = $merchant->services()->create($createData);
+
+        return $service->load(['serviceCategory', 'media']);
+    }
+
+    public function updateMerchantService(int $merchantId, int $serviceId, ServiceData $data): Service
+    {
+        $this->merchantRepository->findOrFail($merchantId);
+
+        $service = Service::where('merchant_id', $merchantId)->findOrFail($serviceId);
+
+        $updateData = collect($data->toArray())
+            ->reject(fn ($value) => $value instanceof Optional)
+            ->toArray();
+
+        $service->update($updateData);
+
+        return $service->load(['serviceCategory', 'media']);
+    }
+
+    public function deleteMerchantService(int $merchantId, int $serviceId): bool
+    {
+        $this->merchantRepository->findOrFail($merchantId);
+
+        $service = Service::where('merchant_id', $merchantId)->findOrFail($serviceId);
+        $service->clearMediaCollection('image');
+
+        return $service->delete();
+    }
+}

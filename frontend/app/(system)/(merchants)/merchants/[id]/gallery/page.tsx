@@ -1,0 +1,126 @@
+/* eslint-disable @next/next/no-img-element */
+'use client';
+
+import { use } from 'react';
+import { useMerchant, useMerchantGallery } from '@/hooks/useMerchants';
+import { MerchantStatus } from '@/types/api';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Store } from 'lucide-react';
+import Link from 'next/link';
+import { GalleryTab } from './gallery-tab';
+
+const statusColors: Record<MerchantStatus, string> = {
+  pending: 'bg-yellow-500 hover:bg-yellow-600',
+  approved: 'bg-blue-500 hover:bg-blue-600',
+  active: 'bg-emerald-500 hover:bg-emerald-600',
+  rejected: 'bg-red-500 hover:bg-red-600',
+  suspended: 'bg-gray-500 hover:bg-gray-600',
+};
+
+export default function MerchantGalleryPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const merchantId = parseInt(id);
+  const { data: merchantData, isLoading: merchantLoading } = useMerchant(merchantId);
+  const { data: galleryData, isLoading: galleryLoading } = useMerchantGallery(merchantId);
+  const merchant = merchantData?.data;
+  const gallery = galleryData?.data;
+
+  if (merchantLoading || galleryLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!merchant) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Store className="h-12 w-12 text-muted-foreground/50 mb-4" />
+        <p className="text-lg font-medium text-muted-foreground">Merchant not found</p>
+        <Button asChild variant="outline" className="mt-4">
+          <Link href="/merchants"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Merchants</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button asChild variant="ghost" size="icon">
+          <Link href={`/merchants/${merchant.id}/edit`}><ArrowLeft className="h-4 w-4" /></Link>
+        </Button>
+        <div className="flex items-center gap-4 flex-1">
+          {merchant.logo ? (
+            <img src={merchant.logo.preview || merchant.logo.thumb} alt={merchant.name} className="h-12 w-12 rounded-lg object-cover border" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+              <Store className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Gallery: {merchant.name}</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge className={statusColors[merchant.status]}>{merchant.status}</Badge>
+              <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="photos">
+        <TabsList>
+          <TabsTrigger value="photos">Photos</TabsTrigger>
+          <TabsTrigger value="interiors">Interiors</TabsTrigger>
+          <TabsTrigger value="exteriors">Exteriors</TabsTrigger>
+          <TabsTrigger value="feature">Feature Image</TabsTrigger>
+        </TabsList>
+        <TabsContent value="photos">
+          <GalleryTab
+            merchantId={merchantId}
+            collection="photos"
+            images={gallery?.gallery_photos || []}
+            title="Photos"
+            description="General photos of the business"
+            multiple
+          />
+        </TabsContent>
+        <TabsContent value="interiors">
+          <GalleryTab
+            merchantId={merchantId}
+            collection="interiors"
+            images={gallery?.gallery_interiors || []}
+            title="Interiors"
+            description="Interior photos of the business"
+            multiple
+          />
+        </TabsContent>
+        <TabsContent value="exteriors">
+          <GalleryTab
+            merchantId={merchantId}
+            collection="exteriors"
+            images={gallery?.gallery_exteriors || []}
+            title="Exteriors"
+            description="Exterior photos of the business"
+            multiple
+          />
+        </TabsContent>
+        <TabsContent value="feature">
+          <GalleryTab
+            merchantId={merchantId}
+            collection="feature"
+            images={gallery?.gallery_feature ? [gallery.gallery_feature] : []}
+            title="Feature Image"
+            description="Main image displayed on the merchant profile"
+            multiple={false}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
