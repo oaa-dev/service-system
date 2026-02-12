@@ -20,6 +20,9 @@ class BusinessTypeFactory extends Factory
             'description' => fake()->sentence(),
             'is_active' => true,
             'sort_order' => fake()->numberBetween(0, 100),
+            'can_sell_products' => false,
+            'can_take_bookings' => false,
+            'can_rent_units' => false,
         ];
     }
 

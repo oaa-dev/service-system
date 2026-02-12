@@ -13,6 +13,7 @@ import {
   CreateServiceRequest,
   UpdateServiceRequest,
   ServiceQueryParams,
+  UpdateServiceScheduleRequest,
   ApiError,
 } from '@/types/api';
 import { AxiosError } from 'axios';
@@ -295,6 +296,28 @@ export function useDeleteServiceImage() {
       merchantService.deleteServiceImage(merchantId, serviceId),
     onSuccess: (_, { merchantId }) => {
       queryClient.invalidateQueries({ queryKey: ['merchants', merchantId, 'services'] });
+    },
+  });
+}
+
+export function useServiceSchedules(merchantId: number, serviceId: number) {
+  return useQuery({
+    queryKey: ['merchants', merchantId, 'services', serviceId, 'schedules'],
+    queryFn: () => merchantService.getServiceSchedules(merchantId, serviceId),
+    enabled: !!merchantId && !!serviceId,
+  });
+}
+
+export function useUpdateServiceSchedules() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ merchantId, serviceId, data }: { merchantId: number; serviceId: number; data: UpdateServiceScheduleRequest }) =>
+      merchantService.updateServiceSchedules(merchantId, serviceId, data),
+    onSuccess: (_, { merchantId, serviceId }) => {
+      queryClient.invalidateQueries({ queryKey: ['merchants', merchantId, 'services', serviceId, 'schedules'] });
+    },
+    onError: (error: AxiosError<ApiError>) => {
+      console.error('Update service schedules failed:', error.response?.data?.message);
     },
   });
 }

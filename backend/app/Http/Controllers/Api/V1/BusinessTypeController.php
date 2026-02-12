@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Data\BusinessTypeData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BusinessType\StoreBusinessTypeRequest;
+use App\Http\Requests\Api\V1\BusinessType\SyncBusinessTypeFieldsRequest;
 use App\Http\Requests\Api\V1\BusinessType\UpdateBusinessTypeRequest;
+use App\Http\Resources\Api\V1\BusinessTypeFieldResource;
 use App\Http\Resources\Api\V1\BusinessTypeResource;
 use App\Services\Contracts\BusinessTypeServiceInterface;
 use App\Traits\ApiResponse;
@@ -78,6 +80,27 @@ class BusinessTypeController extends Controller
         return $this->successResponse(
             new BusinessTypeResource($businessType),
             'Business type updated successfully'
+        );
+    }
+
+    public function getFields(int $id): JsonResponse
+    {
+        $businessType = $this->businessTypeService->getBusinessTypeById($id);
+        $businessType->load('businessTypeFields.field.fieldValues');
+
+        return $this->successResponse(
+            BusinessTypeFieldResource::collection($businessType->businessTypeFields),
+            'Business type fields retrieved successfully'
+        );
+    }
+
+    public function syncFields(SyncBusinessTypeFieldsRequest $request, int $id): JsonResponse
+    {
+        $businessType = $this->businessTypeService->syncFields($id, $request->validated('fields'));
+
+        return $this->successResponse(
+            BusinessTypeFieldResource::collection($businessType->businessTypeFields),
+            'Business type fields synced successfully'
         );
     }
 

@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import {
-  ArrowLeft, Store, Mail, Phone, Globe, Calendar, User, Briefcase, Pencil, Images, ClipboardList, FolderOpen,
+  ArrowLeft, Store, Mail, Phone, Globe, Calendar, User, Briefcase, Pencil, Images, ClipboardList, FolderOpen, CalendarClock, CalendarDays, ClipboardCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -74,18 +74,36 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ id: s
               <span className="text-sm text-muted-foreground">{merchant.slug}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/merchants/${merchant.id}/service-categories`}><FolderOpen className="mr-2 h-4 w-4" /> Categories</Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Services */}
+            <div className="flex items-center gap-1 rounded-lg border border-dashed p-1">
+              <Button asChild variant="ghost" size="sm">
+                <Link href={`/merchants/${merchant.id}/service-categories`}><FolderOpen className="mr-1.5 h-4 w-4" /> Categories</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={`/merchants/${merchant.id}/services`}><ClipboardList className="mr-1.5 h-4 w-4" /> Services</Link>
+              </Button>
+              {merchant.can_take_bookings && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/merchants/${merchant.id}/bookings`}><CalendarClock className="mr-1.5 h-4 w-4" /> Bookings</Link>
+                </Button>
+              )}
+              {merchant.can_sell_products && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/merchants/${merchant.id}/orders`}><ClipboardCheck className="mr-1.5 h-4 w-4" /> Orders</Link>
+                </Button>
+              )}
+              {merchant.can_rent_units && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/merchants/${merchant.id}/reservations`}><CalendarDays className="mr-1.5 h-4 w-4" /> Reservations</Link>
+                </Button>
+              )}
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/merchants/${merchant.id}/gallery`}><Images className="mr-1.5 h-4 w-4" /> Gallery</Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link href={`/merchants/${merchant.id}/services`}><ClipboardList className="mr-2 h-4 w-4" /> Services</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/merchants/${merchant.id}/gallery`}><Images className="mr-2 h-4 w-4" /> Gallery</Link>
-            </Button>
-            <Button asChild>
-              <Link href={`/merchants/${merchant.id}/edit`}><Pencil className="mr-2 h-4 w-4" /> Edit</Link>
+            <Button asChild size="sm">
+              <Link href={`/merchants/${merchant.id}/edit`}><Pencil className="mr-1.5 h-4 w-4" /> Edit</Link>
             </Button>
           </div>
         </div>

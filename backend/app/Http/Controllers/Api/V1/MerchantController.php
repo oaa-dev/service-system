@@ -19,6 +19,7 @@ use App\Http\Resources\Api\V1\MerchantDocumentResource;
 use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\MerchantSocialLinkResource;
 use App\Http\Resources\Api\V1\PaymentMethodResource;
+use App\Models\BusinessType;
 use App\Models\Merchant;
 use App\Models\User;
 use App\Services\Contracts\MerchantServiceInterface;
@@ -60,17 +61,36 @@ class MerchantController extends Controller
         $merchant = DB::transaction(function () use ($request) {
             $validated = $request->validated();
 
+            $firstName = $validated['user_first_name'];
+            $lastName = $validated['user_last_name'];
+
             $user = User::create([
-                'name' => $validated['user_name'],
+                'name' => trim("{$firstName} {$lastName}"),
                 'email' => $validated['user_email'],
                 'password' => Hash::make($validated['user_password']),
             ]);
             $user->assignRole('user');
 
+            // Save first/last name to profile
+            $user->profile()->update([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+            ]);
+
             $merchantFields = collect($validated)
-                ->except(['user_name', 'user_email', 'user_password'])
+                ->except(['user_first_name', 'user_last_name', 'user_email', 'user_password'])
                 ->toArray();
             $merchantFields['contact_email'] = $validated['user_email'];
+
+            // Copy capability flags from BusinessType if one is selected
+            if (! empty($merchantFields['business_type_id'])) {
+                $businessType = BusinessType::find($merchantFields['business_type_id']);
+                if ($businessType) {
+                    $merchantFields['can_sell_products'] = $businessType->can_sell_products;
+                    $merchantFields['can_take_bookings'] = $businessType->can_take_bookings;
+                    $merchantFields['can_rent_units'] = $businessType->can_rent_units;
+                }
+            }
 
             $data = MerchantData::from($merchantFields);
 

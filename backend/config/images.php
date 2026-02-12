@@ -70,6 +70,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Customer Document Configuration
+    |--------------------------------------------------------------------------
+    */
+    'customer_document' => [
+        'mimes' => ['pdf', 'doc', 'docx', 'jpeg', 'png'],
+        'max_size' => 10240, // KB (10MB)
+        'recommendation' => 'Upload documents in PDF, DOC, DOCX, JPEG, or PNG format. Max file size: 10MB.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Service Image Configuration
     |--------------------------------------------------------------------------
     */

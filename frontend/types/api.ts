@@ -44,7 +44,8 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   password_confirmation: string;
@@ -61,6 +62,8 @@ export interface AuthResponse {
 export interface User {
   id: number;
   name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   email: string;
   email_verified_at: string | null;
   avatar?: Avatar | null;
@@ -72,14 +75,16 @@ export interface User {
 }
 
 export interface CreateUserRequest {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   roles?: string[];
 }
 
 export interface UpdateUserRequest {
-  name?: string;
+  first_name?: string;
+  last_name?: string;
   email?: string;
   password?: string;
   roles?: string[];
@@ -141,7 +146,8 @@ export interface RoleQueryParams {
 }
 
 export interface UpdateAuthUserRequest {
-  name?: string;
+  first_name?: string;
+  last_name?: string;
   email?: string;
   password?: string;
   password_confirmation?: string;
@@ -151,6 +157,8 @@ export interface UpdateAuthUserRequest {
 
 export interface Profile {
   id: number;
+  first_name: string | null;
+  last_name: string | null;
   bio: string | null;
   phone: string | null;
   address: Address | null;
@@ -454,7 +462,11 @@ export interface BusinessType {
   description: string | null;
   is_active: boolean;
   sort_order: number;
+  can_sell_products: boolean;
+  can_take_bookings: boolean;
+  can_rent_units: boolean;
   icon: MediaIcon | null;
+  fields?: BusinessTypeField[];
   created_at: string | null;
   updated_at: string | null;
 }
@@ -464,6 +476,9 @@ export interface CreateBusinessTypeRequest {
   description?: string | null;
   is_active?: boolean;
   sort_order?: number;
+  can_sell_products?: boolean;
+  can_take_bookings?: boolean;
+  can_rent_units?: boolean;
 }
 
 export interface UpdateBusinessTypeRequest {
@@ -471,6 +486,9 @@ export interface UpdateBusinessTypeRequest {
   description?: string | null;
   is_active?: boolean;
   sort_order?: number;
+  can_sell_products?: boolean;
+  can_take_bookings?: boolean;
+  can_rent_units?: boolean;
 }
 
 export interface BusinessTypeQueryParams {
@@ -596,6 +614,9 @@ export interface Merchant {
   approved_at: string | null;
   accepted_terms_at: string | null;
   terms_version: string | null;
+  can_sell_products: boolean;
+  can_take_bookings: boolean;
+  can_rent_units: boolean;
   user?: User;
   business_type?: BusinessType;
   address?: Address | null;
@@ -611,7 +632,8 @@ export interface Merchant {
 export type MerchantStatus = 'pending' | 'approved' | 'active' | 'rejected' | 'suspended';
 
 export interface CreateMerchantRequest {
-  user_name: string;
+  user_first_name: string;
+  user_last_name: string;
   user_email: string;
   user_password: string;
   parent_id?: number | null;
@@ -630,6 +652,9 @@ export interface UpdateMerchantRequest {
   description?: string | null;
   contact_phone?: string | null;
   address?: AddressInput | null;
+  can_sell_products?: boolean;
+  can_take_bookings?: boolean;
+  can_rent_units?: boolean;
 }
 
 export interface UpdateMerchantAccountRequest {
@@ -727,6 +752,9 @@ export type GalleryCollection = 'photos' | 'interiors' | 'exteriors' | 'feature'
 
 // Service Types (Merchant Sub-Entity)
 
+export type ServiceType = 'sellable' | 'bookable' | 'reservation';
+export type UnitStatus = 'available' | 'occupied' | 'maintenance';
+
 export interface Service {
   id: number;
   merchant_id: number;
@@ -736,6 +764,22 @@ export interface Service {
   description: string | null;
   price: string;
   is_active: boolean;
+  service_type: ServiceType;
+  // sellable fields
+  sku: string | null;
+  stock_quantity: number | null;
+  track_stock: boolean;
+  // bookable fields
+  duration: number | null;
+  max_capacity: number;
+  requires_confirmation: boolean;
+  // reservation fields
+  price_per_night: string | null;
+  floor: string | null;
+  unit_status: UnitStatus;
+  amenities: string[] | null;
+  // custom fields
+  custom_fields?: BusinessTypeFieldValue[];
   service_category?: ServiceCategory | null;
   image?: {
     url: string;
@@ -752,6 +796,18 @@ export interface CreateServiceRequest {
   description?: string | null;
   price: number;
   is_active?: boolean;
+  service_type: ServiceType;
+  sku?: string | null;
+  stock_quantity?: number | null;
+  track_stock?: boolean;
+  duration?: number | null;
+  max_capacity?: number;
+  requires_confirmation?: boolean;
+  price_per_night?: number | null;
+  floor?: string | null;
+  unit_status?: UnitStatus;
+  amenities?: string[] | null;
+  custom_fields?: Record<string, string | number | number[]>;
 }
 
 export interface UpdateServiceRequest {
@@ -760,6 +816,18 @@ export interface UpdateServiceRequest {
   description?: string | null;
   price?: number;
   is_active?: boolean;
+  service_type?: ServiceType;
+  sku?: string | null;
+  stock_quantity?: number | null;
+  track_stock?: boolean;
+  duration?: number | null;
+  max_capacity?: number;
+  requires_confirmation?: boolean;
+  price_per_night?: number | null;
+  floor?: string | null;
+  unit_status?: UnitStatus;
+  amenities?: string[] | null;
+  custom_fields?: Record<string, string | number | number[]>;
 }
 
 export interface ServiceQueryParams {
@@ -770,4 +838,465 @@ export interface ServiceQueryParams {
   'filter[name]'?: string;
   'filter[service_category_id]'?: string;
   'filter[is_active]'?: string;
+  'filter[service_type]'?: string;
+}
+
+export interface ServiceSchedule {
+  id: number;
+  service_id: number;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface UpdateServiceScheduleRequest {
+  schedules: {
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+  }[];
+}
+
+// Booking Types
+
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+
+export interface Booking {
+  id: number;
+  merchant_id: number;
+  service_id: number;
+  customer_id: number;
+  booking_date: string;
+  start_time: string;
+  end_time: string;
+  party_size: number;
+  service_price: string;
+  fee_rate: string;
+  fee_amount: string;
+  total_amount: string;
+  status: BookingStatus;
+  notes: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  service?: Service;
+  customer?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreateBookingRequest {
+  service_id: number;
+  booking_date: string;
+  start_time: string;
+  party_size?: number;
+  notes?: string | null;
+}
+
+export interface UpdateBookingStatusRequest {
+  status: BookingStatus;
+}
+
+export interface BookingQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[status]'?: string;
+  'filter[service_id]'?: string;
+  'filter[date_from]'?: string;
+  'filter[date_to]'?: string;
+  'filter[search]'?: string;
+}
+
+// Field Types
+
+export type FieldType = 'input' | 'select' | 'checkbox' | 'radio';
+
+export interface FieldValue {
+  id: number;
+  field_id: number;
+  label: string;
+  value: string;
+  sort_order: number;
+}
+
+export interface Field {
+  id: number;
+  label: string;
+  name: string;
+  type: FieldType;
+  config: Record<string, unknown> | null;
+  is_active: boolean;
+  sort_order: number;
+  values: FieldValue[];
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreateFieldRequest {
+  label: string;
+  name?: string;
+  type: FieldType;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+  sort_order?: number;
+  values?: { value: string; sort_order?: number }[];
+}
+
+export interface UpdateFieldRequest {
+  label?: string;
+  name?: string;
+  type?: FieldType;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+  sort_order?: number;
+  values?: { value: string; sort_order?: number }[];
+}
+
+export interface FieldQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[type]'?: string;
+  'filter[is_active]'?: string;
+}
+
+// BusinessType Field Types
+
+export interface BusinessTypeField {
+  id: number;
+  business_type_id: number;
+  field_id: number;
+  is_required: boolean;
+  sort_order: number;
+  field?: Field;
+}
+
+export interface SyncBusinessTypeFieldsRequest {
+  fields: { field_id: number; is_required?: boolean; sort_order?: number }[];
+}
+
+export interface BusinessTypeFieldValue {
+  id: number;
+  service_id: number;
+  business_type_field_id: number;
+  field_value_id: number | null;
+  value: string | null;
+  field_value?: FieldValue;
+  business_type_field?: BusinessTypeField;
+}
+
+// Customer Tag Types
+
+export interface CustomerTag {
+  id: number;
+  name: string;
+  slug: string;
+  color: string | null;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreateCustomerTagRequest {
+  name: string;
+  color?: string | null;
+  description?: string | null;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export interface UpdateCustomerTagRequest {
+  name?: string;
+  color?: string | null;
+  description?: string | null;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export interface CustomerTagQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[name]'?: string;
+  'filter[is_active]'?: string;
+}
+
+// Customer Types
+
+export type CustomerType = 'individual' | 'corporate';
+export type CustomerTier = 'regular' | 'silver' | 'gold' | 'platinum';
+export type CustomerStatus = 'active' | 'suspended' | 'banned';
+export type CustomerPaymentMethod = 'cash' | 'e-wallet' | 'card';
+export type CustomerCommunicationPreference = 'sms' | 'email' | 'both';
+export type CustomerInteractionType = 'note' | 'call' | 'complaint' | 'inquiry';
+
+export interface Customer {
+  id: number;
+  user?: { id: number; name: string; email: string; profile?: Profile | null };
+  customer_type: CustomerType;
+  company_name: string | null;
+  customer_notes: string | null;
+  loyalty_points: number;
+  customer_tier: CustomerTier;
+  preferred_payment_method: CustomerPaymentMethod | null;
+  communication_preference: CustomerCommunicationPreference;
+  status: CustomerStatus;
+  tags?: CustomerTag[];
+  documents?: CustomerDocument[];
+  interactions_count?: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreateCustomerRequest {
+  user_first_name: string;
+  user_last_name: string;
+  user_email: string;
+  user_password: string;
+  customer_type?: CustomerType;
+  company_name?: string | null;
+}
+
+export interface UpdateCustomerRequest {
+  customer_type?: CustomerType;
+  company_name?: string | null;
+  customer_notes?: string | null;
+  loyalty_points?: number;
+  customer_tier?: CustomerTier;
+  preferred_payment_method?: CustomerPaymentMethod | null;
+  communication_preference?: CustomerCommunicationPreference;
+}
+
+export interface UpdateCustomerStatusRequest {
+  status: CustomerStatus;
+}
+
+export interface SyncCustomerTagsRequest {
+  tag_ids: number[];
+}
+
+export interface CustomerQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[customer_type]'?: CustomerType | '';
+  'filter[customer_tier]'?: CustomerTier | '';
+  'filter[status]'?: CustomerStatus | '';
+  'filter[tag_id]'?: string;
+}
+
+// Customer Interaction Types
+
+export interface CustomerInteraction {
+  id: number;
+  type: CustomerInteractionType;
+  description: string;
+  logged_by?: { id: number; name: string };
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreateCustomerInteractionRequest {
+  type: CustomerInteractionType;
+  description: string;
+}
+
+export interface CustomerInteractionQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[type]'?: CustomerInteractionType | '';
+}
+
+// Customer Preferences (self-service)
+
+export interface UpdateCustomerPreferencesRequest {
+  preferred_payment_method?: CustomerPaymentMethod | null;
+  communication_preference?: CustomerCommunicationPreference;
+}
+
+export interface UpdateCustomerProfileRequest {
+  bio?: string | null;
+  phone?: string | null;
+  date_of_birth?: string | null;
+  gender?: 'male' | 'female' | 'other' | null;
+  address?: AddressInput | null;
+}
+
+export interface UpdateCustomerAccountRequest {
+  email?: string;
+  password?: string;
+}
+
+export interface CustomerDocument {
+  id: number;
+  document_type_id: number;
+  notes: string | null;
+  document_type?: DocumentType;
+  file: MediaFile | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+// Reservation Types
+
+export type ReservationStatus = 'pending' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled';
+
+export interface Reservation {
+  id: number;
+  merchant_id: number;
+  service_id: number;
+  customer_id: number;
+  check_in: string;
+  check_out: string;
+  guest_count: number;
+  nights: number;
+  price_per_night: string;
+  total_price: string;
+  fee_rate: string;
+  fee_amount: string;
+  total_amount: string;
+  status: ReservationStatus;
+  notes: string | null;
+  special_requests: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
+  service?: Service;
+  customer?: { id: number; name: string; email: string };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateReservationRequest {
+  service_id: number;
+  check_in: string;
+  check_out: string;
+  guest_count?: number;
+  notes?: string;
+  special_requests?: string;
+}
+
+export interface UpdateReservationStatusRequest {
+  status: ReservationStatus;
+}
+
+export interface ReservationQueryParams {
+  page?: number;
+  per_page?: number;
+  'filter[status]'?: string;
+  'filter[service_id]'?: number;
+  'filter[date_from]'?: string;
+  'filter[date_to]'?: string;
+  sort?: string;
+}
+
+// Service Order Types
+
+export type ServiceOrderStatus = 'pending' | 'received' | 'processing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
+
+export interface ServiceOrder {
+  id: number;
+  merchant_id: number;
+  service_id: number;
+  customer_id: number;
+  order_number: string;
+  quantity: string;
+  unit_label: string;
+  unit_price: string;
+  total_price: string;
+  fee_rate: string;
+  fee_amount: string;
+  total_amount: string;
+  status: ServiceOrderStatus;
+  notes: string | null;
+  estimated_completion: string | null;
+  received_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  service?: Service;
+  customer?: { id: number; name: string; email: string };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateServiceOrderRequest {
+  service_id: number;
+  quantity: number;
+  unit_label: string;
+  notes?: string;
+}
+
+export interface UpdateServiceOrderStatusRequest {
+  status: ServiceOrderStatus;
+}
+
+export interface ServiceOrderQueryParams {
+  page?: number;
+  per_page?: number;
+  'filter[status]'?: string;
+  'filter[service_id]'?: number;
+  'filter[date_from]'?: string;
+  'filter[date_to]'?: string;
+  'filter[search]'?: string;
+  sort?: string;
+}
+
+// Platform Fee Types
+
+export type PlatformFeeTransactionType = 'booking' | 'reservation' | 'sell_product';
+
+export interface PlatformFee {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  transaction_type: PlatformFeeTransactionType;
+  rate_percentage: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreatePlatformFeeRequest {
+  name: string;
+  description?: string | null;
+  transaction_type: PlatformFeeTransactionType;
+  rate_percentage: number;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export interface UpdatePlatformFeeRequest {
+  name?: string;
+  description?: string | null;
+  transaction_type?: PlatformFeeTransactionType;
+  rate_percentage?: number;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export interface PlatformFeeQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[name]'?: string;
+  'filter[is_active]'?: string;
+  'filter[transaction_type]'?: string;
 }

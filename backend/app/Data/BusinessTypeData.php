@@ -13,5 +13,8 @@ class BusinessTypeData extends Data
         public string|null|Optional $description = new Optional(),
         public bool|Optional $is_active = new Optional(),
         public int|Optional $sort_order = new Optional(),
+        public bool|Optional $can_sell_products = new Optional(),
+        public bool|Optional $can_take_bookings = new Optional(),
+        public bool|Optional $can_rent_units = new Optional(),
     ) {}
 }

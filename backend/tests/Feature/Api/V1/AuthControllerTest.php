@@ -6,7 +6,8 @@ use Laravel\Passport\Passport;
 describe('Auth Registration', function () {
     it('can register a new user', function () {
         $response = $this->postJson('/api/v1/auth/register', [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => 'test@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -17,7 +18,7 @@ describe('Auth Registration', function () {
                 'success',
                 'message',
                 'data' => [
-                    'user' => ['id', 'name', 'email', 'created_at', 'updated_at'],
+                    'user' => ['id', 'name', 'email', 'first_name', 'last_name', 'created_at', 'updated_at'],
                     'access_token',
                     'token_type',
                 ],
@@ -25,10 +26,23 @@ describe('Auth Registration', function () {
             ->assertJson([
                 'success' => true,
                 'message' => 'User registered successfully',
+                'data' => [
+                    'user' => [
+                        'name' => 'Test User',
+                        'first_name' => 'Test',
+                        'last_name' => 'User',
+                    ],
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
+            'name' => 'Test User',
             'email' => 'test@example.com',
+        ]);
+
+        $this->assertDatabaseHas('user_profiles', [
+            'first_name' => 'Test',
+            'last_name' => 'User',
         ]);
     });
 
@@ -36,14 +50,15 @@ describe('Auth Registration', function () {
         $response = $this->postJson('/api/v1/auth/register', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'password']);
+            ->assertJsonValidationErrors(['first_name', 'last_name', 'email', 'password']);
     });
 
     it('validates email uniqueness', function () {
         User::factory()->create(['email' => 'test@example.com']);
 
         $response = $this->postJson('/api/v1/auth/register', [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => 'test@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -55,7 +70,8 @@ describe('Auth Registration', function () {
 
     it('validates password confirmation', function () {
         $response = $this->postJson('/api/v1/auth/register', [
-            'name' => 'Test User',
+            'first_name' => 'Test',
+            'last_name' => 'User',
             'email' => 'test@example.com',
             'password' => 'password123',
             'password_confirmation' => 'different_password',
@@ -143,12 +159,13 @@ describe('Auth Profile', function () {
         $response->assertStatus(401);
     });
 
-    it('can update authenticated user profile', function () {
+    it('can update first and last name', function () {
         $user = User::factory()->create();
         Passport::actingAs($user);
 
         $response = $this->putJson('/api/v1/auth/me', [
-            'name' => 'Updated Name',
+            'first_name' => 'John',
+            'last_name' => 'Smith',
         ]);
 
         $response->assertStatus(200)
@@ -156,13 +173,19 @@ describe('Auth Profile', function () {
                 'success' => true,
                 'message' => 'Profile updated successfully',
                 'data' => [
-                    'name' => 'Updated Name',
+                    'name' => 'John Smith',
                 ],
             ]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
-            'name' => 'Updated Name',
+            'name' => 'John Smith',
+        ]);
+
+        $this->assertDatabaseHas('user_profiles', [
+            'user_id' => $user->id,
+            'first_name' => 'John',
+            'last_name' => 'Smith',
         ]);
     });
 });

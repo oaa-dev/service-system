@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -20,6 +21,9 @@ class BusinessType extends Model implements HasMedia
         'description',
         'is_active',
         'sort_order',
+        'can_sell_products',
+        'can_take_bookings',
+        'can_rent_units',
     ];
 
     protected function casts(): array
@@ -27,6 +31,9 @@ class BusinessType extends Model implements HasMedia
         return [
             'is_active' => 'boolean',
             'sort_order' => 'integer',
+            'can_sell_products' => 'boolean',
+            'can_take_bookings' => 'boolean',
+            'can_rent_units' => 'boolean',
         ];
     }
 
@@ -43,6 +50,11 @@ class BusinessType extends Model implements HasMedia
                 $businessType->slug = Str::slug($businessType->name);
             }
         });
+    }
+
+    public function businessTypeFields(): HasMany
+    {
+        return $this->hasMany(BusinessTypeField::class)->orderBy('sort_order');
     }
 
     public function registerMediaCollections(): void

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -23,6 +24,20 @@ class Service extends Model implements HasMedia
         'description',
         'price',
         'is_active',
+        'service_type',
+        // sellable fields
+        'sku',
+        'stock_quantity',
+        'track_stock',
+        // bookable fields
+        'duration',
+        'max_capacity',
+        'requires_confirmation',
+        // reservation fields
+        'price_per_night',
+        'floor',
+        'unit_status',
+        'amenities',
     ];
 
     protected function casts(): array
@@ -30,6 +45,13 @@ class Service extends Model implements HasMedia
         return [
             'price' => 'decimal:2',
             'is_active' => 'boolean',
+            'track_stock' => 'boolean',
+            'stock_quantity' => 'integer',
+            'duration' => 'integer',
+            'max_capacity' => 'integer',
+            'requires_confirmation' => 'boolean',
+            'price_per_night' => 'decimal:2',
+            'amenities' => 'array',
         ];
     }
 
@@ -78,5 +100,30 @@ class Service extends Model implements HasMedia
     public function serviceCategory(): BelongsTo
     {
         return $this->belongsTo(ServiceCategory::class);
+    }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(ServiceSchedule::class);
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function serviceOrders(): HasMany
+    {
+        return $this->hasMany(ServiceOrder::class);
+    }
+
+    public function customFieldValues(): HasMany
+    {
+        return $this->hasMany(BusinessTypeFieldValue::class);
     }
 }

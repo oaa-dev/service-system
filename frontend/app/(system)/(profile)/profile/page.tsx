@@ -5,12 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfile, useUpdateProfile, useUploadAvatar, useDeleteAvatar } from '@/hooks/useProfile';
+import { useCustomerProfile, useUpdateCustomerPreferences } from '@/hooks/useCustomers';
 import { useUpdateMe } from '@/hooks/useAuth';
 import {
   updateProfileSchema,
   updateAccountSchema,
+  updateCustomerPreferencesSchema,
   type UpdateProfileFormData,
   type UpdateAccountFormData,
+  type UpdateCustomerPreferencesFormData,
 } from '@/lib/validations';
 import { getInitials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,6 +57,7 @@ import {
   FileText,
   Shield,
   CheckCircle2,
+  Heart,
 } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { ApiError } from '@/types/api';
@@ -63,11 +67,15 @@ import { AddressFormFields } from '@/components/address-form-fields';
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const { data: profileData } = useProfile();
+  const { data: customerData } = useCustomerProfile();
   const updateProfile = useUpdateProfile();
   const updateMe = useUpdateMe();
+  const updateCustomerPrefs = useUpdateCustomerPreferences();
   const uploadAvatar = useUploadAvatar();
   const deleteAvatar = useDeleteAvatar();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isCustomer = user?.roles?.includes('customer');
 
   // Avatar crop state
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -75,12 +83,14 @@ export default function ProfilePage() {
   const [uploadedAvatarPreview, setUploadedAvatarPreview] = useState<string | null>(null);
 
   const profile = profileData?.data;
+  const customerProfile = customerData?.data;
 
   // Account form
   const accountForm = useForm<UpdateAccountFormData>({
     resolver: zodResolver(updateAccountSchema),
     defaultValues: {
-      name: user?.name || '',
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
       email: user?.email || '',
     },
   });
@@ -104,11 +114,21 @@ export default function ProfilePage() {
     },
   });
 
+  // Customer preferences form
+  const preferencesForm = useForm<UpdateCustomerPreferencesFormData>({
+    resolver: zodResolver(updateCustomerPreferencesSchema),
+    defaultValues: {
+      preferred_payment_method: null,
+      communication_preference: 'both',
+    },
+  });
+
   // Update account form when user changes
   useEffect(() => {
     if (user) {
       accountForm.reset({
-        name: user.name,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         email: user.email,
       });
     }
@@ -133,6 +153,27 @@ export default function ProfilePage() {
       });
     }
   }, [profile, profileForm]);
+
+  // Update preferences form when customer profile data loads
+  useEffect(() => {
+    if (customerProfile) {
+      preferencesForm.reset({
+        preferred_payment_method: customerProfile.preferred_payment_method || null,
+        communication_preference: customerProfile.communication_preference || 'both',
+      });
+    }
+  }, [customerProfile, preferencesForm]);
+
+  const onPreferencesSubmit = (data: UpdateCustomerPreferencesFormData) => {
+    updateCustomerPrefs.mutate(data, {
+      onError: (error) => {
+        const axiosError = error as AxiosError<ApiError>;
+        preferencesForm.setError('root', {
+          message: axiosError.response?.data?.message || 'Failed to update preferences',
+        });
+      },
+    });
+  };
 
   const onAccountSubmit = (data: UpdateAccountFormData) => {
     updateMe.mutate(data, {
@@ -410,16 +451,16 @@ export default function ProfilePage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={accountForm.control}
-                      name="name"
+                      name="first_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel>First Name</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                               <Input
                                 className="pl-9"
-                                placeholder="John Doe"
+                                placeholder="John"
                                 disabled={updateMe.isPending}
                                 {...field}
                               />
@@ -429,7 +470,26 @@ export default function ProfilePage() {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={accountForm.control}
+                      name="last_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Doe"
+                              disabled={updateMe.isPending}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
+                  <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={accountForm.control}
                       name="email"
@@ -610,6 +670,98 @@ export default function ProfilePage() {
               </Form>
             </CardContent>
           </Card>
+          {/* Customer Preferences (only for customers) */}
+          {isCustomer && customerProfile && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <Heart className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>Customer Preferences</CardTitle>
+                    <CardDescription>
+                      Manage your payment and communication preferences
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Form {...preferencesForm}>
+                  <form onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)} className="space-y-4">
+                    {preferencesForm.formState.errors.root && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{preferencesForm.formState.errors.root.message}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={preferencesForm.control}
+                        name="preferred_payment_method"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Preferred Payment Method</FormLabel>
+                            <Select
+                              onValueChange={(val) => field.onChange(val || null)}
+                              value={field.value || ''}
+                              disabled={updateCustomerPrefs.isPending}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select payment method" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="cash">Cash</SelectItem>
+                                <SelectItem value="e-wallet">E-Wallet</SelectItem>
+                                <SelectItem value="card">Card</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={preferencesForm.control}
+                        name="communication_preference"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Communication Preference</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || ''}
+                              disabled={updateCustomerPrefs.isPending}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select preference" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="sms">SMS</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="both">Both</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={updateCustomerPrefs.isPending}>
+                        {updateCustomerPrefs.isPending && <Spinner className="mr-2 h-4 w-4" />}
+                        Save Preferences
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

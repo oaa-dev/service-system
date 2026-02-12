@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Data\CustomerData;
 use App\Data\ProfileData;
+use App\Models\Customer;
 use App\Models\UserProfile;
 use App\Repositories\Contracts\ProfileRepositoryInterface;
 use App\Services\Contracts\ProfileServiceInterface;
@@ -61,5 +63,30 @@ class ProfileService implements ProfileServiceInterface
         $profile->clearMediaCollection('avatar');
 
         return $profile;
+    }
+
+    public function getCustomerByUserId(int $userId): Customer
+    {
+        $customer = Customer::where('user_id', $userId)->with('tags')->first();
+
+        if (! $customer) {
+            throw new ModelNotFoundException('Customer profile not found');
+        }
+
+        return $customer;
+    }
+
+    public function updateCustomerPreferences(int $userId, CustomerData $data): Customer
+    {
+        $customer = $this->getCustomerByUserId($userId);
+
+        $updateData = collect($data->toArray())
+            ->reject(fn ($value) => $value instanceof Optional)
+            ->only(['preferred_payment_method', 'communication_preference'])
+            ->toArray();
+
+        $customer->update($updateData);
+
+        return $customer->fresh(['tags']);
     }
 }

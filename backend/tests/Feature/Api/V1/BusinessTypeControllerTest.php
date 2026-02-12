@@ -21,7 +21,7 @@ describe('Business Type Index', function () {
                 'success',
                 'message',
                 'data' => [
-                    '*' => ['id', 'name', 'slug', 'description', 'is_active', 'sort_order', 'created_at', 'updated_at'],
+                    '*' => ['id', 'name', 'slug', 'description', 'is_active', 'sort_order', 'can_sell_products', 'can_take_bookings', 'can_rent_units', 'created_at', 'updated_at'],
                 ],
                 'meta' => ['current_page', 'last_page', 'per_page', 'total'],
                 'links',
@@ -117,6 +117,47 @@ describe('Business Type Store', function () {
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name']);
     });
+
+    it('can create a business type with capability flags', function () {
+        $response = $this->postJson('/api/v1/business-types', [
+            'name' => 'Barbershop',
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => false,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => 'Barbershop',
+                    'can_sell_products' => true,
+                    'can_take_bookings' => true,
+                    'can_rent_units' => false,
+                ],
+            ]);
+
+        $this->assertDatabaseHas('business_types', [
+            'name' => 'Barbershop',
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+        ]);
+    });
+
+    it('defaults capability flags to false', function () {
+        $response = $this->postJson('/api/v1/business-types', [
+            'name' => 'Generic Type',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'data' => [
+                    'can_sell_products' => false,
+                    'can_take_bookings' => false,
+                    'can_rent_units' => false,
+                ],
+            ]);
+    });
 });
 
 describe('Business Type Show', function () {
@@ -174,6 +215,35 @@ describe('Business Type Update', function () {
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name']);
+    });
+
+    it('can update capability flags', function () {
+        $businessType = BusinessType::factory()->create([
+            'can_sell_products' => false,
+            'can_take_bookings' => false,
+        ]);
+
+        $response = $this->putJson("/api/v1/business-types/{$businessType->id}", [
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => true,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'can_sell_products' => true,
+                    'can_take_bookings' => true,
+                    'can_rent_units' => true,
+                ],
+            ]);
+
+        $this->assertDatabaseHas('business_types', [
+            'id' => $businessType->id,
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => true,
+        ]);
     });
 });
 

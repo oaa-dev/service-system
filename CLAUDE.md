@@ -4,203 +4,132 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a monorepo containing two applications:
-- **Backend**: `backend/` - Laravel 12 REST API with OAuth2 authentication
-- **Frontend**: `frontend/` - Next.js 16 with React 19
+Monorepo with two applications:
+- **Backend**: `backend/` — Laravel 12 REST API with OAuth2 (Laravel Passport)
+- **Frontend**: `frontend/` — Next.js 16 with React 19
+
+This is a marketplace/merchant management platform with modules for merchants, services, bookings, reservations, orders, customers, and platform fees.
 
 ## Development Commands
 
-### Backend (backend/)
+### Backend
+
+All backend commands run via Docker from the `backend/` directory:
 
 ```bash
-docker compose up -d    # Start Docker containers (MySQL, Redis, etc.)
-docker compose exec app php artisan migrate    # Run migrations
-docker compose exec app php artisan test       # Run Pest tests
-docker compose exec app composer install       # Install dependencies
-./vendor/bin/pint       # Code formatting (Laravel Pint)
+docker compose up -d                            # Start containers
+docker compose exec app php artisan migrate     # Run migrations
+docker compose exec app php artisan test        # Run all Pest tests
+docker compose exec app php artisan test --filter=TestClassName  # Single test class
+docker compose exec app php artisan test --filter=test_method_name  # Single test method
+docker compose exec app php artisan test tests/Feature/Api/V1/SomeControllerTest.php  # By file
+docker compose exec app php artisan db:seed     # Run seeders
+docker compose exec app composer install        # Install dependencies
 ```
 
 **API URL:** http://localhost:8090/api/v1
 
-### Frontend (frontend/)
+### Frontend
+
+From the `frontend/` directory:
 
 ```bash
-npm install             # Install dependencies (first time)
-npm run dev             # Development server (localhost:3000)
-npm run build           # Production build
-npm run lint            # ESLint
+npm install        # Install dependencies
+npm run dev        # Dev server at localhost:3000
+npm run build      # Production build
+npm run lint       # ESLint
 ```
 
-**Frontend URL:** http://localhost:3000
-
-### Running Single Tests
-
-```bash
-# From backend/
-php artisan test --filter=TestClassName
-php artisan test --filter=test_method_name
-php artisan test tests/Feature/Api/V1/AuthControllerTest.php
-```
+When running in Docker: `docker compose exec nextjs npm run build` (from `frontend/` dir)
 
 ## Architecture
 
-### Backend - Service-Repository Pattern
+### Backend — Service-Repository Pattern
 
 ```
-Controllers → Services → Repositories → Models → Database
-     ↓
-  Resources (JSON transformation)
-     ↓
-  ApiResponse trait (standardized JSON format)
+Route → Controller → FormRequest (validation) → DTO (data transfer) → Service (business logic) → Repository (data access) → Model
+                                                                                                                              ↓
+                                                                              Resource (JSON transform) ← ApiResponse trait ← Database
 ```
 
 **Key directories:**
-- `app/Http/Controllers/Api/V1/` - API controllers (Auth, User, Profile)
-- `app/Services/` - Business logic with interface contracts
-- `app/Repositories/` - Data access layer with BaseRepository
-- `app/Http/Resources/Api/V1/` - JSON transformers (output)
-- `app/Http/Requests/Api/V1/` - Form Request validation classes
-- `app/Data/` - Input DTOs (Spatie Laravel Data)
-- `app/Rules/` - Custom validation rules
-- `routes/api.php` - All API routes (v1 prefix)
+- `app/Http/Controllers/Api/V1/` — API controllers
+- `app/Services/` — Business logic with `Contracts/` interfaces
+- `app/Repositories/` — Data access with `Contracts/` interfaces, extends `BaseRepository`
+- `app/Http/Resources/Api/V1/` — JSON output transformers
+- `app/Http/Requests/Api/V1/` — Form Request validation (organized by module subdirectories)
+- `app/Data/` — Input DTOs (Spatie Laravel Data). One model = one DTO. All fields use `string|Optional` pattern
+- `app/Rules/` — Custom validation rules (e.g., `ImageRule` with static factories per image type)
+- `app/Providers/RepositoryServiceProvider.php` — All service/repository interface bindings
+- `routes/api.php` — All API routes (v1 prefix)
+- `config/images.php` — Centralized image upload config (avatar, document, merchant_logo, service_image, etc.)
+- `database/seeders/RolePermissionSeeder.php` — All permissions and role definitions
 
-**Standard API Response Format:**
+**Standard API Response:**
 ```json
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": { ... },
-  "meta": { "pagination": ... }
-}
+{"success": true, "message": "...", "data": {...}, "meta": {"pagination": ...}}
 ```
 
-### Input DTOs (Data Transfer Objects)
-
-Type-safe data transfer from Controllers to Services using Spatie Laravel Data.
-
-**Design Principle:** One model = One DTO
-
-**Location:** `app/Data/`
-
+**DTO pattern (Spatie Laravel Data):**
 ```php
-// Example: app/Data/UserData.php
-use Spatie\LaravelData\Data;
-use Spatie\LaravelData\Optional;
-
-class UserData extends Data
-{
+class ExampleData extends Data {
     public function __construct(
         public string|Optional $name = new Optional(),
-        public string|Optional $email = new Optional(),
-        public string|Optional $password = new Optional(),
-        public array|Optional $roles = new Optional(),
     ) {}
 }
+// Controller: ExampleData::from($request->validated())
+// Service: collect($data->toArray())->reject(fn($v) => $v instanceof Optional)->toArray()
 ```
 
-**Usage in Controller:**
-```php
-$data = UserData::from($request->validated());
-$user = $this->userService->createUser($data);
-```
+### Conventions & Patterns
 
-**Usage in Service:**
-```php
-public function updateUser(int $id, UserData $data): User
-{
-    $updateData = collect($data->toArray())
-        ->reject(fn ($value) => $value instanceof Optional)
-        ->toArray();
-    // ...
-}
-```
+- **Permissions:** `module_name.action` format (e.g., `merchants.view`, `services.create`). Defined in `RolePermissionSeeder`, applied via `permission:` middleware on routes
+- **Roles:** super-admin (bypasses all checks via Gate::before), admin, manager, user, customer
+- **Public routes:** Reference data has `/active` endpoints (no auth). CRUD routes require auth + permissions
+- **Unpaginated lists:** `/all` route inside auth middleware for dropdown data
+- **Merchant sub-entities:** Nested under `merchants/{merchant}/` (services, bookings, reservations, orders, service-categories)
+- **Status workflows:** Validated in service layer using `VALID_TRANSITIONS` constant map
+- **Model defaults:** Use `$attributes` array (not DB defaults) since Eloquent `Model::create()` doesn't pick up DB defaults
+- **File uploads:** Spatie Media Library with named collections (logo, icon, image, document). Image config in `config/images.php`, validated via `ImageRule::staticFactory()`
+- **Controller destroy:** try-catch wraps `ModelNotFoundException` and returns 422 (not 404)
+- **Capability flags:** BusinessType and Merchant have `can_sell_products`, `can_take_bookings`, `can_rent_units` — gating which sub-modules are available
+- **Custom fields:** 3-table EAV pattern — Field → FieldValue (options) → BusinessTypeField (pivot with is_required + sort_order)
 
-**Available DTOs:**
-- `UserData` - User create/update
-- `ProfileData` - Profile update (with nested AddressData)
-- `AddressData` - Address fields
-- `RoleData` - Role create/update
-- `ConversationData` - Messaging conversations
+### Frontend — Next.js App Router
 
-### Image Configuration
+**Route groups** under `app/`:
+- `(auth)` — Login/register pages
+- `(system)` — Authenticated layout (`SystemLayout`) containing all admin pages:
+  - `(merchants)/` — Merchant CRUD, services, bookings, reservations, orders
+  - `(settings)/` — Reference data management (business types, payment methods, etc.)
+  - `(customers)/` — Customer management
+  - `(users)/` — User management
+  - `(profile)/` — User profile
+  - `(dashboard)/` — Dashboard
+  - `(messaging)/` — Messaging
 
-Centralized image upload configuration with custom validation rule.
+**Stack:**
+- TanStack React Query v5 — Server state, API caching
+- TanStack React Form v1 — Form management
+- Zustand v5 — Client/UI state
+- Tailwind CSS v4 — Styling
+- Zod — Schema validation (in `lib/validations.ts`)
 
-**Config:** `config/images.php`
-```php
-'avatar' => [
-    'mimes' => ['jpeg', 'png', 'webp'],
-    'max_size' => 5120,  // KB (5MB)
-    'min_width' => 100,
-    'min_height' => 100,
-    'max_width' => 4000,
-    'max_height' => 4000,
-    'recommendation' => 'Upload a square image...',
-],
-'document' => [
-    'mimes' => ['pdf', 'doc', 'docx'],
-    'max_size' => 10240,  // KB (10MB)
-    'recommendation' => 'Upload documents in PDF...',
-],
-```
+**Frontend file conventions:**
+- `services/*.ts` — API call functions (one per backend module)
+- `hooks/use*.ts` — React Query hooks wrapping services (one per module)
+- `types/api.ts` — All TypeScript interfaces for API responses
+- `lib/validations.ts` — All Zod schemas for forms
+- `components/ui/` — shadcn/ui components
+- `components/permission-gate.tsx` — Permission-based conditional rendering
+- `components/address-form-fields.tsx` — Cascading geographic dropdown (Region→Province→City→Barangay)
 
-**Validation Rule:** `app/Rules/ImageRule.php`
-```php
-// In FormRequest
-public function rules(): array
-{
-    return [
-        'avatar' => ['required', ImageRule::avatar()],
-        'document' => ['required', ImageRule::document()],
-    ];
-}
-```
-
-**API Endpoint:** `GET /api/v1/config/images` - Returns image configuration (public, no auth required)
-
-### Frontend - Next.js App Router
-
-**State Management:**
-- TanStack React Query - Server state, API caching
-- Zustand - Client/UI state
-- TanStack React Form - Form management
+**Frontend gotchas:**
+- Use `z.number()` not `z.coerce.number()` with react-hook-form zodResolver (type mismatch)
+- Pre-existing build issue in `_global-error` page and lint error in `avatar-crop-dialog.tsx`
+- Full test suite has pre-existing memory exhaustion in ProfileControllerTest
 
 **Path alias:** `@/*` maps to project root
-
-### Authentication
-
-OAuth2 via Laravel Passport. Bearer token in Authorization header.
-
-**Flow:**
-1. Register/Login → `POST /api/v1/auth/register` or `/login`
-2. Returns access_token
-3. Protected routes: `Authorization: Bearer {token}`
-
-### Key Packages
-
-**Backend:**
-- Laravel Passport - OAuth2
-- Spatie Laravel Data - Input DTOs
-- Spatie Media Library - File/avatar management
-- Spatie Query Builder - API filtering/sorting
-- L5-Swagger - OpenAPI docs at `/api/documentation`
-- Pest - Testing framework
-
-**Frontend:**
-- TanStack React Query v5
-- TanStack React Form v1
-- Zustand v5
-- Tailwindcss v4
-
-## API Endpoints
-
-All prefixed with `/api/v1/`
-
-- `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`
-- `GET /auth/me`, `PUT /auth/me`
-- `GET|POST /users`, `GET|PUT|DELETE /users/{id}`
-- `GET|PUT /profile`, `POST|DELETE /profile/avatar`
-- `GET /config/images` - Image upload configuration (public)
 
 ## Docker Services
 
@@ -210,22 +139,15 @@ All prefixed with `/api/v1/`
 | phpMyAdmin | 8091 | Database management |
 | Mailpit | 8092 | Email testing UI |
 | RabbitMQ | 8093 | Message queue management |
+| Reverb | 8094 | WebSocket server |
 | MySQL | 3317 | Database |
 | Redis | 6389 | Cache |
-| RabbitMQ AMQP | 5682 | Message queue |
-
-## Database
-
-- User → UserProfile (1:1, auto-created on user creation)
-- User → Address (polymorphic via HasAddress trait)
-- User → Media (Spatie Media Library for avatars/documents)
 
 ## Git Configuration
 
 **Repository:** `git@github-oaa:oaa-dev/laravel-react-project.git`
 
-This project uses a custom SSH host alias for the `oaa-dev` GitHub account. Add this to `~/.ssh/config`:
-
+Uses custom SSH host alias `github-oaa` — requires `~/.ssh/config` entry:
 ```
 Host github-oaa
   HostName github.com
@@ -234,63 +156,24 @@ Host github-oaa
   IdentitiesOnly yes
 ```
 
-Then clone or set remote using:
-```bash
-git clone git@github-oaa:oaa-dev/laravel-react-project.git
-# or for existing repo:
-git remote set-url origin git@github-oaa:oaa-dev/laravel-react-project.git
-```
+## Adding a New Module (Checklist)
 
-## Architecture
+Backend (in `backend/`):
+1. Migration, Model (with factory), relationships
+2. Repository + Interface → bind in `RepositoryServiceProvider`
+3. Service + Interface → bind in `RepositoryServiceProvider`
+4. DTO in `app/Data/`
+5. FormRequests in `app/Http/Requests/Api/V1/{Module}/`
+6. Resource in `app/Http/Resources/Api/V1/`
+7. Controller in `app/Http/Controllers/Api/V1/`
+8. Routes in `routes/api.php` with permission middleware
+9. Permissions in `RolePermissionSeeder`
+10. Tests in `tests/Feature/Api/V1/` (Pest describe/it syntax)
 
-### Backend (Laravel)
-
-```
-Request Flow:
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Route     │ -> │ Controller  │ -> │   Service   │ -> │ Repository  │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                          │                  │                   │
-                          ▼                  ▼                   ▼
-                   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-                   │ FormRequest │    │     DTO     │    │    Model    │
-                   │ (validation)│    │ (data xfer) │    │  (Eloquent) │
-                   └─────────────┘    └─────────────┘    └─────────────┘
-                          │
-                          ▼
-                   ┌─────────────┐
-                   │  Resource   │ -> JSON Response
-                   │ (transform) │
-                   └─────────────┘
-```
-
-### Frontend (Next.js)
-
-```
-Component Architecture:
-┌─────────────────────────────────────────────────────┐
-│                    App Router                        │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
-│  │  (public)   │  │  (vendor)   │  │   (admin)   │  │
-│  │   routes    │  │   routes    │  │   routes    │  │
-│  └─────────────┘  └─────────────┘  └─────────────┘  │
-└─────────────────────────────────────────────────────┘
-                          │
-         ┌────────────────┼────────────────┐
-         ▼                ▼                ▼
-┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-│    Pages    │   │ Components  │   │    Hooks    │
-└─────────────┘   └─────────────┘   └─────────────┘
-         │                │                │
-         └────────────────┼────────────────┘
-                          ▼
-              ┌─────────────────────┐
-              │      Services       │ -> API calls
-              │   (React Query)     │
-              └─────────────────────┘
-                          │
-              ┌─────────────────────┐
-              │       Stores        │ -> UI state
-              │      (Zustand)      │
-              └─────────────────────┘
-```
+Frontend (in `frontend/`):
+1. Types in `types/api.ts`
+2. Service in `services/`
+3. Hook in `hooks/`
+4. Zod schema in `lib/validations.ts`
+5. Page components under `app/(system)/`
+6. Sidebar entry in `components/layout/app-sidebar.tsx` (permission-gated)

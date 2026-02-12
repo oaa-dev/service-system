@@ -16,6 +16,10 @@ class BusinessTypeResource extends JsonResource
             'description' => $this->description,
             'is_active' => $this->is_active,
             'sort_order' => $this->sort_order,
+            'can_sell_products' => $this->can_sell_products,
+            'can_take_bookings' => $this->can_take_bookings,
+            'can_rent_units' => $this->can_rent_units,
+            'fields' => BusinessTypeFieldResource::collection($this->whenLoaded('businessTypeFields')),
             'icon' => $this->when($this->relationLoaded('media'), function () {
                 $media = $this->getFirstMedia('icon');
 

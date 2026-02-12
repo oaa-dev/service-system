@@ -12,6 +12,8 @@ class UserResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'first_name' => $this->whenLoaded('profile', fn () => $this->profile?->first_name),
+            'last_name' => $this->whenLoaded('profile', fn () => $this->profile?->last_name),
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'avatar' => $this->when(

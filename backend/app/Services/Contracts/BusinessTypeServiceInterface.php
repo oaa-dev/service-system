@@ -22,4 +22,6 @@ interface BusinessTypeServiceInterface
     public function updateBusinessType(int $id, BusinessTypeData $data): BusinessType;
 
     public function deleteBusinessType(int $id): bool;
+
+    public function syncFields(int $id, array $fields): BusinessType;
 }

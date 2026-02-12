@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Data\CustomerData;
 use App\Data\ProfileData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Profile\UpdateCustomerPreferencesRequest;
 use App\Http\Requests\Api\V1\Profile\UpdateProfileRequest;
 use App\Http\Requests\Api\V1\Profile\UploadAvatarRequest;
+use App\Http\Resources\Api\V1\CustomerResource;
 use App\Http\Resources\Api\V1\ProfileResource;
 use App\Services\Contracts\ProfileServiceInterface;
 use App\Traits\ApiResponse;
@@ -173,6 +176,27 @@ class ProfileController extends Controller
         return $this->successResponse(
             new ProfileResource($profile),
             'Avatar deleted successfully'
+        );
+    }
+
+    public function showCustomer(): JsonResponse
+    {
+        $customer = $this->profileService->getCustomerByUserId(auth()->id());
+
+        return $this->successResponse(
+            new CustomerResource($customer),
+            'Customer profile retrieved successfully'
+        );
+    }
+
+    public function updateCustomer(UpdateCustomerPreferencesRequest $request): JsonResponse
+    {
+        $data = CustomerData::from($request->validated());
+        $customer = $this->profileService->updateCustomerPreferences(auth()->id(), $data);
+
+        return $this->successResponse(
+            new CustomerResource($customer),
+            'Customer preferences updated successfully'
         );
     }
 }

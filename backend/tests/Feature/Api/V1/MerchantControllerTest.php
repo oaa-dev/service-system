@@ -95,7 +95,8 @@ describe('Merchant All', function () {
 describe('Merchant Store', function () {
     it('can create an individual merchant with new user account', function () {
         $response = $this->postJson('/api/v1/merchants', [
-            'user_name' => 'John Doe',
+            'user_first_name' => 'John',
+            'user_last_name' => 'Doe',
             'user_email' => 'john@example.com',
             'user_password' => 'password123',
             'name' => 'Test Merchant',
@@ -131,7 +132,8 @@ describe('Merchant Store', function () {
 
     it('can create an organization merchant', function () {
         $response = $this->postJson('/api/v1/merchants', [
-            'user_name' => 'Jane Org',
+            'user_first_name' => 'Jane',
+            'user_last_name' => 'Org',
             'user_email' => 'jane@org.com',
             'user_password' => 'password123',
             'name' => 'Test Organization',
@@ -151,7 +153,8 @@ describe('Merchant Store', function () {
         $businessType = BusinessType::factory()->create();
 
         $response = $this->postJson('/api/v1/merchants', [
-            'user_name' => 'Biz User',
+            'user_first_name' => 'Biz',
+            'user_last_name' => 'User',
             'user_email' => 'biz@example.com',
             'user_password' => 'password123',
             'name' => 'Typed Merchant',
@@ -171,14 +174,15 @@ describe('Merchant Store', function () {
         $response = $this->postJson('/api/v1/merchants', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'user_name', 'user_email', 'user_password']);
+            ->assertJsonValidationErrors(['name', 'user_first_name', 'user_last_name', 'user_email', 'user_password']);
     });
 
     it('validates user_email uniqueness', function () {
         $existingUser = User::factory()->create(['email' => 'taken@example.com']);
 
         $response = $this->postJson('/api/v1/merchants', [
-            'user_name' => 'Test',
+            'user_first_name' => 'Test',
+            'user_last_name' => 'User',
             'user_email' => 'taken@example.com',
             'user_password' => 'password123',
             'name' => 'Duplicate Email Merchant',
@@ -190,7 +194,8 @@ describe('Merchant Store', function () {
 
     it('validates type enum', function () {
         $response = $this->postJson('/api/v1/merchants', [
-            'user_name' => 'Test',
+            'user_first_name' => 'Test',
+            'user_last_name' => 'User',
             'user_email' => 'type@example.com',
             'user_password' => 'password123',
             'name' => 'Test',
@@ -203,7 +208,8 @@ describe('Merchant Store', function () {
 
     it('auto-sets contact_email from user_email', function () {
         $response = $this->postJson('/api/v1/merchants', [
-            'user_name' => 'Auto Email',
+            'user_first_name' => 'Auto',
+            'user_last_name' => 'Email',
             'user_email' => 'auto@example.com',
             'user_password' => 'password123',
             'name' => 'Auto Email Merchant',
@@ -215,6 +221,62 @@ describe('Merchant Store', function () {
             'name' => 'Auto Email Merchant',
             'contact_email' => 'auto@example.com',
         ]);
+    });
+
+    it('copies capability flags from business type on create', function () {
+        $businessType = BusinessType::factory()->create([
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => false,
+
+        ]);
+
+        $response = $this->postJson('/api/v1/merchants', [
+            'user_first_name' => 'Cap',
+            'user_last_name' => 'User',
+            'user_email' => 'cap@example.com',
+            'user_password' => 'password123',
+            'name' => 'Capable Merchant',
+            'business_type_id' => $businessType->id,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'data' => [
+                    'can_sell_products' => true,
+                    'can_take_bookings' => true,
+                    'can_rent_units' => false,
+        
+                ],
+            ]);
+
+        $this->assertDatabaseHas('merchants', [
+            'name' => 'Capable Merchant',
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => false,
+
+        ]);
+    });
+
+    it('defaults capability flags to false without business type', function () {
+        $response = $this->postJson('/api/v1/merchants', [
+            'user_first_name' => 'No BT',
+            'user_last_name' => 'User',
+            'user_email' => 'nobt@example.com',
+            'user_password' => 'password123',
+            'name' => 'No BT Merchant',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'data' => [
+                    'can_sell_products' => false,
+                    'can_take_bookings' => false,
+                    'can_rent_units' => false,
+        
+                ],
+            ]);
     });
 });
 
@@ -274,6 +336,37 @@ describe('Merchant Update', function () {
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['parent_id']);
+    });
+
+    it('can update merchant capability flags', function () {
+        $merchant = Merchant::factory()->create([
+            'can_sell_products' => false,
+            'can_take_bookings' => false,
+        ]);
+
+        $response = $this->putJson("/api/v1/merchants/{$merchant->id}", [
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => true,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'can_sell_products' => true,
+                    'can_take_bookings' => true,
+                    'can_rent_units' => true,
+        
+                ],
+            ]);
+
+        $this->assertDatabaseHas('merchants', [
+            'id' => $merchant->id,
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => true,
+
+        ]);
     });
 
     it('can update a merchant with address', function () {

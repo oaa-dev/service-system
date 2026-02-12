@@ -2,7 +2,9 @@
 
 namespace App\Services\Contracts;
 
+use App\Data\CustomerData;
 use App\Data\ProfileData;
+use App\Models\Customer;
 use App\Models\UserProfile;
 use Illuminate\Http\UploadedFile;
 
@@ -15,4 +17,8 @@ interface ProfileServiceInterface
     public function uploadAvatar(int $userId, UploadedFile $file): UserProfile;
 
     public function deleteAvatar(int $userId): UserProfile;
+
+    public function getCustomerByUserId(int $userId): Customer;
+
+    public function updateCustomerPreferences(int $userId, CustomerData $data): Customer;
 }

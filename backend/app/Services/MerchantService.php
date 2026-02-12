@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Data\MerchantData;
 use App\Data\ServiceData;
+use App\Models\BusinessTypeField;
 use App\Models\Merchant;
 use App\Models\MerchantDocument;
 use App\Models\MerchantSocialLink;
@@ -247,6 +248,7 @@ class MerchantService implements MerchantServiceInterface
                 AllowedFilter::partial('name'),
                 AllowedFilter::exact('service_category_id'),
                 AllowedFilter::exact('is_active'),
+                AllowedFilter::exact('service_type'),
                 AllowedFilter::callback('search', fn ($query, $value) => $query->where('name', 'like', "%{$value}%")),
             ])
             ->allowedSorts(['id', 'name', 'price', 'is_active', 'created_at'])
@@ -261,7 +263,7 @@ class MerchantService implements MerchantServiceInterface
         $this->merchantRepository->findOrFail($merchantId);
 
         return Service::where('merchant_id', $merchantId)
-            ->with(['serviceCategory', 'media'])
+            ->with(['serviceCategory', 'media', 'customFieldValues.businessTypeField.field', 'customFieldValues.fieldValue'])
             ->findOrFail($serviceId);
     }
 
@@ -269,13 +271,20 @@ class MerchantService implements MerchantServiceInterface
     {
         $merchant = $this->merchantRepository->findOrFail($merchantId);
 
+        $customFields = ! $data->custom_fields instanceof Optional ? $data->custom_fields : null;
+
         $createData = collect($data->toArray())
             ->reject(fn ($value) => $value instanceof Optional)
+            ->except('custom_fields')
             ->toArray();
 
         $service = $merchant->services()->create($createData);
 
-        return $service->load(['serviceCategory', 'media']);
+        if ($customFields) {
+            $this->saveCustomFieldValues($service, $customFields);
+        }
+
+        return $service->load(['serviceCategory', 'media', 'customFieldValues.businessTypeField.field', 'customFieldValues.fieldValue']);
     }
 
     public function updateMerchantService(int $merchantId, int $serviceId, ServiceData $data): Service
@@ -284,13 +293,20 @@ class MerchantService implements MerchantServiceInterface
 
         $service = Service::where('merchant_id', $merchantId)->findOrFail($serviceId);
 
+        $customFields = ! $data->custom_fields instanceof Optional ? $data->custom_fields : null;
+
         $updateData = collect($data->toArray())
             ->reject(fn ($value) => $value instanceof Optional)
+            ->except('custom_fields')
             ->toArray();
 
         $service->update($updateData);
 
-        return $service->load(['serviceCategory', 'media']);
+        if ($customFields !== null) {
+            $this->saveCustomFieldValues($service, $customFields);
+        }
+
+        return $service->load(['serviceCategory', 'media', 'customFieldValues.businessTypeField.field', 'customFieldValues.fieldValue']);
     }
 
     public function deleteMerchantService(int $merchantId, int $serviceId): bool
@@ -301,5 +317,74 @@ class MerchantService implements MerchantServiceInterface
         $service->clearMediaCollection('image');
 
         return $service->delete();
+    }
+
+    private function saveCustomFieldValues(Service $service, array $customFields): void
+    {
+        // Delete existing values for this service
+        $service->customFieldValues()->delete();
+
+        foreach ($customFields as $btFieldId => $value) {
+            $btField = BusinessTypeField::with('field')->find($btFieldId);
+            if (! $btField) {
+                continue;
+            }
+
+            $fieldType = $btField->field->type;
+
+            if ($fieldType === 'checkbox' && is_array($value)) {
+                // Checkbox: multiple rows with field_value_id
+                foreach ($value as $fieldValueId) {
+                    $service->customFieldValues()->create([
+                        'business_type_field_id' => $btFieldId,
+                        'field_value_id' => $fieldValueId,
+                        'value' => null,
+                    ]);
+                }
+            } elseif (in_array($fieldType, ['select', 'radio'])) {
+                // Select/Radio: single row with field_value_id
+                $service->customFieldValues()->create([
+                    'business_type_field_id' => $btFieldId,
+                    'field_value_id' => $value,
+                    'value' => null,
+                ]);
+            } else {
+                // Input: single row with text value
+                $service->customFieldValues()->create([
+                    'business_type_field_id' => $btFieldId,
+                    'field_value_id' => null,
+                    'value' => $value,
+                ]);
+            }
+        }
+    }
+
+    public function getServiceSchedules(int $merchantId, int $serviceId): Service
+    {
+        $this->merchantRepository->findOrFail($merchantId);
+
+        return Service::where('merchant_id', $merchantId)
+            ->with('schedules')
+            ->findOrFail($serviceId);
+    }
+
+    public function upsertServiceSchedules(int $merchantId, int $serviceId, array $schedules): Service
+    {
+        $this->merchantRepository->findOrFail($merchantId);
+
+        $service = Service::where('merchant_id', $merchantId)->findOrFail($serviceId);
+
+        foreach ($schedules as $schedule) {
+            $service->schedules()->updateOrCreate(
+                ['day_of_week' => $schedule['day_of_week']],
+                [
+                    'start_time' => $schedule['start_time'],
+                    'end_time' => $schedule['end_time'],
+                    'is_available' => $schedule['is_available'] ?? true,
+                ]
+            );
+        }
+
+        return $service->load('schedules');
     }
 }

@@ -20,10 +20,14 @@ export type LoginFormData = z.infer<typeof loginSchema>;
  */
 export const registerSchema = z
   .object({
-    name: z
+    first_name: z
       .string()
-      .min(1, 'Name is required')
-      .max(255, 'Name must be less than 255 characters'),
+      .min(1, 'First name is required')
+      .max(255, 'First name must be less than 255 characters'),
+    last_name: z
+      .string()
+      .min(1, 'Last name is required')
+      .max(255, 'Last name must be less than 255 characters'),
     email: z
       .string()
       .min(1, 'Email is required')
@@ -47,10 +51,15 @@ export type RegisterFormData = z.infer<typeof registerSchema>;
  * Update user form validation schema
  */
 export const updateUserSchema = z.object({
-  name: z
+  first_name: z
     .string()
-    .min(1, 'Name is required')
-    .max(255, 'Name must be less than 255 characters')
+    .min(1, 'First name is required')
+    .max(255)
+    .optional(),
+  last_name: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(255)
     .optional(),
   email: z
     .string()
@@ -71,10 +80,14 @@ export type UpdateUserFormData = z.infer<typeof updateUserSchema>;
  * Create user form validation schema
  */
 export const createUserSchema = z.object({
-  name: z
+  first_name: z
     .string()
-    .min(1, 'Name is required')
-    .max(255, 'Name must be less than 255 characters'),
+    .min(1, 'First name is required')
+    .max(255),
+  last_name: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(255),
   email: z
     .string()
     .min(1, 'Email is required')
@@ -156,10 +169,14 @@ export type AvatarFormData = z.infer<typeof avatarSchema>;
  * Update account form validation schema
  */
 export const updateAccountSchema = z.object({
-  name: z
+  first_name: z
     .string()
-    .min(1, 'Name is required')
-    .max(255, 'Name must be less than 255 characters'),
+    .min(1, 'First name is required')
+    .max(255),
+  last_name: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(255),
   email: z
     .string()
     .min(1, 'Email is required')
@@ -260,6 +277,9 @@ export const createBusinessTypeSchema = z.object({
   description: z.string().max(1000).optional().nullable(),
   is_active: z.boolean().optional(),
   sort_order: z.number().int().min(0).optional(),
+  can_sell_products: z.boolean().optional(),
+  can_take_bookings: z.boolean().optional(),
+  can_rent_units: z.boolean().optional(),
 });
 
 export type CreateBusinessTypeFormData = z.infer<typeof createBusinessTypeSchema>;
@@ -269,6 +289,9 @@ export const updateBusinessTypeSchema = z.object({
   description: z.string().max(1000).optional().nullable(),
   is_active: z.boolean().optional(),
   sort_order: z.number().int().min(0).optional(),
+  can_sell_products: z.boolean().optional(),
+  can_take_bookings: z.boolean().optional(),
+  can_rent_units: z.boolean().optional(),
 });
 
 export type UpdateBusinessTypeFormData = z.infer<typeof updateBusinessTypeSchema>;
@@ -298,7 +321,8 @@ export type UpdateSocialPlatformFormData = z.infer<typeof updateSocialPlatformSc
  * Merchant schemas
  */
 export const createMerchantSchema = z.object({
-  user_name: z.string().min(1, 'User name is required').max(255),
+  user_first_name: z.string().min(1, 'First name is required').max(255),
+  user_last_name: z.string().min(1, 'Last name is required').max(255),
   user_email: z.string().min(1, 'User email is required').email('Invalid email').max(255),
   user_password: z.string().min(8, 'Password must be at least 8 characters'),
   parent_id: z.number().int().optional().nullable(),
@@ -319,6 +343,9 @@ export const updateMerchantSchema = z.object({
   description: z.string().optional().nullable(),
   contact_phone: z.string().max(20).optional().nullable(),
   address: addressSchema.optional().nullable(),
+  can_sell_products: z.boolean().optional(),
+  can_take_bookings: z.boolean().optional(),
+  can_rent_units: z.boolean().optional(),
 });
 
 export type UpdateMerchantFormData = z.infer<typeof updateMerchantSchema>;
@@ -355,21 +382,254 @@ export type UpdateServiceCategoryFormData = z.infer<typeof updateServiceCategory
  * Service schemas (Merchant sub-entity)
  */
 export const createServiceSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  service_category_id: z.number().int().optional().nullable(),
-  description: z.string().max(2000).optional().nullable(),
-  price: z.number().min(0, 'Price must be 0 or more'),
+  name: z.string().min(1).max(255),
+  service_category_id: z.number().nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  price: z.number().min(0),
   is_active: z.boolean().optional(),
+  service_type: z.enum(['sellable', 'bookable', 'reservation']),
+  // sellable fields
+  sku: z.string().max(100).nullable().optional(),
+  stock_quantity: z.number().int().min(0).nullable().optional(),
+  track_stock: z.boolean().optional(),
+  // bookable fields
+  duration: z.number().int().min(5).max(1440).nullable().optional(),
+  max_capacity: z.number().int().min(1).optional(),
+  requires_confirmation: z.boolean().optional(),
+  // reservation fields
+  price_per_night: z.number().min(0).nullable().optional(),
+  floor: z.string().max(50).nullable().optional(),
+  unit_status: z.enum(['available', 'occupied', 'maintenance']).optional(),
+  amenities: z.array(z.string().max(255)).nullable().optional(),
 });
 
 export type CreateServiceFormData = z.infer<typeof createServiceSchema>;
 
 export const updateServiceSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255).optional(),
-  service_category_id: z.number().int().optional().nullable(),
-  description: z.string().max(2000).optional().nullable(),
-  price: z.number().min(0, 'Price must be 0 or more').optional(),
+  name: z.string().min(1).max(255).optional(),
+  service_category_id: z.number().nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  price: z.number().min(0).optional(),
   is_active: z.boolean().optional(),
+  // sellable fields
+  sku: z.string().max(100).nullable().optional(),
+  stock_quantity: z.number().int().min(0).nullable().optional(),
+  track_stock: z.boolean().optional(),
+  // bookable fields
+  duration: z.number().int().min(5).max(1440).nullable().optional(),
+  max_capacity: z.number().int().min(1).optional(),
+  requires_confirmation: z.boolean().optional(),
+  // reservation fields
+  price_per_night: z.number().min(0).nullable().optional(),
+  floor: z.string().max(50).nullable().optional(),
+  unit_status: z.enum(['available', 'occupied', 'maintenance']).optional(),
+  amenities: z.array(z.string().max(255)).nullable().optional(),
 });
 
 export type UpdateServiceFormData = z.infer<typeof updateServiceSchema>;
+
+/**
+ * Customer Tag schemas
+ */
+export const createCustomerTagSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  color: z.string().max(7).optional().nullable(),
+  description: z.string().max(1000).optional().nullable(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export type CreateCustomerTagFormData = z.infer<typeof createCustomerTagSchema>;
+
+export const updateCustomerTagSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255).optional(),
+  color: z.string().max(7).optional().nullable(),
+  description: z.string().max(1000).optional().nullable(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export type UpdateCustomerTagFormData = z.infer<typeof updateCustomerTagSchema>;
+
+/**
+ * Customer schemas
+ */
+export const createCustomerSchema = z.object({
+  user_first_name: z.string().min(1, 'First name is required').max(255),
+  user_last_name: z.string().min(1, 'Last name is required').max(255),
+  user_email: z.string().min(1, 'Email is required').email('Invalid email').max(255),
+  user_password: z.string().min(8, 'Password must be at least 8 characters'),
+  customer_type: z.enum(['individual', 'corporate']).optional(),
+  company_name: z.string().max(255).optional().nullable(),
+});
+
+export type CreateCustomerFormData = z.infer<typeof createCustomerSchema>;
+
+export const updateCustomerSchema = z.object({
+  customer_type: z.enum(['individual', 'corporate']).optional(),
+  company_name: z.string().max(255).optional().nullable(),
+  customer_notes: z.string().max(5000).optional().nullable(),
+  loyalty_points: z.number().int().min(0).optional(),
+  customer_tier: z.enum(['regular', 'silver', 'gold', 'platinum']).optional(),
+  preferred_payment_method: z.enum(['cash', 'e-wallet', 'card']).optional().nullable(),
+  communication_preference: z.enum(['sms', 'email', 'both']).optional(),
+});
+
+export type UpdateCustomerFormData = z.infer<typeof updateCustomerSchema>;
+
+export const updateCustomerStatusSchema = z.object({
+  status: z.enum(['active', 'suspended', 'banned']),
+});
+
+export type UpdateCustomerStatusFormData = z.infer<typeof updateCustomerStatusSchema>;
+
+export const createCustomerInteractionSchema = z.object({
+  type: z.enum(['note', 'call', 'complaint', 'inquiry']),
+  description: z.string().min(1, 'Description is required').max(5000),
+});
+
+export type CreateCustomerInteractionFormData = z.infer<typeof createCustomerInteractionSchema>;
+
+/**
+ * Customer Preferences schema (self-service)
+ */
+export const updateCustomerPreferencesSchema = z.object({
+  preferred_payment_method: z.enum(['cash', 'e-wallet', 'card']).optional().nullable(),
+  communication_preference: z.enum(['sms', 'email', 'both']).optional(),
+});
+
+export type UpdateCustomerPreferencesFormData = z.infer<typeof updateCustomerPreferencesSchema>;
+
+/**
+ * Update customer profile schema (admin updating customer's user profile)
+ */
+export const updateCustomerProfileSchema = z.object({
+  bio: z
+    .string()
+    .max(1000, 'Bio must be less than 1000 characters')
+    .optional()
+    .nullable(),
+  phone: z
+    .string()
+    .max(20, 'Phone must be less than 20 characters')
+    .optional()
+    .nullable(),
+  date_of_birth: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return date < new Date();
+      },
+      { message: 'Date of birth must be in the past' }
+    ),
+  gender: z
+    .enum(['male', 'female', 'other'])
+    .optional()
+    .nullable(),
+  address: addressSchema.optional().nullable(),
+});
+
+export type UpdateCustomerProfileFormData = z.infer<typeof updateCustomerProfileSchema>;
+
+/**
+ * Booking schemas
+ */
+export const createBookingSchema = z.object({
+  service_id: z.number().int().min(1, 'Service is required'),
+  booking_date: z.string().min(1, 'Booking date is required'),
+  start_time: z.string().min(1, 'Start time is required'),
+  party_size: z.number().int().min(1, 'Party size must be at least 1').optional(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export type CreateBookingFormData = z.infer<typeof createBookingSchema>;
+
+/**
+ * Reservation schemas
+ */
+export const createReservationSchema = z.object({
+  service_id: z.number().int().min(1),
+  check_in: z.string().min(1),
+  check_out: z.string().min(1),
+  guest_count: z.number().int().min(1).optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  special_requests: z.string().max(2000).nullable().optional(),
+});
+
+export type CreateReservationFormData = z.infer<typeof createReservationSchema>;
+
+/**
+ * Service Order schemas
+ */
+export const createServiceOrderSchema = z.object({
+  service_id: z.number().int().min(1, 'Service is required'),
+  quantity: z.number().min(0.01, 'Quantity must be at least 0.01'),
+  unit_label: z.string().min(1, 'Unit label is required').max(50),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export type CreateServiceOrderFormData = z.infer<typeof createServiceOrderSchema>;
+
+/**
+ * Platform Fee schemas
+ */
+export const createPlatformFeeSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  description: z.string().max(1000).optional().nullable(),
+  transaction_type: z.enum(['booking', 'reservation', 'sell_product'], {
+    message: 'Transaction type is required',
+  }),
+  rate_percentage: z.number().min(0, 'Rate must be 0 or more').max(100, 'Rate cannot exceed 100'),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export type CreatePlatformFeeFormData = z.infer<typeof createPlatformFeeSchema>;
+
+export const updatePlatformFeeSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255).optional(),
+  description: z.string().max(1000).optional().nullable(),
+  transaction_type: z.enum(['booking', 'reservation', 'sell_product']).optional(),
+  rate_percentage: z.number().min(0, 'Rate must be 0 or more').max(100, 'Rate cannot exceed 100').optional(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export type UpdatePlatformFeeFormData = z.infer<typeof updatePlatformFeeSchema>;
+
+/**
+ * Field schemas
+ */
+export const createFieldSchema = z.object({
+  label: z.string().min(1).max(255),
+  name: z.string().max(255).optional(),
+  type: z.enum(['input', 'select', 'checkbox', 'radio']),
+  config: z.record(z.string(), z.unknown()).nullable().optional(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+  values: z.array(z.object({
+    value: z.string().min(1).max(255),
+    sort_order: z.number().int().min(0).optional(),
+  })).optional(),
+});
+
+export type CreateFieldFormData = z.infer<typeof createFieldSchema>;
+
+export const updateFieldSchema = z.object({
+  label: z.string().min(1).max(255).optional(),
+  name: z.string().max(255).optional(),
+  type: z.enum(['input', 'select', 'checkbox', 'radio']).optional(),
+  config: z.record(z.string(), z.unknown()).nullable().optional(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+  values: z.array(z.object({
+    value: z.string().min(1).max(255),
+    sort_order: z.number().int().min(0).optional(),
+  })).optional(),
+});
+
+export type UpdateFieldFormData = z.infer<typeof updateFieldSchema>;

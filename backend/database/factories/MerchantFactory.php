@@ -25,6 +25,9 @@ class MerchantFactory extends Factory
             'contact_phone' => fake()->numerify('09#########'),
             'website' => fake()->optional()->url(),
             'status' => 'pending',
+            'can_sell_products' => false,
+            'can_take_bookings' => false,
+            'can_rent_units' => false,
         ];
     }
 

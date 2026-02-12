@@ -138,6 +138,11 @@ class ImageRule implements ValidationRule
         return new self('merchant_document');
     }
 
+    public static function customerDocument(): self
+    {
+        return new self('customer_document');
+    }
+
     public static function merchantGallery(): self
     {
         return new self('merchant_gallery');

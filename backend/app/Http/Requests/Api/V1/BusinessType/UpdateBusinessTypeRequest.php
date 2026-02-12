@@ -30,6 +30,9 @@ class UpdateBusinessTypeRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'can_sell_products' => ['sometimes', 'boolean'],
+            'can_take_bookings' => ['sometimes', 'boolean'],
+            'can_rent_units' => ['sometimes', 'boolean'],
         ];
     }
 }

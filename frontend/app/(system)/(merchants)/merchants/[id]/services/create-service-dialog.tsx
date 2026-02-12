@@ -23,13 +23,15 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import { Separator } from '@/components/ui/separator';
 import { AvatarCropDialog } from '@/components/avatar-crop-dialog';
 import { Upload, X, ClipboardList } from 'lucide-react';
 import { AxiosError } from 'axios';
+import { CustomFieldsRenderer } from './custom-fields-renderer';
 
-interface Props { merchantId: number; open: boolean; onOpenChange: (open: boolean) => void; }
+interface Props { merchantId: number; businessTypeId: number | null; open: boolean; onOpenChange: (open: boolean) => void; canSellProducts?: boolean; canTakeBookings?: boolean; canRentUnits?: boolean; }
 
-export function CreateServiceDialog({ merchantId, open, onOpenChange }: Props) {
+export function CreateServiceDialog({ merchantId, businessTypeId, open, onOpenChange, canSellProducts, canTakeBookings, canRentUnits }: Props) {
   const mutation = useCreateMerchantService();
   const uploadMutation = useUploadServiceImage();
   const { data: categoriesData } = useActiveServiceCategories(merchantId);
@@ -40,10 +42,11 @@ export function CreateServiceDialog({ merchantId, open, onOpenChange }: Props) {
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string | number | number[]>>({});
 
   const form = useForm<CreateServiceFormData>({
     resolver: zodResolver(createServiceSchema),
-    defaultValues: { name: '', service_category_id: null, description: '', price: 0, is_active: true },
+    defaultValues: { name: '', service_category_id: null, description: '', price: 0, is_active: true, service_type: 'sellable' as const, sku: '', stock_quantity: null, track_stock: false, duration: null, max_capacity: 1, requires_confirmation: false, price_per_night: null, floor: '', unit_status: 'available' as const, amenities: null },
   });
 
   const cleanup = useCallback(() => {
@@ -58,6 +61,7 @@ export function CreateServiceDialog({ merchantId, open, onOpenChange }: Props) {
     if (!open) {
       form.reset();
       cleanup();
+      setCustomFieldValues({});
     }
   }, [open, form, cleanup]);
 
@@ -87,7 +91,11 @@ export function CreateServiceDialog({ merchantId, open, onOpenChange }: Props) {
   };
 
   const onSubmit = (data: CreateServiceFormData) => {
-    mutation.mutate({ merchantId, data }, {
+    const payload = {
+      ...data,
+      custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
+    };
+    mutation.mutate({ merchantId, data: payload }, {
       onSuccess: (response) => {
         if (croppedBlob && response?.data?.id) {
           const file = new File([croppedBlob], 'service-image.jpg', { type: 'image/jpeg' });
@@ -116,7 +124,7 @@ export function CreateServiceDialog({ merchantId, open, onOpenChange }: Props) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { form.reset(); cleanup(); } onOpenChange(v); }}>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) { form.reset(); cleanup(); setCustomFieldValues({}); } onOpenChange(v); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Create Service</DialogTitle><DialogDescription>Add a new service for this merchant.</DialogDescription></DialogHeader>
           <Form {...form}>
@@ -178,6 +186,84 @@ export function CreateServiceDialog({ merchantId, open, onOpenChange }: Props) {
                     <FormItem className="flex items-center justify-between rounded-lg border p-3 mt-2"><FormLabel>Active</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={isPending} /></FormControl></FormItem>
                   )} />
                 </div>
+
+                <Separator />
+                <FormField control={form.control} name="service_type" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Type</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {canSellProducts && <SelectItem value="sellable">Product (Sellable)</SelectItem>}
+                        {canTakeBookings && <SelectItem value="bookable">Booking</SelectItem>}
+                        {canRentUnits && <SelectItem value="reservation">Reservation</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                {form.watch('service_type') === 'sellable' && canSellProducts && (<>
+                  <p className="text-sm font-medium">Product Settings</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="sku" render={({ field }) => (<FormItem><FormLabel>SKU</FormLabel><FormControl><Input disabled={isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="stock_quantity" render={({ field }) => (<FormItem><FormLabel>Stock Qty</FormLabel><FormControl><Input type="number" min="0" disabled={isPending} {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <FormField control={form.control} name="track_stock" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Track stock</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={isPending} /></FormControl></FormItem>
+                  )} />
+                </>)}
+
+                {form.watch('service_type') === 'bookable' && canTakeBookings && (<>
+                  <p className="text-sm font-medium">Booking Settings</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="duration" render={({ field }) => (<FormItem><FormLabel>Duration (min)</FormLabel><FormControl><Input type="number" min="5" max="1440" disabled={isPending} {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="max_capacity" render={({ field }) => (<FormItem><FormLabel>Max Capacity</FormLabel><FormControl><Input type="number" min="1" disabled={isPending} {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 1)} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <FormField control={form.control} name="requires_confirmation" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Requires confirmation</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={isPending} /></FormControl></FormItem>
+                  )} />
+                </>)}
+
+                {form.watch('service_type') === 'reservation' && canRentUnits && (<>
+                  <p className="text-sm font-medium">Reservation Settings</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="price_per_night" render={({ field }) => (<FormItem><FormLabel>Price per Night ($)</FormLabel><FormControl><Input type="number" step="0.01" min="0" disabled={isPending} {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="floor" render={({ field }) => (<FormItem><FormLabel>Floor</FormLabel><FormControl><Input disabled={isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <FormField control={form.control} name="unit_status" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Status</FormLabel>
+                      <Select value={field.value || 'available'} onValueChange={field.onChange} disabled={isPending}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="available">Available</SelectItem>
+                          <SelectItem value="occupied">Occupied</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="amenities" render={({ field }) => (<FormItem><FormLabel>Amenities</FormLabel><FormControl><Input placeholder="e.g. WiFi, TV, Air Conditioning" disabled={isPending} value={field.value?.join(', ') || ''} onChange={(e) => { const val = e.target.value; field.onChange(val ? val.split(',').map(s => s.trim()).filter(Boolean) : null); }} /></FormControl><FormMessage /></FormItem>)} />
+                </>)}
+
+                {businessTypeId && (
+                  <>
+                    <Separator />
+                    <p className="text-sm font-medium">Custom Fields</p>
+                    <CustomFieldsRenderer
+                      businessTypeId={businessTypeId}
+                      values={customFieldValues}
+                      onChange={setCustomFieldValues}
+                      disabled={isPending}
+                    />
+                  </>
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancel</Button>

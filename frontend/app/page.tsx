@@ -1,30 +1,30 @@
-'use client';
+import { Cormorant } from 'next/font/google';
+import { LandingHeader } from './_components/landing-header';
+import { LandingHero } from './_components/landing-hero';
+import { LandingAbout } from './_components/landing-about';
+import { LandingServices } from './_components/landing-services';
+import { LandingHowItWorks } from './_components/landing-how-it-works';
+import { LandingContact } from './_components/landing-contact';
+import { LandingFooter } from './_components/landing-footer';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
-import { Spinner } from '@/components/ui/spinner';
+const cormorant = Cormorant({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-cormorant',
+});
 
-export default function Home() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [isAuthenticated, isLoading, router]);
-
+export default function LandingPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <Spinner className="h-8 w-8" />
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+    <div className={`${cormorant.variable} overflow-x-hidden`}>
+      <LandingHeader />
+      <main>
+        <LandingHero />
+        <LandingAbout />
+        <LandingServices />
+        <LandingHowItWorks />
+        <LandingContact />
+      </main>
+      <LandingFooter />
     </div>
   );
 }

@@ -22,6 +22,8 @@ import {
   CreateServiceRequest,
   UpdateServiceRequest,
   ServiceQueryParams,
+  ServiceSchedule,
+  UpdateServiceScheduleRequest,
 } from '@/types/api';
 
 export const merchantService = {
@@ -166,6 +168,17 @@ export const merchantService = {
 
   deleteServiceImage: async (merchantId: number, serviceId: number): Promise<ApiResponse<null>> => {
     const response = await api.delete<ApiResponse<null>>(`/merchants/${merchantId}/services/${serviceId}/image`);
+    return response.data;
+  },
+
+  // Service Schedule methods
+  getServiceSchedules: async (merchantId: number, serviceId: number): Promise<ApiResponse<ServiceSchedule[]>> => {
+    const response = await api.get<ApiResponse<ServiceSchedule[]>>(`/merchants/${merchantId}/services/${serviceId}/schedules`);
+    return response.data;
+  },
+
+  updateServiceSchedules: async (merchantId: number, serviceId: number, data: UpdateServiceScheduleRequest): Promise<ApiResponse<ServiceSchedule[]>> => {
+    const response = await api.put<ApiResponse<ServiceSchedule[]>>(`/merchants/${merchantId}/services/${serviceId}/schedules`, data);
     return response.data;
   },
 };

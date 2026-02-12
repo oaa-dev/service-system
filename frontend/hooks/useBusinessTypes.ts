@@ -4,6 +4,7 @@ import {
   CreateBusinessTypeRequest,
   UpdateBusinessTypeRequest,
   BusinessTypeQueryParams,
+  SyncBusinessTypeFieldsRequest,
   ApiError,
 } from '@/types/api';
 import { AxiosError } from 'axios';
@@ -74,6 +75,26 @@ export function useDeleteBusinessType() {
     },
     onError: (error: AxiosError<ApiError>) => {
       console.error('Delete business type failed:', error.response?.data?.message);
+    },
+  });
+}
+
+export function useBusinessTypeFields(businessTypeId: number | null) {
+  return useQuery({
+    queryKey: ['businessTypes', businessTypeId, 'fields'],
+    queryFn: () => businessTypeService.getFields(businessTypeId!),
+    enabled: !!businessTypeId,
+  });
+}
+
+export function useSyncBusinessTypeFields() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ businessTypeId, data }: { businessTypeId: number; data: SyncBusinessTypeFieldsRequest }) =>
+      businessTypeService.syncFields(businessTypeId, data),
+    onSuccess: (_, { businessTypeId }) => {
+      queryClient.invalidateQueries({ queryKey: ['businessTypes'] });
+      queryClient.invalidateQueries({ queryKey: ['businessTypes', businessTypeId, 'fields'] });
     },
   });
 }

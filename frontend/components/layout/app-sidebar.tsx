@@ -17,6 +17,10 @@ import {
   FileText,
   Briefcase,
   Share2,
+  UserCheck,
+  Tags,
+  Percent,
+  ListChecks,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -71,6 +75,14 @@ const navItems: NavItem[] = [
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
     permission: 'merchants.view',
+  },
+  {
+    title: 'Customers',
+    href: '/customers',
+    icon: UserCheck,
+    color: 'text-cyan-500',
+    bgColor: 'bg-cyan-500/10',
+    permission: 'customers.view',
   },
   {
     title: 'Users',
@@ -137,6 +149,30 @@ const settingsItems: NavItem[] = [
     color: 'text-rose-500',
     bgColor: 'bg-rose-500/10',
     permission: 'social_platforms.view',
+  },
+  {
+    title: 'Customer Tags',
+    href: '/customer-tags',
+    icon: Tags,
+    color: 'text-lime-500',
+    bgColor: 'bg-lime-500/10',
+    permission: 'customer_tags.view',
+  },
+  {
+    title: 'Platform Fees',
+    href: '/platform-fees',
+    icon: Percent,
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-600/10',
+    permission: 'platform_fees.view',
+  },
+  {
+    title: 'Fields',
+    href: '/fields',
+    icon: ListChecks,
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
+    permission: 'fields.view',
   },
 ];
 

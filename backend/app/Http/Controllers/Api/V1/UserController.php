@@ -109,8 +109,22 @@ class UserController extends Controller
     )]
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $data = UserData::from($request->validated());
+        $validated = $request->validated();
+        $firstName = $validated['first_name'];
+        $lastName = $validated['last_name'];
+        unset($validated['first_name'], $validated['last_name']);
+
+        $validated['name'] = trim("{$firstName} {$lastName}");
+        $data = UserData::from($validated);
         $user = $this->userService->createUser($data);
+
+        // Save first/last name to profile
+        $user->profile()->update([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]);
+
+        $user->load(['profile.media', 'roles']);
 
         return $this->createdResponse(
             new UserResource($user),
@@ -191,7 +205,26 @@ class UserController extends Controller
     )]
     public function update(UpdateUserRequest $request, int $id): JsonResponse
     {
-        $data = UserData::from($request->validated());
+        $validated = $request->validated();
+        $firstName = $validated['first_name'] ?? null;
+        $lastName = $validated['last_name'] ?? null;
+        unset($validated['first_name'], $validated['last_name']);
+
+        if ($firstName !== null || $lastName !== null) {
+            $user = $this->userService->getUserById($id);
+            $currentFirst = $user->profile?->first_name ?? '';
+            $currentLast = $user->profile?->last_name ?? '';
+            $newFirst = $firstName ?? $currentFirst;
+            $newLast = $lastName ?? $currentLast;
+            $validated['name'] = trim("{$newFirst} {$newLast}");
+
+            $profileData = [];
+            if ($firstName !== null) $profileData['first_name'] = $firstName;
+            if ($lastName !== null) $profileData['last_name'] = $lastName;
+            $user->profile()->update($profileData);
+        }
+
+        $data = UserData::from($validated);
         $user = $this->userService->updateUser($id, $data);
 
         return $this->successResponse(

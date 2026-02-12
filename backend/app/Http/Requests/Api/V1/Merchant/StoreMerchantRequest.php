@@ -15,7 +15,8 @@ class StoreMerchantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_name' => ['required', 'string', 'max:255'],
+            'user_first_name' => ['required', 'string', 'max:255'],
+            'user_last_name' => ['required', 'string', 'max:255'],
             'user_email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'user_password' => ['required', 'string', 'min:8'],
             'parent_id' => ['nullable', 'integer', 'exists:merchants,id'],

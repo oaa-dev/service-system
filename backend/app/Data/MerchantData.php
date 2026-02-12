@@ -17,5 +17,8 @@ class MerchantData extends Data
         public string|null|Optional $contact_email = new Optional(),
         public string|null|Optional $contact_phone = new Optional(),
         public AddressData|null|Optional $address = new Optional(),
+        public bool|Optional $can_sell_products = new Optional(),
+        public bool|Optional $can_take_bookings = new Optional(),
+        public bool|Optional $can_rent_units = new Optional(),
     ) {}
 }

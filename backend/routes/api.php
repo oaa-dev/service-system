@@ -12,8 +12,15 @@ use App\Http\Controllers\Api\V1\PaymentMethodController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerTagController;
+use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\Api\V1\FieldController;
 use App\Http\Controllers\Api\V1\MerchantServiceCategoryController;
+use App\Http\Controllers\Api\V1\PlatformFeeController;
 use App\Http\Controllers\Api\V1\MerchantServiceController;
+use App\Http\Controllers\Api\V1\ReservationController;
+use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\SocialPlatformController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Broadcast;
@@ -32,6 +39,9 @@ Route::prefix('v1')->group(function () {
     Route::get('document-types/active', [DocumentTypeController::class, 'active']);
     Route::get('business-types/active', [BusinessTypeController::class, 'active']);
     Route::get('social-platforms/active', [SocialPlatformController::class, 'active']);
+    Route::get('customer-tags/active', [CustomerTagController::class, 'active']);
+    Route::get('platform-fees/active', [PlatformFeeController::class, 'active']);
+    Route::get('fields/active', [FieldController::class, 'active']);
 
     // Public geographic data routes (PSGC)
     Route::get('geographic/regions', [GeographicController::class, 'regions']);
@@ -96,7 +106,11 @@ Route::prefix('v1')->group(function () {
             Route::get('business-types/{businessType}', [BusinessTypeController::class, 'show']);
         });
         Route::middleware('permission:business_types.create')->post('business-types', [BusinessTypeController::class, 'store']);
-        Route::middleware('permission:business_types.update')->put('business-types/{businessType}', [BusinessTypeController::class, 'update']);
+        Route::middleware('permission:business_types.update')->group(function () {
+            Route::put('business-types/{businessType}', [BusinessTypeController::class, 'update']);
+            Route::get('business-types/{businessType}/fields', [BusinessTypeController::class, 'getFields']);
+            Route::put('business-types/{businessType}/fields', [BusinessTypeController::class, 'syncFields']);
+        });
         Route::middleware('permission:business_types.delete')->delete('business-types/{businessType}', [BusinessTypeController::class, 'destroy']);
 
         // Social platform management routes
@@ -108,6 +122,58 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:social_platforms.create')->post('social-platforms', [SocialPlatformController::class, 'store']);
         Route::middleware('permission:social_platforms.update')->put('social-platforms/{socialPlatform}', [SocialPlatformController::class, 'update']);
         Route::middleware('permission:social_platforms.delete')->delete('social-platforms/{socialPlatform}', [SocialPlatformController::class, 'destroy']);
+
+        // Customer tag management routes
+        Route::get('customer-tags/all', [CustomerTagController::class, 'all']);
+        Route::middleware('permission:customer_tags.view')->group(function () {
+            Route::get('customer-tags', [CustomerTagController::class, 'index']);
+            Route::get('customer-tags/{customerTag}', [CustomerTagController::class, 'show']);
+        });
+        Route::middleware('permission:customer_tags.create')->post('customer-tags', [CustomerTagController::class, 'store']);
+        Route::middleware('permission:customer_tags.update')->put('customer-tags/{customerTag}', [CustomerTagController::class, 'update']);
+        Route::middleware('permission:customer_tags.delete')->delete('customer-tags/{customerTag}', [CustomerTagController::class, 'destroy']);
+
+        // Platform fee management routes
+        Route::get('platform-fees/all', [PlatformFeeController::class, 'all']);
+        Route::middleware('permission:platform_fees.view')->group(function () {
+            Route::get('platform-fees', [PlatformFeeController::class, 'index']);
+            Route::get('platform-fees/{platformFee}', [PlatformFeeController::class, 'show']);
+        });
+        Route::middleware('permission:platform_fees.create')->post('platform-fees', [PlatformFeeController::class, 'store']);
+        Route::middleware('permission:platform_fees.update')->put('platform-fees/{platformFee}', [PlatformFeeController::class, 'update']);
+        Route::middleware('permission:platform_fees.delete')->delete('platform-fees/{platformFee}', [PlatformFeeController::class, 'destroy']);
+
+        // Field management routes
+        Route::get('fields/all', [FieldController::class, 'all']);
+        Route::middleware('permission:fields.view')->group(function () {
+            Route::get('fields', [FieldController::class, 'index']);
+            Route::get('fields/{field}', [FieldController::class, 'show']);
+        });
+        Route::middleware('permission:fields.create')->post('fields', [FieldController::class, 'store']);
+        Route::middleware('permission:fields.update')->put('fields/{field}', [FieldController::class, 'update']);
+        Route::middleware('permission:fields.delete')->delete('fields/{field}', [FieldController::class, 'destroy']);
+
+        // Customer management routes
+        Route::middleware('permission:customers.view')->group(function () {
+            Route::get('customers', [CustomerController::class, 'index']);
+            Route::get('customers/{customer}', [CustomerController::class, 'show']);
+            Route::get('customers/{customer}/interactions', [CustomerController::class, 'interactions']);
+        });
+        Route::middleware('permission:customers.create')->post('customers', [CustomerController::class, 'store']);
+        Route::middleware('permission:customers.update')->group(function () {
+            Route::put('customers/{customer}', [CustomerController::class, 'update']);
+            Route::put('customers/{customer}/profile', [CustomerController::class, 'updateProfile']);
+            Route::put('customers/{customer}/account', [CustomerController::class, 'updateAccount']);
+            Route::post('customers/{customer}/avatar', [CustomerController::class, 'uploadAvatar']);
+            Route::delete('customers/{customer}/avatar', [CustomerController::class, 'deleteAvatar']);
+            Route::post('customers/{customer}/documents', [CustomerController::class, 'uploadDocument']);
+            Route::delete('customers/{customer}/documents/{document}', [CustomerController::class, 'deleteDocument']);
+            Route::post('customers/{customer}/tags', [CustomerController::class, 'syncTags']);
+            Route::post('customers/{customer}/interactions', [CustomerController::class, 'storeInteraction']);
+            Route::delete('customers/{customer}/interactions/{interaction}', [CustomerController::class, 'destroyInteraction']);
+        });
+        Route::middleware('permission:customers.update_status')->patch('customers/{customer}/status', [CustomerController::class, 'updateStatus']);
+        Route::middleware('permission:customers.delete')->delete('customers/{customer}', [CustomerController::class, 'destroy']);
 
         // Merchant management routes
         Route::get('merchants/all', [MerchantController::class, 'all']);
@@ -143,8 +209,34 @@ Route::prefix('v1')->group(function () {
             Route::put('merchants/{merchant}/services/{service}', [MerchantServiceController::class, 'update']);
             Route::post('merchants/{merchant}/services/{service}/image', [MerchantServiceController::class, 'uploadImage']);
             Route::delete('merchants/{merchant}/services/{service}/image', [MerchantServiceController::class, 'deleteImage']);
+            Route::get('merchants/{merchant}/services/{service}/schedules', [MerchantServiceController::class, 'getSchedules']);
+            Route::put('merchants/{merchant}/services/{service}/schedules', [MerchantServiceController::class, 'updateSchedules']);
         });
         Route::middleware('permission:services.delete')->delete('merchants/{merchant}/services/{service}', [MerchantServiceController::class, 'destroy']);
+
+        // Booking routes
+        Route::middleware('permission:bookings.view')->group(function () {
+            Route::get('merchants/{merchant}/bookings', [BookingController::class, 'index']);
+            Route::get('merchants/{merchant}/bookings/{booking}', [BookingController::class, 'show']);
+        });
+        Route::middleware('permission:bookings.create')->post('merchants/{merchant}/bookings', [BookingController::class, 'store']);
+        Route::middleware('permission:bookings.update_status')->patch('merchants/{merchant}/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
+
+        // Reservation routes
+        Route::middleware('permission:reservations.view')->group(function () {
+            Route::get('merchants/{merchant}/reservations', [ReservationController::class, 'index']);
+            Route::get('merchants/{merchant}/reservations/{reservation}', [ReservationController::class, 'show']);
+        });
+        Route::middleware('permission:reservations.create')->post('merchants/{merchant}/reservations', [ReservationController::class, 'store']);
+        Route::middleware('permission:reservations.update_status')->patch('merchants/{merchant}/reservations/{reservation}/status', [ReservationController::class, 'updateStatus']);
+
+        // Service order routes
+        Route::middleware('permission:service_orders.view')->group(function () {
+            Route::get('merchants/{merchant}/service-orders', [ServiceOrderController::class, 'index']);
+            Route::get('merchants/{merchant}/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show']);
+        });
+        Route::middleware('permission:service_orders.create')->post('merchants/{merchant}/service-orders', [ServiceOrderController::class, 'store']);
+        Route::middleware('permission:service_orders.update_status')->patch('merchants/{merchant}/service-orders/{serviceOrder}/status', [ServiceOrderController::class, 'updateStatus']);
 
         // Merchant service category routes
         Route::middleware('permission:service_categories.view')->group(function () {
@@ -168,6 +260,8 @@ Route::prefix('v1')->group(function () {
         Route::put('profile', [ProfileController::class, 'update']);
         Route::post('profile/avatar', [ProfileController::class, 'uploadAvatar']);
         Route::delete('profile/avatar', [ProfileController::class, 'deleteAvatar']);
+        Route::get('profile/customer', [ProfileController::class, 'showCustomer']);
+        Route::put('profile/customer', [ProfileController::class, 'updateCustomer']);
 
         // Notification routes
         Route::get('notifications', [NotificationController::class, 'index']);

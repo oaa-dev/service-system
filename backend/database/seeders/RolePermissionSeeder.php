@@ -74,6 +74,46 @@ class RolePermissionSeeder extends Seeder
                 'services.update',
                 'services.delete',
             ],
+            'customer_tags' => [
+                'customer_tags.view',
+                'customer_tags.create',
+                'customer_tags.update',
+                'customer_tags.delete',
+            ],
+            'customers' => [
+                'customers.view',
+                'customers.create',
+                'customers.update',
+                'customers.delete',
+                'customers.update_status',
+            ],
+            'bookings' => [
+                'bookings.view',
+                'bookings.create',
+                'bookings.update_status',
+            ],
+            'reservations' => [
+                'reservations.view',
+                'reservations.create',
+                'reservations.update_status',
+            ],
+            'service_orders' => [
+                'service_orders.view',
+                'service_orders.create',
+                'service_orders.update_status',
+            ],
+            'platform_fees' => [
+                'platform_fees.view',
+                'platform_fees.create',
+                'platform_fees.update',
+                'platform_fees.delete',
+            ],
+            'fields' => [
+                'fields.view',
+                'fields.create',
+                'fields.update',
+                'fields.delete',
+            ],
         ];
 
         // Create all permissions
@@ -97,13 +137,24 @@ class RolePermissionSeeder extends Seeder
                 'merchants.view', 'merchants.create', 'merchants.update', 'merchants.delete', 'merchants.update_status',
                 'service_categories.view', 'service_categories.create', 'service_categories.update', 'service_categories.delete',
                 'services.view', 'services.create', 'services.update', 'services.delete',
+                'customer_tags.view', 'customer_tags.create', 'customer_tags.update', 'customer_tags.delete',
+                'customers.view', 'customers.create', 'customers.update', 'customers.delete', 'customers.update_status',
+                'bookings.view', 'bookings.create', 'bookings.update_status',
+                'reservations.view', 'reservations.create', 'reservations.update_status',
+                'service_orders.view', 'service_orders.create', 'service_orders.update_status',
+                'platform_fees.view', 'platform_fees.create', 'platform_fees.update', 'platform_fees.delete',
+                'fields.view', 'fields.create', 'fields.update', 'fields.delete',
             ],
             'manager' => [
                 'users.view', 'users.create', 'users.update',
                 'profile.view', 'profile.update',
+                'customers.view',
             ],
             'user' => [
                 'users.view',
+                'profile.view', 'profile.update',
+            ],
+            'customer' => [
                 'profile.view', 'profile.update',
             ],
         ];

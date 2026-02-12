@@ -45,7 +45,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const form = useForm<UpdateUserFormData>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
-      name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       password: '',
       roles: [],
@@ -58,7 +59,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   useEffect(() => {
     if (user && open) {
       form.reset({
-        name: user.name,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         email: user.email,
         password: '',
         roles: user.roles || [],
@@ -73,8 +75,11 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     const dirtyFields = form.formState.dirtyFields;
     const dataToSend: UpdateUserFormData = {};
 
-    if (dirtyFields.name && data.name) {
-      dataToSend.name = data.name;
+    if (dirtyFields.first_name && data.first_name) {
+      dataToSend.first_name = data.first_name;
+    }
+    if (dirtyFields.last_name && data.last_name) {
+      dataToSend.last_name = data.last_name;
     }
     if (dirtyFields.email && data.email) {
       dataToSend.email = data.email;
@@ -140,19 +145,34 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 </Alert>
               )}
 
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input disabled={updateUser.isPending} {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="first_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input disabled={updateUser.isPending} {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input disabled={updateUser.isPending} {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

@@ -33,7 +33,7 @@ export function CreateMerchantDialog({ open, onOpenChange }: Props) {
   const form = useForm<CreateMerchantFormData>({
     resolver: zodResolver(createMerchantSchema),
     defaultValues: {
-      user_name: '', user_email: '', user_password: '',
+      user_first_name: '', user_last_name: '', user_email: '', user_password: '',
       name: '', type: 'individual', description: '',
       contact_phone: '', business_type_id: null, parent_id: null,
     },
@@ -77,9 +77,14 @@ export function CreateMerchantDialog({ open, onOpenChange }: Props) {
 
               <div className="space-y-3 rounded-lg border p-4">
                 <p className="text-sm font-medium">User Account</p>
-                <FormField control={form.control} name="user_name" render={({ field }) => (
-                  <FormItem><FormLabel>Name</FormLabel><FormControl><Input disabled={mutation.isPending} {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="user_first_name" render={({ field }) => (
+                    <FormItem><FormLabel>First Name</FormLabel><FormControl><Input disabled={mutation.isPending} {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="user_last_name" render={({ field }) => (
+                    <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input disabled={mutation.isPending} {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="user_email" render={({ field }) => (
                     <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" disabled={mutation.isPending} {...field} /></FormControl><FormMessage /></FormItem>

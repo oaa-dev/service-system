@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { Separator } from '@/components/ui/separator';
 import { AvatarCropDialog } from '@/components/avatar-crop-dialog';
+import { Switch } from '@/components/ui/switch';
 import { Store, Trash2, Upload } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
@@ -55,6 +56,9 @@ export function MerchantDetailsTab({ merchant }: Props) {
       business_type_id: merchant.business_type_id,
       description: merchant.description || '',
       contact_phone: merchant.contact_phone || '',
+      can_sell_products: merchant.can_sell_products,
+      can_take_bookings: merchant.can_take_bookings,
+      can_rent_units: merchant.can_rent_units,
       address: {
         street: merchant.address?.street || '',
         region_id: merchant.address?.region?.id || null,
@@ -74,6 +78,9 @@ export function MerchantDetailsTab({ merchant }: Props) {
       business_type_id: merchant.business_type_id,
       description: merchant.description || '',
       contact_phone: merchant.contact_phone || '',
+      can_sell_products: merchant.can_sell_products,
+      can_take_bookings: merchant.can_take_bookings,
+      can_rent_units: merchant.can_rent_units,
       address: {
         street: merchant.address?.street || '',
         region_id: merchant.address?.region?.id || null,
@@ -267,6 +274,25 @@ export function MerchantDetailsTab({ merchant }: Props) {
               <FormField control={form.control} name="contact_phone" render={({ field }) => (
                 <FormItem><FormLabel>Contact Phone</FormLabel><FormControl><Input disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )} />
+
+              <Separator />
+              <div>
+                <p className="text-sm font-medium">Capabilities</p>
+                {merchant.business_type && (
+                  <p className="text-xs text-muted-foreground mt-1">Inherited from: {merchant.business_type.name}</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="can_sell_products" render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Sell Products</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
+                )} />
+                <FormField control={form.control} name="can_take_bookings" render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Take Bookings</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
+                )} />
+                <FormField control={form.control} name="can_rent_units" render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Rent Units</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
+                )} />
+              </div>
 
               <Separator />
               <p className="text-sm font-medium">Address</p>

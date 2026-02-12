@@ -32,9 +32,10 @@ class AuthController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['name', 'email', 'password', 'password_confirmation'],
+                required: ['first_name', 'last_name', 'email', 'password', 'password_confirmation'],
                 properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
+                    new OA\Property(property: 'first_name', type: 'string', example: 'John'),
+                    new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'test@example.com'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'password'),
                     new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'password'),
@@ -66,8 +67,23 @@ class AuthController extends Controller
     )]
     public function register(RegisterRequest $request): JsonResponse
     {
-        $data = UserData::from($request->validated());
+        $validated = $request->validated();
+        $firstName = $validated['first_name'];
+        $lastName = $validated['last_name'];
+
+        $data = UserData::from([
+            'name' => trim("{$firstName} {$lastName}"),
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+        ]);
         $user = $this->userService->createUser($data);
+
+        // Save first/last name to profile
+        $user->profile()->update([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]);
+
         $user->load(['profile.media', 'roles']);
 
         // Assign default role to newly registered users
@@ -212,7 +228,8 @@ class AuthController extends Controller
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
+                    new OA\Property(property: 'first_name', type: 'string', example: 'John'),
+                    new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'test@example.com'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8),
                     new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
@@ -240,11 +257,32 @@ class AuthController extends Controller
         $user = $request->user();
         $data = $request->validated();
 
+        $firstName = $data['first_name'] ?? null;
+        $lastName = $data['last_name'] ?? null;
+        unset($data['first_name'], $data['last_name']);
+
+        // Update name on users table if first/last name provided
+        if ($firstName !== null || $lastName !== null) {
+            $currentFirst = $user->profile?->first_name ?? '';
+            $currentLast = $user->profile?->last_name ?? '';
+            $newFirst = $firstName ?? $currentFirst;
+            $newLast = $lastName ?? $currentLast;
+            $data['name'] = trim("{$newFirst} {$newLast}");
+
+            // Update profile
+            $profileData = [];
+            if ($firstName !== null) $profileData['first_name'] = $firstName;
+            if ($lastName !== null) $profileData['last_name'] = $lastName;
+            $user->profile()->update($profileData);
+        }
+
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
-        $user->update($data);
+        if (! empty($data)) {
+            $user->update($data);
+        }
 
         return $this->successResponse(
             new UserResource($user->fresh(['profile.media', 'roles'])),

@@ -9,14 +9,6 @@ import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
   Form,
   FormControl,
   FormField,
@@ -26,7 +18,7 @@ import {
 } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
-import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { ApiError } from '@/types/api';
 
@@ -65,117 +57,101 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-md">
-      {/* Logo/Brand */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-          <LogIn className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="w-full max-w-sm">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Sign in to your account to continue
         </p>
       </div>
 
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-xl">Sign in</CardTitle>
-          <CardDescription>
-            Enter your credentials below
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              {form.formState.errors.root && (
-                <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
-                  <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
-                </Alert>
-              )}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          {form.formState.errors.root && (
+            <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+              <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+            </Alert>
+          )}
 
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email address</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          type="email"
-                          placeholder="name@example.com"
-                          className="pl-10 h-11"
-                          disabled={login.isPending}
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email address</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="name@example.com"
+                      className="pl-9 h-10"
+                      disabled={login.isPending}
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
-                      <Link
-                        href="/forgot-password"
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          type="password"
-                          placeholder="Enter your password"
-                          className="pl-10 h-11"
-                          disabled={login.isPending}
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4 pt-2">
-              <Button
-                type="submit"
-                className="w-full h-11 text-base"
-                disabled={login.isPending}
-              >
-                {login.isPending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign in
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Password</FormLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <FormControl>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      className="pl-9 h-10"
+                      disabled={login.isPending}
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      {/* Register Link */}
-      <p className="text-center text-sm text-muted-foreground mt-6">
+          <Button
+            type="submit"
+            className="w-full h-10"
+            disabled={login.isPending}
+          >
+            {login.isPending ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                Sign in
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </form>
+      </Form>
+
+      <p className="mt-8 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
         <Link
           href="/register"
-          className="font-medium text-primary hover:underline"
+          className="font-medium text-foreground hover:underline"
         >
           Create an account
         </Link>

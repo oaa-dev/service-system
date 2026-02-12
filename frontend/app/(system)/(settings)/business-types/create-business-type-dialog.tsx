@@ -26,7 +26,7 @@ export function CreateBusinessTypeDialog({ open, onOpenChange }: Props) {
   const mutation = useCreateBusinessType();
   const form = useForm<CreateBusinessTypeFormData>({
     resolver: zodResolver(createBusinessTypeSchema),
-    defaultValues: { name: '', description: '', is_active: true, sort_order: 0 },
+    defaultValues: { name: '', description: '', is_active: true, sort_order: 0, can_sell_products: false, can_take_bookings: false, can_rent_units: false },
   });
 
   useEffect(() => { if (!open) form.reset(); }, [open, form]);
@@ -62,6 +62,20 @@ export function CreateBusinessTypeDialog({ open, onOpenChange }: Props) {
                 <FormField control={form.control} name="is_active" render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-3 mt-2"><FormLabel>Active</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={mutation.isPending} /></FormControl></FormItem>
                 )} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Capabilities</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="can_sell_products" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel className="text-xs">Sell Products</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={mutation.isPending} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="can_take_bookings" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel className="text-xs">Take Bookings</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={mutation.isPending} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="can_rent_units" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel className="text-xs">Rent Units</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={mutation.isPending} /></FormControl></FormItem>
+                  )} />
+                </div>
               </div>
             </div>
             <DialogFooter>

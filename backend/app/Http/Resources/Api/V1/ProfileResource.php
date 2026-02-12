@@ -11,6 +11,8 @@ class ProfileResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
             'bio' => $this->bio,
             'phone' => $this->phone,
             'address' => $this->address ? new AddressResource($this->address) : null,

@@ -92,6 +92,11 @@ class User extends Authenticatable implements HasMedia
         return $this->hasOne(Merchant::class);
     }
 
+    public function customer(): HasOne
+    {
+        return $this->hasOne(Customer::class);
+    }
+
     protected static function booted(): void
     {
         static::created(function (User $user) {

@@ -41,12 +41,15 @@ class BusinessTypeService implements BusinessTypeServiceInterface
 
     public function getActiveBusinessTypes(): Collection
     {
-        return $this->businessTypeRepository->getActive();
+        return BusinessType::where('is_active', true)
+            ->orderBy('sort_order')
+            ->with('businessTypeFields.field.fieldValues')
+            ->get();
     }
 
     public function getBusinessTypeById(int $id): BusinessType
     {
-        return $this->businessTypeRepository->findOrFail($id);
+        return BusinessType::with('businessTypeFields.field.fieldValues')->findOrFail($id);
     }
 
     public function createBusinessType(BusinessTypeData $data): BusinessType
@@ -70,5 +73,22 @@ class BusinessTypeService implements BusinessTypeServiceInterface
     public function deleteBusinessType(int $id): bool
     {
         return $this->businessTypeRepository->delete($id);
+    }
+
+    public function syncFields(int $id, array $fields): BusinessType
+    {
+        $businessType = $this->businessTypeRepository->findOrFail($id);
+
+        $businessType->businessTypeFields()->delete();
+
+        foreach ($fields as $index => $field) {
+            $businessType->businessTypeFields()->create([
+                'field_id' => $field['field_id'],
+                'is_required' => $field['is_required'] ?? false,
+                'sort_order' => $field['sort_order'] ?? $index,
+            ]);
+        }
+
+        return $businessType->load('businessTypeFields.field.fieldValues');
     }
 }

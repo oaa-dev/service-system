@@ -6,8 +6,10 @@ use App\Data\ServiceData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Service\StoreMerchantServiceRequest;
 use App\Http\Requests\Api\V1\Service\UpdateMerchantServiceRequest;
+use App\Http\Requests\Api\V1\Service\UpdateServiceScheduleRequest;
 use App\Http\Requests\Api\V1\Service\UploadServiceImageRequest;
 use App\Http\Resources\Api\V1\ServiceResource;
+use App\Http\Resources\Api\V1\ServiceScheduleResource;
 use App\Services\Contracts\MerchantServiceInterface;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -93,5 +95,29 @@ class MerchantServiceController extends Controller
         $service->clearMediaCollection('image');
 
         return $this->successResponse(null, 'Service image deleted successfully');
+    }
+
+    public function getSchedules(int $merchantId, int $serviceId): JsonResponse
+    {
+        $service = $this->merchantService->getServiceSchedules($merchantId, $serviceId);
+
+        return $this->successResponse(
+            ServiceScheduleResource::collection($service->schedules),
+            'Service schedules retrieved successfully'
+        );
+    }
+
+    public function updateSchedules(UpdateServiceScheduleRequest $request, int $merchantId, int $serviceId): JsonResponse
+    {
+        $service = $this->merchantService->upsertServiceSchedules(
+            $merchantId,
+            $serviceId,
+            $request->validated('schedules')
+        );
+
+        return $this->successResponse(
+            ServiceScheduleResource::collection($service->schedules),
+            'Service schedules updated successfully'
+        );
     }
 }

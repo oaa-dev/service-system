@@ -36,6 +36,8 @@ class DatabaseSeeder extends Seeder
             DocumentTypeSeeder::class,
             BusinessTypeSeeder::class,
             SocialPlatformSeeder::class,
+            CustomerTagSeeder::class,
+            PlatformFeeSeeder::class,
         ]);
     }
 }

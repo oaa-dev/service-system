@@ -38,6 +38,9 @@ class UpdateMerchantRequest extends FormRequest
             'address.city_id' => ['nullable', 'integer', 'exists:cities,id'],
             'address.barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
             'address.postal_code' => ['nullable', 'string', 'max:20'],
+            'can_sell_products' => ['sometimes', 'boolean'],
+            'can_take_bookings' => ['sometimes', 'boolean'],
+            'can_rent_units' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -41,6 +41,9 @@ class Merchant extends Model implements HasMedia
         'approved_at',
         'accepted_terms_at',
         'terms_version',
+        'can_sell_products',
+        'can_take_bookings',
+        'can_rent_units',
     ];
 
     protected function casts(): array
@@ -49,6 +52,9 @@ class Merchant extends Model implements HasMedia
             'status_changed_at' => 'datetime',
             'approved_at' => 'datetime',
             'accepted_terms_at' => 'datetime',
+            'can_sell_products' => 'boolean',
+            'can_take_bookings' => 'boolean',
+            'can_rent_units' => 'boolean',
         ];
     }
 
@@ -173,5 +179,20 @@ class Merchant extends Model implements HasMedia
     public function serviceCategories(): HasMany
     {
         return $this->hasMany(ServiceCategory::class);
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function serviceOrders(): HasMany
+    {
+        return $this->hasMany(ServiceOrder::class);
     }
 }
