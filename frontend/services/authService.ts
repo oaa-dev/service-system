@@ -3,9 +3,11 @@ import {
   ApiResponse,
   AuthResponse,
   LoginRequest,
+  Merchant,
   RegisterRequest,
   UpdateAuthUserRequest,
   User,
+  VerificationStatusResponse,
 } from '@/types/api';
 
 export const authService = {
@@ -46,6 +48,38 @@ export const authService = {
    */
   updateMe: async (data: UpdateAuthUserRequest): Promise<ApiResponse<User>> => {
     const response = await api.put<ApiResponse<User>>('/auth/me', data);
+    return response.data;
+  },
+
+  /**
+   * Verify OTP code
+   */
+  verifyOtp: async (data: { otp: string }): Promise<ApiResponse<User>> => {
+    const response = await api.post<ApiResponse<User>>('/auth/verify-otp', data);
+    return response.data;
+  },
+
+  /**
+   * Resend OTP code
+   */
+  resendOtp: async (): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>('/auth/resend-otp');
+    return response.data;
+  },
+
+  /**
+   * Get verification status
+   */
+  getVerificationStatus: async (): Promise<ApiResponse<VerificationStatusResponse>> => {
+    const response = await api.get<ApiResponse<VerificationStatusResponse>>('/auth/verification-status');
+    return response.data;
+  },
+
+  /**
+   * Select merchant type during onboarding
+   */
+  selectMerchantType: async (data: { type: string; name: string }): Promise<ApiResponse<{ user: User; merchant: Merchant }>> => {
+    const response = await api.post<ApiResponse<{ user: User; merchant: Merchant }>>('/auth/select-merchant-type', data);
     return response.data;
   },
 };

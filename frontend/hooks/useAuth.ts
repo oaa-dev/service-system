@@ -103,3 +103,64 @@ export function useUpdateMe() {
     },
   });
 }
+
+/**
+ * Hook to verify OTP
+ */
+export function useVerifyOtp() {
+  const { setUser } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { otp: string }) => authService.verifyOtp(data),
+    onSuccess: (response) => {
+      if (response.data) {
+        setUser(response.data);
+      }
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+  });
+}
+
+/**
+ * Hook to resend OTP
+ */
+export function useResendOtp() {
+  return useMutation({
+    mutationFn: () => authService.resendOtp(),
+  });
+}
+
+/**
+ * Hook to get verification status
+ */
+export function useVerificationStatus() {
+  const { isAuthenticated, user } = useAuthStore();
+
+  return useQuery({
+    queryKey: ['auth', 'verification-status'],
+    queryFn: async () => {
+      const response = await authService.getVerificationStatus();
+      return response.data;
+    },
+    enabled: isAuthenticated && !user?.email_verified_at,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+}
+
+/**
+ * Hook to select merchant type during onboarding
+ */
+export function useSelectMerchantType() {
+  const { setUser } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { type: string; name: string }) => authService.selectMerchantType(data),
+    onSuccess: (response) => {
+      if (response.data?.user) setUser(response.data.user);
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+  });
+}

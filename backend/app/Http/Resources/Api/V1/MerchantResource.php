@@ -40,6 +40,7 @@ class MerchantResource extends JsonResource
             'payment_methods' => $this->whenLoaded('paymentMethods', fn () => PaymentMethodResource::collection($this->paymentMethods)),
             'social_links' => $this->whenLoaded('socialLinks', fn () => MerchantSocialLinkResource::collection($this->socialLinks)),
             'documents' => $this->whenLoaded('documents', fn () => MerchantDocumentResource::collection($this->documents)),
+            'business_hours' => $this->whenLoaded('businessHours', fn () => MerchantBusinessHourResource::collection($this->businessHours)),
             'logo' => $this->when($this->hasMedia('logo'), fn () => [
                 'url' => $this->getFirstMediaUrl('logo'),
                 'thumb' => $this->getFirstMediaUrl('logo', 'thumb'),

@@ -40,10 +40,12 @@ use App\Services\BookingService;
 use App\Services\BusinessTypeService;
 use App\Services\Contracts\BookingServiceInterface;
 use App\Services\Contracts\BusinessTypeServiceInterface;
+use App\Services\Contracts\EmailVerificationServiceInterface;
 use App\Services\Contracts\FieldServiceInterface;
 use App\Services\Contracts\PlatformFeeServiceInterface;
 use App\Services\Contracts\ReservationServiceInterface;
 use App\Services\Contracts\ServiceOrderServiceInterface;
+use App\Services\EmailVerificationService;
 use App\Services\FieldService;
 use App\Services\PlatformFeeService;
 use App\Services\ReservationService;
@@ -112,6 +114,7 @@ class RepositoryServiceProvider extends ServiceProvider
         PlatformFeeServiceInterface::class => PlatformFeeService::class,
         FieldRepositoryInterface::class => FieldRepository::class,
         FieldServiceInterface::class => FieldService::class,
+        EmailVerificationServiceInterface::class => EmailVerificationService::class,
     ];
 
     public function register(): void

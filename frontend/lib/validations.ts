@@ -48,6 +48,15 @@ export const registerSchema = z
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
 /**
+ * OTP verification form validation schema
+ */
+export const verifyOtpSchema = z.object({
+  otp: z.string().length(6, 'Please enter all 6 digits').regex(/^\d{6}$/, 'OTP must be 6 digits'),
+});
+
+export type VerifyOtpFormData = z.infer<typeof verifyOtpSchema>;
+
+/**
  * Update user form validation schema
  */
 export const updateUserSchema = z.object({
@@ -633,3 +642,15 @@ export const updateFieldSchema = z.object({
 });
 
 export type UpdateFieldFormData = z.infer<typeof updateFieldSchema>;
+
+/**
+ * Merchant type selection form validation schema (onboarding)
+ */
+export const selectMerchantTypeSchema = z.object({
+  type: z.enum(['individual', 'organization'], {
+    message: 'Please select a merchant type',
+  }),
+  name: z.string().min(1, 'Business name is required').max(255),
+});
+
+export type SelectMerchantTypeFormData = z.infer<typeof selectMerchantTypeSchema>;

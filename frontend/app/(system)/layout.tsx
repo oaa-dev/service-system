@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useMe } from '@/hooks/useAuth';
 import { AppSidebar } from '@/components/layout/app-sidebar';
@@ -23,14 +23,35 @@ export default function SystemLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   const { isLoading: isLoadingUser } = useMe();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
+      return;
     }
-  }, [isLoading, isAuthenticated, router]);
+    if (!isLoading && isAuthenticated && user) {
+      // Only enforce onboarding for merchant role users
+      const isMerchantRole = user.roles?.includes('merchant');
+      if (isMerchantRole) {
+        if (!user.email_verified_at) {
+          router.push('/verify-email');
+          return;
+        }
+        if (user.has_merchant === false) {
+          router.push('/onboarding');
+          return;
+        }
+        // Redirect merchant users from admin dashboard to their store dashboard
+        if (pathname === '/dashboard') {
+          router.push('/my-store');
+          return;
+        }
+      }
+    }
+  }, [isLoading, isAuthenticated, user, router, pathname]);
 
   // Show loading while checking auth
   if (isLoading || (!isAuthenticated && !isLoading)) {

@@ -49,4 +49,6 @@ interface MerchantServiceInterface
     public function updateMerchantService(int $merchantId, int $serviceId, ServiceData $data): Service;
 
     public function deleteMerchantService(int $merchantId, int $serviceId): bool;
+
+    public function getMerchantStats(int $merchantId): array;
 }

@@ -1,10 +1,19 @@
 <?php
 
+use App\Mail\OtpMail;
 use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Passport\Passport;
+
+beforeEach(function () {
+    $this->seed(RolePermissionSeeder::class);
+});
 
 describe('Auth Registration', function () {
     it('can register a new user', function () {
+        Mail::fake();
+
         $response = $this->postJson('/api/v1/auth/register', [
             'first_name' => 'Test',
             'last_name' => 'User',
@@ -21,17 +30,19 @@ describe('Auth Registration', function () {
                     'user' => ['id', 'name', 'email', 'first_name', 'last_name', 'created_at', 'updated_at'],
                     'access_token',
                     'token_type',
+                    'requires_verification',
                 ],
             ])
             ->assertJson([
                 'success' => true,
-                'message' => 'User registered successfully',
+                'message' => 'User registered successfully. Please verify your email.',
                 'data' => [
                     'user' => [
                         'name' => 'Test User',
                         'first_name' => 'Test',
                         'last_name' => 'User',
                     ],
+                    'requires_verification' => true,
                 ],
             ]);
 
@@ -53,7 +64,8 @@ describe('Auth Registration', function () {
             ->assertJsonValidationErrors(['first_name', 'last_name', 'email', 'password']);
     });
 
-    it('validates email uniqueness', function () {
+    it('validates email uniqueness for verified users', function () {
+        // Create a verified user — registration with this email should be blocked
         User::factory()->create(['email' => 'test@example.com']);
 
         $response = $this->postJson('/api/v1/auth/register', [
@@ -66,6 +78,61 @@ describe('Auth Registration', function () {
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['email']);
+    });
+
+    it('resends OTP when registering with unverified email', function () {
+        Mail::fake();
+
+        // First registration — creates the user and sends OTP
+        $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => 'unverified@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertStatus(201)
+            ->assertJson([
+                'message' => 'User registered successfully. Please verify your email.',
+            ]);
+
+        Mail::assertSent(OtpMail::class, 1);
+
+        // Second registration with the same unverified email — should resend OTP, not error
+        $response = $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Another',
+            'last_name' => 'Name',
+            'email' => 'unverified@example.com',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'user' => ['id', 'name', 'email'],
+                    'access_token',
+                    'token_type',
+                    'requires_verification',
+                ],
+            ])
+            ->assertJson([
+                'success' => true,
+                'message' => 'Verification code resent. Please verify your email.',
+                'data' => [
+                    'requires_verification' => true,
+                    'user' => [
+                        'email' => 'unverified@example.com',
+                    ],
+                ],
+            ]);
+
+        // OTP email should have been sent twice total (once per registration attempt)
+        Mail::assertSent(OtpMail::class, 2);
+
+        // Only one user should exist in the database (not duplicated)
+        expect(User::where('email', 'unverified@example.com')->count())->toBe(1);
     });
 
     it('validates password confirmation', function () {
@@ -101,6 +168,7 @@ describe('Auth Login', function () {
                     'user' => ['id', 'name', 'email'],
                     'access_token',
                     'token_type',
+                    'requires_verification',
                 ],
             ])
             ->assertJson([
@@ -161,6 +229,7 @@ describe('Auth Profile', function () {
 
     it('can update first and last name', function () {
         $user = User::factory()->create();
+        $user->assignRole('super-admin');
         Passport::actingAs($user);
 
         $response = $this->putJson('/api/v1/auth/me', [

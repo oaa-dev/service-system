@@ -16,6 +16,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Spatie\LaravelData\Optional;
+use App\Http\Resources\Api\V1\BookingResource;
+use App\Http\Resources\Api\V1\ReservationResource;
+use App\Http\Resources\Api\V1\ServiceOrderResource;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -75,6 +78,7 @@ class MerchantService implements MerchantServiceInterface
             'socialLinks.socialPlatform',
             'documents.documentType',
             'documents.media',
+            'businessHours',
             'media',
         ])->findOrFail($id);
     }
@@ -386,5 +390,62 @@ class MerchantService implements MerchantServiceInterface
         }
 
         return $service->load('schedules');
+    }
+
+    public function getMerchantStats(int $merchantId): array
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+
+        $stats = [
+            'services' => [
+                'total' => $merchant->services()->count(),
+                'active' => $merchant->services()->where('is_active', true)->count(),
+            ],
+        ];
+
+        if ($merchant->can_take_bookings) {
+            $stats['bookings'] = [
+                'total' => $merchant->bookings()->count(),
+                'pending' => $merchant->bookings()->where('status', 'pending')->count(),
+                'confirmed' => $merchant->bookings()->where('status', 'confirmed')->count(),
+                'completed' => $merchant->bookings()->where('status', 'completed')->count(),
+                'cancelled' => $merchant->bookings()->where('status', 'cancelled')->count(),
+                'today' => $merchant->bookings()->whereDate('booking_date', today())->count(),
+            ];
+            $stats['recent_bookings'] = BookingResource::collection(
+                $merchant->bookings()->with(['service', 'customer'])->latest()->take(5)->get()
+            )->resolve();
+        }
+
+        if ($merchant->can_sell_products) {
+            $stats['orders'] = [
+                'total' => $merchant->serviceOrders()->count(),
+                'pending' => $merchant->serviceOrders()->where('status', 'pending')->count(),
+                'processing' => $merchant->serviceOrders()->where('status', 'processing')->count(),
+                'completed' => $merchant->serviceOrders()->where('status', 'completed')->count(),
+                'cancelled' => $merchant->serviceOrders()->where('status', 'cancelled')->count(),
+                'today' => $merchant->serviceOrders()->whereDate('created_at', today())->count(),
+            ];
+            $stats['recent_orders'] = ServiceOrderResource::collection(
+                $merchant->serviceOrders()->with(['service', 'customer'])->latest()->take(5)->get()
+            )->resolve();
+        }
+
+        if ($merchant->can_rent_units) {
+            $stats['reservations'] = [
+                'total' => $merchant->reservations()->count(),
+                'pending' => $merchant->reservations()->where('status', 'pending')->count(),
+                'confirmed' => $merchant->reservations()->where('status', 'confirmed')->count(),
+                'checked_in' => $merchant->reservations()->where('status', 'checked_in')->count(),
+                'checked_out' => $merchant->reservations()->where('status', 'checked_out')->count(),
+                'cancelled' => $merchant->reservations()->where('status', 'cancelled')->count(),
+                'today' => $merchant->reservations()->whereDate('check_in', today())->count(),
+            ];
+            $stats['recent_reservations'] = ReservationResource::collection(
+                $merchant->reservations()->with(['service', 'customer'])->latest()->take(5)->get()
+            )->resolve();
+        }
+
+        return $stats;
     }
 }

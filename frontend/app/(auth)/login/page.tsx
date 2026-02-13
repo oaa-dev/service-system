@@ -36,8 +36,19 @@ export default function LoginPage() {
 
   const onSubmit = (data: LoginFormData) => {
     login.mutate(data, {
-      onSuccess: () => {
-        router.push('/dashboard');
+      onSuccess: (response) => {
+        const user = response.data?.user;
+        const isMerchant = user?.roles?.includes('merchant');
+
+        if (isMerchant && !user.email_verified_at) {
+          router.push('/verify-email');
+        } else if (isMerchant && user.has_merchant === false) {
+          router.push('/onboarding');
+        } else if (isMerchant) {
+          router.push('/my-store');
+        } else {
+          router.push('/dashboard');
+        }
       },
       onError: (error) => {
         const axiosError = error as AxiosError<ApiError>;

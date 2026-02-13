@@ -2,12 +2,20 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Data\MerchantData;
 use App\Data\UserData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\V1\Auth\RegisterRequest;
+use App\Http\Requests\Api\V1\Auth\SelectMerchantTypeRequest;
 use App\Http\Requests\Api\V1\Auth\UpdateProfileRequest;
+use App\Http\Requests\Api\V1\Auth\VerifyOtpRequest;
+use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\UserResource;
+use App\Models\EmailVerification;
+use App\Models\User;
+use App\Services\Contracts\EmailVerificationServiceInterface;
+use App\Services\Contracts\MerchantServiceInterface;
 use App\Services\Contracts\UserServiceInterface;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +29,9 @@ class AuthController extends Controller
     use ApiResponse;
 
     public function __construct(
-        protected UserServiceInterface $userService
+        protected UserServiceInterface $userService,
+        protected MerchantServiceInterface $merchantService,
+        protected EmailVerificationServiceInterface $emailVerificationService
     ) {}
 
     #[OA\Post(
@@ -49,13 +59,14 @@ class AuthController extends Controller
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'success', type: 'boolean', example: true),
-                        new OA\Property(property: 'message', type: 'string', example: 'User registered successfully'),
+                        new OA\Property(property: 'message', type: 'string', example: 'User registered successfully. Please verify your email.'),
                         new OA\Property(
                             property: 'data',
                             properties: [
                                 new OA\Property(property: 'user', ref: '#/components/schemas/User'),
                                 new OA\Property(property: 'access_token', type: 'string'),
                                 new OA\Property(property: 'token_type', type: 'string', example: 'Bearer'),
+                                new OA\Property(property: 'requires_verification', type: 'boolean', example: true),
                             ],
                             type: 'object'
                         ),
@@ -71,6 +82,23 @@ class AuthController extends Controller
         $firstName = $validated['first_name'];
         $lastName = $validated['last_name'];
 
+        // Check if an unverified user with this email already exists
+        $existingUser = User::where('email', $validated['email'])->first();
+        if ($existingUser && $existingUser->email_verified_at === null) {
+            // Resend OTP to the existing unverified user (bypasses cooldown)
+            $this->emailVerificationService->generateAndSendOtp($existingUser);
+
+            $existingUser->load(['profile.media', 'roles', 'merchant']);
+            $token = $existingUser->createToken('auth_token')->accessToken;
+
+            return $this->createdResponse([
+                'user' => new UserResource($existingUser),
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'requires_verification' => true,
+            ], 'Verification code resent. Please verify your email.');
+        }
+
         $data = UserData::from([
             'name' => trim("{$firstName} {$lastName}"),
             'email' => $validated['email'],
@@ -84,13 +112,16 @@ class AuthController extends Controller
             'last_name' => $lastName,
         ]);
 
-        $user->load(['profile.media', 'roles']);
-
-        // Assign default role to newly registered users
+        // Assign merchant role to newly registered users
         if ($user->roles->isEmpty()) {
-            $user->assignRole('user');
+            $user->assignRole('merchant');
             $user->load('roles');
         }
+
+        // Send OTP verification email
+        $this->emailVerificationService->generateAndSendOtp($user);
+
+        $user->load(['profile.media', 'roles', 'merchant']);
 
         $token = $user->createToken('auth_token')->accessToken;
 
@@ -98,7 +129,8 @@ class AuthController extends Controller
             'user' => new UserResource($user),
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ], 'User registered successfully');
+            'requires_verification' => true,
+        ], 'User registered successfully. Please verify your email.');
     }
 
     #[OA\Post(
@@ -130,6 +162,7 @@ class AuthController extends Controller
                                 new OA\Property(property: 'user', ref: '#/components/schemas/User'),
                                 new OA\Property(property: 'access_token', type: 'string'),
                                 new OA\Property(property: 'token_type', type: 'string', example: 'Bearer'),
+                                new OA\Property(property: 'requires_verification', type: 'boolean'),
                             ],
                             type: 'object'
                         ),
@@ -149,13 +182,14 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
-        $user->load(['profile.media', 'roles']);
+        $user->load(['profile.media', 'roles', 'merchant']);
         $token = $user->createToken('auth_token')->accessToken;
 
         return $this->successResponse([
             'user' => new UserResource($user),
             'access_token' => $token,
             'token_type' => 'Bearer',
+            'requires_verification' => $user->email_verified_at === null,
         ], 'Login successful');
     }
 
@@ -210,7 +244,7 @@ class AuthController extends Controller
     )]
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['profile.media', 'roles']);
+        $user = $request->user()->load(['profile.media', 'roles', 'merchant']);
 
         return $this->successResponse(
             new UserResource($user),
@@ -288,5 +322,68 @@ class AuthController extends Controller
             new UserResource($user->fresh(['profile.media', 'roles'])),
             'Profile updated successfully'
         );
+    }
+
+    public function verifyOtp(VerifyOtpRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->emailVerificationService->verifyOtp($user, $request->validated('otp'));
+        $user->refresh();
+        $user->load(['profile.media', 'roles', 'merchant']);
+
+        return $this->successResponse(new UserResource($user), 'Email verified successfully');
+    }
+
+    public function resendOtp(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->emailVerificationService->resendOtp($user);
+
+        return $this->successResponse(null, 'Verification code sent successfully');
+    }
+
+    public function verificationStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $verification = EmailVerification::where('user_id', $user->id)
+            ->whereNull('verified_at')
+            ->latest()
+            ->first();
+
+        return $this->successResponse([
+            'is_verified' => $user->email_verified_at !== null,
+            'can_resend' => $verification === null
+                || $verification->last_resent_at === null
+                || $verification->last_resent_at->diffInMinutes(now()) >= 5,
+            'locked_until' => $verification?->isLocked() ? $verification->locked_until->toISOString() : null,
+            'expires_at' => $verification && ! $verification->isExpired() ? $verification->expires_at->toISOString() : null,
+        ], 'Verification status retrieved');
+    }
+
+    public function selectMerchantType(SelectMerchantTypeRequest $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->hasRole('merchant')) {
+            return $this->errorResponse('This action is only available for merchant accounts', 403);
+        }
+
+        if ($user->hasMerchant()) {
+            return $this->errorResponse('You already have a merchant profile', 422);
+        }
+
+        $data = MerchantData::from([
+            'type' => $request->validated('type'),
+            'name' => $request->validated('name'),
+            'contact_email' => $user->email,
+        ]);
+
+        $merchant = $this->merchantService->createMerchantForUser($user->id, $data);
+        $user->load(['profile.media', 'roles', 'merchant']);
+
+        return $this->createdResponse([
+            'user' => new UserResource($user),
+            'merchant' => new MerchantResource($merchant),
+        ], 'Merchant profile created successfully');
     }
 }

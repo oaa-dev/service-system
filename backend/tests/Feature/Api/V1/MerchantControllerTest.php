@@ -121,7 +121,7 @@ describe('Merchant Store', function () {
         ]);
 
         $user = User::where('email', 'john@example.com')->first();
-        expect($user->hasRole('user'))->toBeTrue();
+        expect($user->hasRole('merchant'))->toBeTrue();
 
         $this->assertDatabaseHas('merchants', [
             'user_id' => $user->id,

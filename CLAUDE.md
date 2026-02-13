@@ -65,6 +65,11 @@ Route → Controller → FormRequest (validation) → DTO (data transfer) → Se
 - `config/images.php` — Centralized image upload config (avatar, document, merchant_logo, service_image, etc.)
 - `database/seeders/RolePermissionSeeder.php` — All permissions and role definitions
 
+**ApiResponse trait** (`app/Traits/ApiResponse.php`) — Used by all controllers. Key methods:
+- `successResponse($data, $message, $code)`, `createdResponse($data, $message)`
+- `paginatedResponse($paginator, $resourceClass)` — wraps paginated data with Resource + pagination meta
+- `errorResponse($message, $code)`, `notFoundResponse()`, `validationErrorResponse($errors)`
+
 **Standard API Response:**
 ```json
 {"success": true, "message": "...", "data": {...}, "meta": {"pagination": ...}}
@@ -81,10 +86,36 @@ class ExampleData extends Data {
 // Service: collect($data->toArray())->reject(fn($v) => $v instanceof Optional)->toArray()
 ```
 
+**BaseRepository** provides: `all()`, `find()`, `findOrFail()`, `create()`, `update()` (returns `->fresh()`), `delete()`, `paginate()`, `findBy()`, `findAllBy()`, `query()`
+
+**Spatie QueryBuilder** — Services use it for list endpoints with filtering/sorting:
+```php
+QueryBuilder::for(Model::class)
+    ->allowedFilters([AllowedFilter::partial('name'), AllowedFilter::exact('status')])
+    ->allowedSorts(['name', 'created_at'])
+    ->defaultSort('-created_at')
+    ->paginate($request->per_page ?? 15)
+    ->appends(request()->query());
+```
+
+**Exception handling** (`bootstrap/app.php`) — Global API exception rendering:
+- `ValidationException` → 422 with errors array
+- `ModelNotFoundException` → 404 "Resource not found"
+- `NotFoundHttpException` → 404 "Endpoint not found"
+- `AuthenticationException` → 401 "Unauthenticated"
+- `ApiException` → custom status code with optional errors array
+
+**Route middleware tiers** (in `routes/api.php`):
+1. Public — no auth (e.g., `/active` endpoints, login, register)
+2. Auth only — `auth:api` (e.g., verify OTP, logout, `auth/me`)
+3. Auth + verified + onboarded — `auth:api` + `ensure.verified` + `onboarding` (main app routes)
+
 ### Conventions & Patterns
 
 - **Permissions:** `module_name.action` format (e.g., `merchants.view`, `services.create`). Defined in `RolePermissionSeeder`, applied via `permission:` middleware on routes
-- **Roles:** super-admin (bypasses all checks via Gate::before), admin, manager, user, customer
+- **Roles:** super-admin (bypasses all checks via Gate::before in `AppServiceProvider`), admin, manager, user, customer
+- **Guard:** Spatie Permission uses `'api'` guard — User model sets `$guard_name = 'api'`
+- **FormRequests:** Always return `authorize(): true` — permission checks happen in route middleware, not FormRequests
 - **Public routes:** Reference data has `/active` endpoints (no auth). CRUD routes require auth + permissions
 - **Unpaginated lists:** `/all` route inside auth middleware for dropdown data
 - **Merchant sub-entities:** Nested under `merchants/{merchant}/` (services, bookings, reservations, orders, service-categories)
@@ -94,6 +125,15 @@ class ExampleData extends Data {
 - **Controller destroy:** try-catch wraps `ModelNotFoundException` and returns 422 (not 404)
 - **Capability flags:** BusinessType and Merchant have `can_sell_products`, `can_take_bookings`, `can_rent_units` — gating which sub-modules are available
 - **Custom fields:** 3-table EAV pattern — Field → FieldValue (options) → BusinessTypeField (pivot with is_required + sort_order)
+- **HasAddress trait:** Polymorphic address relationship with `updateOrCreateAddress()` — maps Philippines geographic hierarchy (Region→Province→City→Barangay)
+
+### Testing
+
+Tests use Pest with `describe()`/`it()` BDD syntax. Global setup in `tests/Pest.php`:
+- Feature tests auto-use `RefreshDatabase` and seed `RolePermissionSeeder` in `beforeEach`
+- Auth in tests: `Passport::actingAs($user)` (not `actingAs()`)
+- Test database: `laravel_testing` (separate from main `laravel` DB, configured in `phpunit.xml`)
+- Test cache: `array` driver; queue: `sync`
 
 ### Frontend — Next.js App Router
 
@@ -123,6 +163,26 @@ class ExampleData extends Data {
 - `components/ui/` — shadcn/ui components
 - `components/permission-gate.tsx` — Permission-based conditional rendering
 - `components/address-form-fields.tsx` — Cascading geographic dropdown (Region→Province→City→Barangay)
+
+**Axios client** (`lib/axios.ts`):
+- Base URL from `NEXT_PUBLIC_API_URL` (default `http://localhost:8090/api/v1`)
+- Request interceptor adds Bearer token from Zustand auth store
+- Response interceptor: 401 → clears auth state, redirects to `/login`
+
+**React Query config** (`app/providers.tsx`):
+- `staleTime: 60000` (1 minute), `refetchOnWindowFocus: false`
+- Smart retry: no retry on 401/403/404, max 3 retries otherwise
+- Mutations: `retry: false`
+
+**Zustand auth store** (`stores/authStore.ts`):
+- Persisted to localStorage (`'auth-storage'` key) — stores user, token, isAuthenticated
+- Built-in permission helpers: `hasRole()`, `hasPermission()`, `hasAnyPermission()`, `hasAllPermissions()`
+- Super-admin returns true for all permission checks
+
+**WebSocket** (`lib/echo.ts`): Laravel Echo with Reverb broadcaster, singleton pattern via `getEcho()`
+
+**Frontend env vars required:**
+- `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_REVERB_APP_KEY`, `NEXT_PUBLIC_REVERB_HOST`, `NEXT_PUBLIC_REVERB_PORT`, `NEXT_PUBLIC_REVERB_SCHEME`
 
 **Frontend gotchas:**
 - Use `z.number()` not `z.coerce.number()` with react-hook-form zodResolver (type mismatch)

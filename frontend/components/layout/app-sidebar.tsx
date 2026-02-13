@@ -21,6 +21,12 @@ import {
   Tags,
   Percent,
   ListChecks,
+  FolderOpen,
+  ClipboardList,
+  CalendarClock,
+  ClipboardCheck,
+  CalendarDays,
+  Images,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -58,6 +64,7 @@ interface NavItem {
   bgColor: string;
   permission?: string;
   badge?: 'messages';
+  capability?: 'can_sell_products' | 'can_take_bookings' | 'can_rent_units';
 }
 
 const navItems: NavItem[] = [
@@ -176,6 +183,83 @@ const settingsItems: NavItem[] = [
   },
 ];
 
+const merchantNavItems: NavItem[] = [
+  {
+    title: 'Dashboard',
+    href: '/my-store',
+    icon: LayoutDashboard,
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
+  },
+  {
+    title: 'Categories',
+    href: '/my-store/categories',
+    icon: FolderOpen,
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+  },
+  {
+    title: 'Services',
+    href: '/my-store/services',
+    icon: ClipboardList,
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
+  },
+  {
+    title: 'Bookings',
+    href: '/my-store/bookings',
+    icon: CalendarClock,
+    color: 'text-violet-500',
+    bgColor: 'bg-violet-500/10',
+    capability: 'can_take_bookings',
+  },
+  {
+    title: 'Orders',
+    href: '/my-store/orders',
+    icon: ClipboardCheck,
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-500/10',
+    capability: 'can_sell_products',
+  },
+  {
+    title: 'Reservations',
+    href: '/my-store/reservations',
+    icon: CalendarDays,
+    color: 'text-cyan-500',
+    bgColor: 'bg-cyan-500/10',
+    capability: 'can_rent_units',
+  },
+  {
+    title: 'Gallery',
+    href: '/my-store/gallery',
+    icon: Images,
+    color: 'text-pink-500',
+    bgColor: 'bg-pink-500/10',
+  },
+  {
+    title: 'Manage Store',
+    href: '/my-store/settings',
+    icon: Store,
+    color: 'text-teal-500',
+    bgColor: 'bg-teal-500/10',
+  },
+  {
+    title: 'Messages',
+    href: '/messages',
+    icon: MessageSquare,
+    color: 'text-rose-500',
+    bgColor: 'bg-rose-500/10',
+    badge: 'messages',
+  },
+  {
+    title: 'Profile',
+    href: '/profile',
+    icon: UserCircle,
+    color: 'text-violet-500',
+    bgColor: 'bg-violet-500/10',
+  },
+];
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useAuthStore();
@@ -190,6 +274,13 @@ export function AppSidebar() {
     logout.mutate();
   };
 
+  // Determine if user is merchant-only (not admin/super-admin)
+  const isMerchantUser = user?.roles?.includes('merchant') &&
+    !user?.roles?.includes('super-admin') &&
+    !user?.roles?.includes('admin');
+
+  const merchant = user?.merchant;
+
   // Filter nav items based on permissions
   const filteredNavItems = navItems.filter(
     (item) => !item.permission || hasPermission(item.permission)
@@ -199,78 +290,42 @@ export function AppSidebar() {
     (item) => !item.permission || hasPermission(item.permission)
   );
 
+  // Filter merchant nav items based on capabilities
+  const filteredMerchantNavItems = merchantNavItems.filter((item) => {
+    if (item.capability && merchant) {
+      return merchant[item.capability] === true;
+    }
+    return true;
+  });
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b px-4 py-4">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
+        <Link href={isMerchantUser ? '/my-store' : '/dashboard'} className="flex items-center gap-3 group">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow">
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg leading-none">Laravel React</span>
-            <span className="text-xs text-muted-foreground">Admin Dashboard</span>
+            <span className="font-bold text-lg leading-none">
+              {isMerchantUser ? (merchant?.name || 'My Store') : 'Laravel React'}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {isMerchantUser ? 'Merchant Dashboard' : 'Admin Dashboard'}
+            </span>
           </div>
         </Link>
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Main Menu
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {filteredNavItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className={`h-11 px-3 transition-all ${
-                        isActive
-                          ? 'bg-primary/10 text-primary font-medium'
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      <Link href={item.href} className="flex items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                            isActive ? item.bgColor : 'bg-muted'
-                          }`}
-                        >
-                          <item.icon
-                            className={`h-4 w-4 ${isActive ? item.color : 'text-muted-foreground'}`}
-                          />
-                        </div>
-                        <span className="flex-1">{item.title}</span>
-                        {item.badge === 'messages' && messagesUnreadCount > 0 && (
-                          <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
-                            {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
-                          </Badge>
-                        )}
-                        {isActive && !item.badge && (
-                          <ChevronRight className="h-4 w-4 text-primary" />
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {filteredSettingsItems.length > 0 && (
+        {isMerchantUser ? (
           <SidebarGroup>
             <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Settings
+              My Store
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
-                {filteredSettingsItems.map((item) => {
-                  const isActive = pathname === item.href;
+                {filteredMerchantNavItems.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
@@ -294,7 +349,12 @@ export function AppSidebar() {
                             />
                           </div>
                           <span className="flex-1">{item.title}</span>
-                          {isActive && (
+                          {item.badge === 'messages' && messagesUnreadCount > 0 && (
+                            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                              {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
+                            </Badge>
+                          )}
+                          {isActive && !item.badge && (
                             <ChevronRight className="h-4 w-4 text-primary" />
                           )}
                         </Link>
@@ -305,6 +365,101 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+        ) : (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Main Menu
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {filteredNavItems.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.title}
+                          className={`h-11 px-3 transition-all ${
+                            isActive
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <Link href={item.href} className="flex items-center gap-3">
+                            <div
+                              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                                isActive ? item.bgColor : 'bg-muted'
+                              }`}
+                            >
+                              <item.icon
+                                className={`h-4 w-4 ${isActive ? item.color : 'text-muted-foreground'}`}
+                              />
+                            </div>
+                            <span className="flex-1">{item.title}</span>
+                            {item.badge === 'messages' && messagesUnreadCount > 0 && (
+                              <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                                {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
+                              </Badge>
+                            )}
+                            {isActive && !item.badge && (
+                              <ChevronRight className="h-4 w-4 text-primary" />
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {filteredSettingsItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Settings
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu className="space-y-1">
+                    {filteredSettingsItems.map((item) => {
+                      const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            tooltip={item.title}
+                            className={`h-11 px-3 transition-all ${
+                              isActive
+                                ? 'bg-primary/10 text-primary font-medium'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            <Link href={item.href} className="flex items-center gap-3">
+                              <div
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                                  isActive ? item.bgColor : 'bg-muted'
+                                }`}
+                              >
+                                <item.icon
+                                  className={`h-4 w-4 ${isActive ? item.color : 'text-muted-foreground'}`}
+                                />
+                              </div>
+                              <span className="flex-1">{item.title}</span>
+                              {isActive && (
+                                <ChevronRight className="h-4 w-4 text-primary" />
+                              )}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+          </>
         )}
       </SidebarContent>
 

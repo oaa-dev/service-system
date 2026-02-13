@@ -40,7 +40,7 @@ export default function RegisterPage() {
   const onSubmit = (data: RegisterFormData) => {
     register.mutate(data, {
       onSuccess: () => {
-        router.push('/dashboard');
+        router.push('/verify-email');
       },
       onError: (error) => {
         const axiosError = error as AxiosError<ApiError>;

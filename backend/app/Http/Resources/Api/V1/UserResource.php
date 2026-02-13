@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Http\Resources\Api\V1\MerchantResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +26,13 @@ class UserResource extends JsonResource
                 ]
             ),
             'profile' => $this->whenLoaded('profile', fn () => new ProfileResource($this->profile)),
+            'is_email_verified' => $this->email_verified_at !== null,
+            'has_merchant' => $this->when(
+                $this->relationLoaded('merchant'),
+                fn () => $this->merchant !== null,
+                fn () => $this->merchant()->exists()
+            ),
+            'merchant' => $this->whenLoaded('merchant', fn () => $this->merchant ? new MerchantResource($this->merchant) : null),
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             'permissions' => $this->when(
                 $this->relationLoaded('roles'),

@@ -69,7 +69,7 @@ class MerchantController extends Controller
                 'email' => $validated['user_email'],
                 'password' => Hash::make($validated['user_password']),
             ]);
-            $user->assignRole('user');
+            $user->assignRole('merchant');
 
             // Save first/last name to profile
             $user->profile()->update([

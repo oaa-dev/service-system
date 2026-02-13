@@ -57,6 +57,17 @@ export interface AuthResponse {
   token_type: string;
 }
 
+export interface VerifyOtpRequest {
+  otp: string;
+}
+
+export interface VerificationStatusResponse {
+  is_verified: boolean;
+  can_resend: boolean;
+  locked_until: string | null;
+  expires_at: string | null;
+}
+
 // User Types
 
 export interface User {
@@ -66,6 +77,9 @@ export interface User {
   last_name?: string | null;
   email: string;
   email_verified_at: string | null;
+  is_email_verified?: boolean;
+  has_merchant?: boolean;
+  merchant?: Merchant | null;
   avatar?: Avatar | null;
   profile?: Profile | null;
   roles?: string[];
@@ -624,6 +638,7 @@ export interface Merchant {
   payment_methods?: PaymentMethod[];
   social_links?: MerchantSocialLink[];
   documents?: MerchantDocument[];
+  business_hours?: MerchantBusinessHour[];
   logo: MediaLogo | null;
   created_at: string | null;
   updated_at: string | null;
@@ -749,6 +764,43 @@ export interface MerchantGallery {
 }
 
 export type GalleryCollection = 'photos' | 'interiors' | 'exteriors' | 'feature';
+
+// Merchant Stats Types (My Merchant Dashboard)
+
+export interface MerchantStats {
+  services: {
+    total: number;
+    active: number;
+  };
+  bookings?: {
+    total: number;
+    pending: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+    today: number;
+  };
+  orders?: {
+    total: number;
+    pending: number;
+    processing: number;
+    completed: number;
+    cancelled: number;
+    today: number;
+  };
+  reservations?: {
+    total: number;
+    pending: number;
+    confirmed: number;
+    checked_in: number;
+    checked_out: number;
+    cancelled: number;
+    today: number;
+  };
+  recent_bookings?: Booking[];
+  recent_orders?: ServiceOrder[];
+  recent_reservations?: Reservation[];
+}
 
 // Service Types (Merchant Sub-Entity)
 

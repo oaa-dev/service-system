@@ -32,6 +32,7 @@ class User extends Authenticatable implements HasMedia
         'name',
         'email',
         'password',
+        'email_verified_at',
     ];
 
     /**
@@ -95,6 +96,16 @@ class User extends Authenticatable implements HasMedia
     public function customer(): HasOne
     {
         return $this->hasOne(Customer::class);
+    }
+
+    public function emailVerification(): HasOne
+    {
+        return $this->hasOne(EmailVerification::class)->latestOfMany();
+    }
+
+    public function hasMerchant(): bool
+    {
+        return $this->merchant()->exists();
     }
 
     protected static function booted(): void

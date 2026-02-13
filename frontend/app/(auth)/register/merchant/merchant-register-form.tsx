@@ -92,7 +92,7 @@ export default function MerchantRegisterForm() {
       },
       {
         onSuccess: () => {
-          router.push('/dashboard');
+          router.push('/verify-email');
         },
         onError: (error) => {
           const axiosError = error as AxiosError<ApiError>;

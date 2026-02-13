@@ -154,6 +154,14 @@ class RolePermissionSeeder extends Seeder
                 'users.view',
                 'profile.view', 'profile.update',
             ],
+            'merchant' => [
+                'profile.view', 'profile.update',
+                'service_categories.view', 'service_categories.create', 'service_categories.update', 'service_categories.delete',
+                'services.view', 'services.create', 'services.update', 'services.delete',
+                'bookings.view', 'bookings.create', 'bookings.update_status',
+                'reservations.view', 'reservations.create', 'reservations.update_status',
+                'service_orders.view', 'service_orders.create', 'service_orders.update_status',
+            ],
             'customer' => [
                 'profile.view', 'profile.update',
             ],
