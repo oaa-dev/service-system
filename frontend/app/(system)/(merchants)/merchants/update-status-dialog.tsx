@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUpdateMerchantStatus } from '@/hooks/useMerchants';
 import { updateMerchantStatusSchema, type UpdateMerchantStatusFormData } from '@/lib/validations';
-import { Merchant, MerchantStatus, ApiError } from '@/types/api';
+import { Merchant, MerchantStatus, merchantStatusLabels, ApiError } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -23,7 +23,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { AxiosError } from 'axios';
 
 const VALID_TRANSITIONS: Record<MerchantStatus, MerchantStatus[]> = {
-  pending: ['approved', 'rejected'],
+  pending: ['submitted'],
+  submitted: ['approved', 'rejected'],
   approved: ['active', 'suspended'],
   active: ['suspended'],
   rejected: ['pending'],
@@ -32,6 +33,7 @@ const VALID_TRANSITIONS: Record<MerchantStatus, MerchantStatus[]> = {
 
 const statusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500',
+  submitted: 'bg-orange-500',
   approved: 'bg-blue-500',
   active: 'bg-emerald-500',
   rejected: 'bg-red-500',
@@ -86,7 +88,7 @@ export function UpdateStatusDialog({ item, open, onOpenChange }: Props) {
 
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Current status:</span>
-                <Badge className={item ? statusColors[item.status] : ''}>{item?.status}</Badge>
+                <Badge className={item ? statusColors[item.status] : ''}>{item ? merchantStatusLabels[item.status] : ''}</Badge>
               </div>
 
               <FormField control={form.control} name="status" render={({ field }) => (
@@ -96,7 +98,7 @@ export function UpdateStatusDialog({ item, open, onOpenChange }: Props) {
                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                     <SelectContent>
                       {availableTransitions.map((s) => (
-                        <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                        <SelectItem key={s} value={s}>{merchantStatusLabels[s]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

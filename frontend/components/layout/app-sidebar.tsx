@@ -13,6 +13,7 @@ import {
   Shield,
   MessageSquare,
   Store,
+  Building2,
   CreditCard,
   FileText,
   Briefcase,
@@ -27,6 +28,7 @@ import {
   ClipboardCheck,
   CalendarDays,
   Images,
+  History,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -45,7 +47,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -65,6 +75,10 @@ interface NavItem {
   permission?: string;
   badge?: 'messages';
   capability?: 'can_sell_products' | 'can_take_bookings' | 'can_rent_units';
+  merchantType?: 'organization';
+  requiresActiveMerchant?: boolean;
+  hiddenForBranch?: boolean;
+  children?: NavItem[];
 }
 
 const navItems: NavItem[] = [
@@ -192,11 +206,45 @@ const merchantNavItems: NavItem[] = [
     bgColor: 'bg-blue-500/10',
   },
   {
-    title: 'Categories',
-    href: '/my-store/categories',
-    icon: FolderOpen,
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
+    title: 'Manage Store',
+    href: '/my-store/settings',
+    icon: Store,
+    color: 'text-teal-500',
+    bgColor: 'bg-teal-500/10',
+    hiddenForBranch: true,
+    children: [
+      {
+        title: 'Store Details',
+        href: '/my-store/settings',
+        icon: Settings,
+        color: 'text-teal-500',
+        bgColor: 'bg-teal-500/10',
+      },
+      {
+        title: 'Gallery',
+        href: '/my-store/gallery',
+        icon: Images,
+        color: 'text-pink-500',
+        bgColor: 'bg-pink-500/10',
+        requiresActiveMerchant: true,
+      },
+      {
+        title: 'Application Log',
+        href: '/my-store/application-log',
+        icon: History,
+        color: 'text-slate-500',
+        bgColor: 'bg-slate-500/10',
+      },
+    ],
+  },
+  {
+    title: 'Branches',
+    href: '/my-store/branches',
+    icon: Building2,
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-500/10',
+    merchantType: 'organization',
+    hiddenForBranch: true,
   },
   {
     title: 'Services',
@@ -204,6 +252,26 @@ const merchantNavItems: NavItem[] = [
     icon: ClipboardList,
     color: 'text-emerald-500',
     bgColor: 'bg-emerald-500/10',
+    requiresActiveMerchant: true,
+    hiddenForBranch: true,
+    children: [
+      {
+        title: 'Categories',
+        href: '/my-store/categories',
+        icon: FolderOpen,
+        color: 'text-amber-500',
+        bgColor: 'bg-amber-500/10',
+        requiresActiveMerchant: true,
+      },
+      {
+        title: 'Services',
+        href: '/my-store/services',
+        icon: ClipboardList,
+        color: 'text-emerald-500',
+        bgColor: 'bg-emerald-500/10',
+        requiresActiveMerchant: true,
+      },
+    ],
   },
   {
     title: 'Bookings',
@@ -212,6 +280,7 @@ const merchantNavItems: NavItem[] = [
     color: 'text-violet-500',
     bgColor: 'bg-violet-500/10',
     capability: 'can_take_bookings',
+    requiresActiveMerchant: true,
   },
   {
     title: 'Orders',
@@ -220,6 +289,7 @@ const merchantNavItems: NavItem[] = [
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
     capability: 'can_sell_products',
+    requiresActiveMerchant: true,
   },
   {
     title: 'Reservations',
@@ -228,20 +298,7 @@ const merchantNavItems: NavItem[] = [
     color: 'text-cyan-500',
     bgColor: 'bg-cyan-500/10',
     capability: 'can_rent_units',
-  },
-  {
-    title: 'Gallery',
-    href: '/my-store/gallery',
-    icon: Images,
-    color: 'text-pink-500',
-    bgColor: 'bg-pink-500/10',
-  },
-  {
-    title: 'Manage Store',
-    href: '/my-store/settings',
-    icon: Store,
-    color: 'text-teal-500',
-    bgColor: 'bg-teal-500/10',
+    requiresActiveMerchant: true,
   },
   {
     title: 'Messages',
@@ -250,6 +307,7 @@ const merchantNavItems: NavItem[] = [
     color: 'text-rose-500',
     bgColor: 'bg-rose-500/10',
     badge: 'messages',
+    requiresActiveMerchant: true,
   },
   {
     title: 'Profile',
@@ -275,7 +333,11 @@ export function AppSidebar() {
   };
 
   // Determine if user is merchant-only (not admin/super-admin)
-  const isMerchantUser = user?.roles?.includes('merchant') &&
+  const isMerchantUser = (user?.roles?.includes('merchant') || user?.roles?.includes('branch-merchant')) &&
+    !user?.roles?.includes('super-admin') &&
+    !user?.roles?.includes('admin');
+
+  const isBranchMerchant = user?.roles?.includes('branch-merchant') &&
     !user?.roles?.includes('super-admin') &&
     !user?.roles?.includes('admin');
 
@@ -290,8 +352,23 @@ export function AppSidebar() {
     (item) => !item.permission || hasPermission(item.permission)
   );
 
-  // Filter merchant nav items based on capabilities
+  // Filter merchant nav items based on capabilities and active status
+  const isMerchantActive = merchant?.status === 'active' || merchant?.status === 'approved';
+
   const filteredMerchantNavItems = merchantNavItems.filter((item) => {
+    // Hide items restricted from branch merchants
+    if (item.hiddenForBranch && isBranchMerchant) {
+      return false;
+    }
+    // Hide items that require active merchant when not active
+    if (item.requiresActiveMerchant && !isMerchantActive) {
+      return false;
+    }
+    // Hide items that require specific merchant type
+    if (item.merchantType && merchant?.type !== item.merchantType) {
+      return false;
+    }
+    // Hide items that require specific capability when merchant lacks it
     if (item.capability && merchant) {
       return merchant[item.capability] === true;
     }
@@ -318,53 +395,111 @@ export function AppSidebar() {
 
       <SidebarContent className="px-2">
         {isMerchantUser ? (
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              My Store
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {filteredMerchantNavItems.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        tooltip={item.title}
-                        className={`h-11 px-3 transition-all ${
-                          isActive
-                            ? 'bg-primary/10 text-primary font-medium'
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        <Link href={item.href} className="flex items-center gap-3">
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                              isActive ? item.bgColor : 'bg-muted'
-                            }`}
-                          >
-                            <item.icon
-                              className={`h-4 w-4 ${isActive ? item.color : 'text-muted-foreground'}`}
-                            />
-                          </div>
-                          <span className="flex-1">{item.title}</span>
-                          {item.badge === 'messages' && messagesUnreadCount > 0 && (
-                            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
-                              {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
-                            </Badge>
-                          )}
-                          {isActive && !item.badge && (
-                            <ChevronRight className="h-4 w-4 text-primary" />
-                          )}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                My Store
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {filteredMerchantNavItems.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    const hasChildren = item.children && item.children.length > 0;
+                    const isChildActive = hasChildren && item.children!.some(
+                      (child) => pathname === child.href || pathname.startsWith(child.href + '/')
+                    );
+
+                    if (hasChildren) {
+                      return (
+                        <Collapsible key={item.title} defaultOpen={isActive || isChildActive} className="group/collapsible">
+                          <SidebarMenuItem>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton
+                                isActive={isActive || isChildActive}
+                                tooltip={item.title}
+                                className={`h-11 px-3 transition-all ${
+                                  isActive || isChildActive
+                                    ? 'bg-primary/10 text-primary font-medium'
+                                    : 'hover:bg-muted'
+                                }`}
+                              >
+                                <div
+                                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                                    isActive || isChildActive ? item.bgColor : 'bg-muted'
+                                  }`}
+                                >
+                                  <item.icon
+                                    className={`h-4 w-4 ${isActive || isChildActive ? item.color : 'text-muted-foreground'}`}
+                                  />
+                                </div>
+                                <span className="flex-1">{item.title}</span>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <SidebarMenuSub>
+                                {item.children!
+                                  .filter((child) => !child.requiresActiveMerchant || isMerchantActive)
+                                  .map((child) => {
+                                    const isSubActive = pathname === child.href || pathname.startsWith(child.href + '/');
+                                    return (
+                                      <SidebarMenuSubItem key={child.title}>
+                                        <SidebarMenuSubButton asChild isActive={isSubActive}>
+                                          <Link href={child.href}>
+                                            <child.icon className={`h-4 w-4 ${isSubActive ? child.color : 'text-muted-foreground'}`} />
+                                            <span>{child.title}</span>
+                                          </Link>
+                                        </SidebarMenuSubButton>
+                                      </SidebarMenuSubItem>
+                                    );
+                                  })}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </SidebarMenuItem>
+                        </Collapsible>
+                      );
+                    }
+
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.title}
+                          className={`h-11 px-3 transition-all ${
+                            isActive
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <Link href={item.href} className="flex items-center gap-3">
+                            <div
+                              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                                isActive ? item.bgColor : 'bg-muted'
+                              }`}
+                            >
+                              <item.icon
+                                className={`h-4 w-4 ${isActive ? item.color : 'text-muted-foreground'}`}
+                              />
+                            </div>
+                            <span className="flex-1">{item.title}</span>
+                            {item.badge === 'messages' && messagesUnreadCount > 0 && (
+                              <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                                {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
+                              </Badge>
+                            )}
+                            {isActive && !item.badge && (
+                              <ChevronRight className="h-4 w-4 text-primary" />
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         ) : (
           <>
             <SidebarGroup>

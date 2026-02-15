@@ -350,6 +350,7 @@ export const updateMerchantSchema = z.object({
   type: z.enum(['individual', 'organization']).optional(),
   name: z.string().min(1, 'Name is required').max(255).optional(),
   description: z.string().optional().nullable(),
+  contact_email: z.string().email('Invalid email').max(255).optional().or(z.literal('')),
   contact_phone: z.string().max(20).optional().nullable(),
   address: addressSchema.optional().nullable(),
   can_sell_products: z.boolean().optional(),
@@ -360,7 +361,7 @@ export const updateMerchantSchema = z.object({
 export type UpdateMerchantFormData = z.infer<typeof updateMerchantSchema>;
 
 export const updateMerchantStatusSchema = z.object({
-  status: z.enum(['pending', 'approved', 'active', 'rejected', 'suspended']),
+  status: z.enum(['pending', 'submitted', 'approved', 'active', 'rejected', 'suspended']),
   status_reason: z.string().max(1000).optional(),
 });
 
@@ -642,6 +643,38 @@ export const updateFieldSchema = z.object({
 });
 
 export type UpdateFieldFormData = z.infer<typeof updateFieldSchema>;
+
+/**
+ * Branch schemas (self-service)
+ */
+export const createBranchSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  user_name: z.string().min(1, 'Manager name is required').max(255),
+  user_email: z.string().min(1, 'Login email is required').email('Invalid email').max(255),
+  user_password: z.string().min(8, 'Password must be at least 8 characters'),
+  description: z.string().optional().nullable(),
+  contact_email: z.string().email('Invalid email').max(255).optional().nullable().or(z.literal('')),
+  contact_phone: z.string().max(20).optional().nullable(),
+  address: addressSchema.optional().nullable(),
+  can_sell_products: z.boolean().optional(),
+  can_take_bookings: z.boolean().optional(),
+  can_rent_units: z.boolean().optional(),
+});
+
+export type CreateBranchFormData = z.infer<typeof createBranchSchema>;
+
+export const updateBranchSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255).optional(),
+  description: z.string().optional().nullable(),
+  contact_email: z.string().email('Invalid email').max(255).optional().nullable().or(z.literal('')),
+  contact_phone: z.string().max(20).optional().nullable(),
+  address: addressSchema.optional().nullable(),
+  can_sell_products: z.boolean().optional(),
+  can_take_bookings: z.boolean().optional(),
+  can_rent_units: z.boolean().optional(),
+});
+
+export type UpdateBranchFormData = z.infer<typeof updateBranchSchema>;
 
 /**
  * Merchant type selection form validation schema (onboarding)

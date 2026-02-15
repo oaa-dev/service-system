@@ -22,7 +22,7 @@ class EnsureOnboardingComplete
         }
 
         // Only enforce onboarding for merchant role users
-        if (!$user->hasRole('merchant')) {
+        if (!$user->hasAnyRole(['merchant', 'branch-merchant'])) {
             return $next($request);
         }
 

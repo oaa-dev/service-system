@@ -67,8 +67,12 @@ Route::prefix('v1')->group(function () {
 
             // My Merchant self-service routes (auto-detect merchant from auth user)
             Route::prefix('auth/merchant')->group(function () {
+                // Always accessible (for onboarding + settings)
                 Route::get('/', [MyMerchantController::class, 'show']);
                 Route::get('/stats', [MyMerchantController::class, 'stats']);
+                Route::get('/onboarding-checklist', [MyMerchantController::class, 'onboardingChecklist']);
+                Route::get('/status-logs', [MyMerchantController::class, 'statusLogs']);
+                Route::post('/submit-application', [MyMerchantController::class, 'submitApplication']);
                 Route::put('/', [MyMerchantController::class, 'update']);
                 Route::post('/logo', [MyMerchantController::class, 'uploadLogo']);
                 Route::delete('/logo', [MyMerchantController::class, 'deleteLogo']);
@@ -77,9 +81,20 @@ Route::prefix('v1')->group(function () {
                 Route::post('/social-links', [MyMerchantController::class, 'syncSocialLinks']);
                 Route::post('/documents', [MyMerchantController::class, 'uploadDocument']);
                 Route::delete('/documents/{document}', [MyMerchantController::class, 'deleteDocument']);
-                Route::get('/gallery', [MyMerchantController::class, 'getGallery']);
-                Route::post('/gallery/{collection}', [MyMerchantController::class, 'uploadGalleryImage']);
-                Route::delete('/gallery/{media}', [MyMerchantController::class, 'deleteGalleryImage']);
+
+                // Branch management (organization merchants only)
+                Route::get('/branches', [MyMerchantController::class, 'branches']);
+                Route::post('/branches', [MyMerchantController::class, 'storeBranch']);
+                Route::get('/branches/{branch}', [MyMerchantController::class, 'showBranch']);
+                Route::put('/branches/{branch}', [MyMerchantController::class, 'updateBranch']);
+                Route::delete('/branches/{branch}', [MyMerchantController::class, 'destroyBranch']);
+
+                // Requires active merchant
+                Route::middleware('merchant.active')->group(function () {
+                    Route::get('/gallery', [MyMerchantController::class, 'getGallery']);
+                    Route::post('/gallery/{collection}', [MyMerchantController::class, 'uploadGalleryImage']);
+                    Route::delete('/gallery/{media}', [MyMerchantController::class, 'deleteGalleryImage']);
+                });
             });
 
             // User management routes with permission middleware
@@ -130,11 +145,11 @@ Route::prefix('v1')->group(function () {
             Route::middleware('permission:business_types.view')->group(function () {
                 Route::get('business-types', [BusinessTypeController::class, 'index']);
                 Route::get('business-types/{businessType}', [BusinessTypeController::class, 'show']);
+                Route::get('business-types/{businessType}/fields', [BusinessTypeController::class, 'getFields']);
             });
             Route::middleware('permission:business_types.create')->post('business-types', [BusinessTypeController::class, 'store']);
             Route::middleware('permission:business_types.update')->group(function () {
                 Route::put('business-types/{businessType}', [BusinessTypeController::class, 'update']);
-                Route::get('business-types/{businessType}/fields', [BusinessTypeController::class, 'getFields']);
                 Route::put('business-types/{businessType}/fields', [BusinessTypeController::class, 'syncFields']);
             });
             Route::middleware('permission:business_types.delete')->delete('business-types/{businessType}', [BusinessTypeController::class, 'destroy']);
@@ -207,10 +222,17 @@ Route::prefix('v1')->group(function () {
                 Route::get('merchants', [MerchantController::class, 'index']);
                 Route::get('merchants/{merchant}', [MerchantController::class, 'show']);
                 Route::get('merchants/{merchant}/gallery', [MerchantController::class, 'getGallery']);
+                Route::get('merchants/{merchant}/status-logs', [MerchantController::class, 'statusLogs']);
+                Route::get('merchants/{merchant}/branches', [MerchantController::class, 'branches']);
+                Route::get('merchants/{merchant}/branches/{branch}', [MerchantController::class, 'showBranch']);
             });
-            Route::middleware('permission:merchants.create')->post('merchants', [MerchantController::class, 'store']);
+            Route::middleware('permission:merchants.create')->group(function () {
+                Route::post('merchants', [MerchantController::class, 'store']);
+                Route::post('merchants/{merchant}/branches', [MerchantController::class, 'storeBranch']);
+            });
             Route::middleware('permission:merchants.update')->group(function () {
                 Route::put('merchants/{merchant}', [MerchantController::class, 'update']);
+                Route::put('merchants/{merchant}/branches/{branch}', [MerchantController::class, 'updateBranch']);
                 Route::post('merchants/{merchant}/logo', [MerchantController::class, 'uploadLogo']);
                 Route::delete('merchants/{merchant}/logo', [MerchantController::class, 'deleteLogo']);
                 Route::put('merchants/{merchant}/business-hours', [MerchantController::class, 'updateBusinessHours']);
@@ -223,7 +245,10 @@ Route::prefix('v1')->group(function () {
                 Route::delete('merchants/{merchant}/gallery/{media}', [MerchantController::class, 'deleteGalleryImage']);
             });
             Route::middleware('permission:merchants.update_status')->patch('merchants/{merchant}/status', [MerchantController::class, 'updateStatus']);
-            Route::middleware('permission:merchants.delete')->delete('merchants/{merchant}', [MerchantController::class, 'destroy']);
+            Route::middleware('permission:merchants.delete')->group(function () {
+                Route::delete('merchants/{merchant}', [MerchantController::class, 'destroy']);
+                Route::delete('merchants/{merchant}/branches/{branch}', [MerchantController::class, 'destroyBranch']);
+            });
 
             // Merchant service routes
             Route::middleware('permission:services.view')->group(function () {

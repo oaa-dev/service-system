@@ -3,7 +3,7 @@
 import { use, useState, useMemo, useCallback } from 'react';
 import { useMerchant } from '@/hooks/useMerchants';
 import { useServiceCategories, useDeleteServiceCategory } from '@/hooks/useServiceCategories';
-import { ServiceCategory, ServiceCategoryQueryParams, MerchantStatus } from '@/types/api';
+import { ServiceCategory, ServiceCategoryQueryParams, MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +36,7 @@ import { PermissionGate } from '@/components/permission-gate';
 
 const statusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500 hover:bg-yellow-600',
+  submitted: 'bg-orange-500 hover:bg-orange-600',
   approved: 'bg-blue-500 hover:bg-blue-600',
   active: 'bg-emerald-500 hover:bg-emerald-600',
   rejected: 'bg-red-500 hover:bg-red-600',
@@ -122,7 +123,7 @@ export default function MerchantServiceCategoriesPage({ params }: { params: Prom
           <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight">Service Categories: {merchant.name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={statusColors[merchant.status]}>{merchant.status}</Badge>
+              <Badge className={statusColors[merchant.status]}>{merchantStatusLabels[merchant.status]}</Badge>
               <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
             </div>
           </div>

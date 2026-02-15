@@ -83,23 +83,21 @@ export function EditServiceDialog({ merchantId, businessTypeId, item, open, onOp
       // Initialize custom fields from existing service data
       if (item.custom_fields && item.custom_fields.length > 0) {
         const cfValues: Record<string, string | number | number[]> = {};
-        const grouped = new Map<number, typeof item.custom_fields>();
         item.custom_fields.forEach(cf => {
-          const key = cf.business_type_field_id;
-          if (!grouped.has(key)) grouped.set(key, []);
-          grouped.get(key)!.push(cf);
-        });
+          const key = String(cf.business_type_field_id);
+          const fieldType = cf.business_type_field?.field?.type;
 
-        grouped.forEach((values, btFieldId) => {
-          if (values.length === 1 && values[0].field_value_id) {
-            // select/radio: single field_value_id
-            cfValues[String(btFieldId)] = values[0].field_value_id;
-          } else if (values.length > 1 || (values.length === 1 && values[0].field_value_id && values.some(v => v.business_type_field?.field?.type === 'checkbox'))) {
-            // checkbox: array of field_value_ids
-            cfValues[String(btFieldId)] = values.filter(v => v.field_value_id).map(v => v.field_value_id!);
-          } else if (values[0].value !== null) {
-            // input: text value
-            cfValues[String(btFieldId)] = values[0].value;
+          if (fieldType === 'checkbox') {
+            if (!cfValues[key]) cfValues[key] = [];
+            if (cf.field_value_id) (cfValues[key] as number[]).push(cf.field_value_id);
+          } else if (fieldType === 'select' || fieldType === 'radio') {
+            if (cf.field_value_id) cfValues[key] = cf.field_value_id;
+          } else if (fieldType === 'input') {
+            if (cf.value !== null) cfValues[key] = cf.value;
+          } else {
+            // Fallback when field type unknown
+            if (cf.field_value_id) cfValues[key] = cf.field_value_id;
+            else if (cf.value !== null) cfValues[key] = cf.value;
           }
         });
         setCustomFieldValues(cfValues);

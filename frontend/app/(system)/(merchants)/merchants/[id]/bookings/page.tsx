@@ -3,7 +3,7 @@
 import { use, useState, useMemo, useCallback } from 'react';
 import { useMerchant } from '@/hooks/useMerchants';
 import { useBookings, useUpdateBookingStatus } from '@/hooks/useBookings';
-import { Booking, BookingStatus, BookingQueryParams, MerchantStatus } from '@/types/api';
+import { Booking, BookingStatus, BookingQueryParams, MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -28,6 +28,7 @@ import { CreateBookingDialog } from './create-booking-dialog';
 
 const merchantStatusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500 hover:bg-yellow-600',
+  submitted: 'bg-orange-500 hover:bg-orange-600',
   approved: 'bg-blue-500 hover:bg-blue-600',
   active: 'bg-emerald-500 hover:bg-emerald-600',
   rejected: 'bg-red-500 hover:bg-red-600',
@@ -143,7 +144,7 @@ export default function MerchantBookingsPage({ params }: { params: Promise<{ id:
           <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight">Bookings: {merchant.name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={merchantStatusColors[merchant.status]}>{merchant.status}</Badge>
+              <Badge className={merchantStatusColors[merchant.status]}>{merchantStatusLabels[merchant.status]}</Badge>
             </div>
           </div>
         </div>

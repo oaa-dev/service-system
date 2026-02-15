@@ -25,14 +25,15 @@ import { AxiosError } from 'axios';
 
 interface Props {
   merchantId: number;
+  serviceMerchantId?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateBookingDialog({ merchantId, open, onOpenChange }: Props) {
+export function CreateBookingDialog({ merchantId, serviceMerchantId, open, onOpenChange }: Props) {
   const mutation = useCreateBooking();
-  const { data: servicesData } = useMerchantServices(merchantId, { per_page: 100 });
-  const bookableServices = (servicesData?.data || []).filter((s) => s.service_type === 'bookable');
+  const { data: servicesData } = useMerchantServices(serviceMerchantId ?? merchantId, { per_page: 100, 'filter[service_type]': 'bookable' });
+  const bookableServices = (servicesData?.data || []).filter((s) => s.is_active);
 
   const form = useForm<CreateBookingFormData>({
     resolver: zodResolver(createBookingSchema),

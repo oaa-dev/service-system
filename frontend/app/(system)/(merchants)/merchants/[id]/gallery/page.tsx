@@ -3,7 +3,7 @@
 
 import { use } from 'react';
 import { useMerchant, useMerchantGallery } from '@/hooks/useMerchants';
-import { MerchantStatus } from '@/types/api';
+import { MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +14,7 @@ import { GalleryTab } from './gallery-tab';
 
 const statusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500 hover:bg-yellow-600',
+  submitted: 'bg-orange-500 hover:bg-orange-600',
   approved: 'bg-blue-500 hover:bg-blue-600',
   active: 'bg-emerald-500 hover:bg-emerald-600',
   rejected: 'bg-red-500 hover:bg-red-600',
@@ -66,7 +67,7 @@ export default function MerchantGalleryPage({ params }: { params: Promise<{ id: 
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Gallery: {merchant.name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={statusColors[merchant.status]}>{merchant.status}</Badge>
+              <Badge className={statusColors[merchant.status]}>{merchantStatusLabels[merchant.status]}</Badge>
               <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
             </div>
           </div>

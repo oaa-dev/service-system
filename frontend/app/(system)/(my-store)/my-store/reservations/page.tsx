@@ -223,7 +223,7 @@ export default function MyStoreReservationsPage() {
         )}
       </Card>
 
-      <CreateReservationDialog merchantId={merchantId} open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateReservationDialog merchantId={merchantId} serviceMerchantId={user?.merchant?.parent_id ?? undefined} open={createOpen} onOpenChange={setCreateOpen} />
 
       <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
         <AlertDialogContent>

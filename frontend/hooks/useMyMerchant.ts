@@ -5,6 +5,9 @@ import {
   UpdateBusinessHoursRequest,
   SyncPaymentMethodsRequest,
   SyncSocialLinksRequest,
+  StoreBranchRequest,
+  UpdateBranchRequest,
+  BranchQueryParams,
 } from '@/types/api';
 
 export function useMyMerchant() {
@@ -137,6 +140,92 @@ export function useDeleteMyGalleryImage() {
     mutationFn: (mediaId: number) => myMerchantService.deleteGalleryImage(mediaId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-merchant', 'gallery'] });
+    },
+  });
+}
+
+export function useMyMerchantStatusLogs() {
+  return useQuery({
+    queryKey: ['my-merchant', 'status-logs'],
+    queryFn: async () => {
+      const response = await myMerchantService.getStatusLogs();
+      return response.data;
+    },
+  });
+}
+
+export function useMyOnboardingChecklist() {
+  return useQuery({
+    queryKey: ['my-merchant', 'onboarding-checklist'],
+    queryFn: async () => {
+      const response = await myMerchantService.getOnboardingChecklist();
+      return response.data;
+    },
+  });
+}
+
+export function useSubmitMyApplication() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => myMerchantService.submitApplication(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant'] });
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'onboarding-checklist'] });
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'status-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+  });
+}
+
+// Branch hooks
+export function useMyBranches(params?: BranchQueryParams) {
+  return useQuery({
+    queryKey: ['my-merchant', 'branches', params],
+    queryFn: async () => {
+      const response = await myMerchantService.getBranches(params);
+      return response;
+    },
+  });
+}
+
+export function useMyBranch(branchId: number) {
+  return useQuery({
+    queryKey: ['my-merchant', 'branches', branchId],
+    queryFn: async () => {
+      const response = await myMerchantService.getBranch(branchId);
+      return response.data;
+    },
+    enabled: branchId > 0,
+  });
+}
+
+export function useCreateMyBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: StoreBranchRequest) => myMerchantService.createBranch(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branches'] });
+    },
+  });
+}
+
+export function useUpdateMyBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, data }: { branchId: number; data: UpdateBranchRequest }) =>
+      myMerchantService.updateBranch(branchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branches'] });
+    },
+  });
+}
+
+export function useDeleteMyBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (branchId: number) => myMerchantService.deleteBranch(branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branches'] });
     },
   });
 }

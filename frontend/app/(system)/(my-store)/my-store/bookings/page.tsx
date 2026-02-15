@@ -218,7 +218,7 @@ export default function MyStoreBookingsPage() {
         )}
       </Card>
 
-      <CreateBookingDialog merchantId={merchantId} open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateBookingDialog merchantId={merchantId} serviceMerchantId={user?.merchant?.parent_id ?? undefined} open={createOpen} onOpenChange={setCreateOpen} />
 
       <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
         <AlertDialogContent>

@@ -33,8 +33,9 @@ export default function SystemLayout({
       return;
     }
     if (!isLoading && isAuthenticated && user) {
-      // Only enforce onboarding for merchant role users
-      const isMerchantRole = user.roles?.includes('merchant');
+      // Only enforce onboarding for merchant/branch-merchant role users
+      const isMerchantRole = user.roles?.includes('merchant') || user.roles?.includes('branch-merchant');
+      const isBranchMerchant = user.roles?.includes('branch-merchant');
       if (isMerchantRole) {
         if (!user.email_verified_at) {
           router.push('/verify-email');
@@ -48,6 +49,42 @@ export default function SystemLayout({
         if (pathname === '/dashboard') {
           router.push('/my-store');
           return;
+        }
+        // Redirect non-active/approved merchant users from restricted paths
+        if (user.merchant && user.merchant.status !== 'active' && user.merchant.status !== 'approved') {
+          const RESTRICTED_PATHS = [
+            '/my-store/categories',
+            '/my-store/services',
+            '/my-store/gallery',
+            '/my-store/bookings',
+            '/my-store/reservations',
+            '/my-store/orders',
+          ];
+          const isRestricted = RESTRICTED_PATHS.some(
+            (path) => pathname === path || pathname.startsWith(path + '/')
+          );
+          if (isRestricted) {
+            router.push('/my-store');
+            return;
+          }
+        }
+        // Redirect branch merchants from store management paths (parent manages these)
+        if (isBranchMerchant) {
+          const BRANCH_RESTRICTED_PATHS = [
+            '/my-store/settings',
+            '/my-store/gallery',
+            '/my-store/application-log',
+            '/my-store/categories',
+            '/my-store/services',
+            '/my-store/branches',
+          ];
+          const isBranchRestricted = BRANCH_RESTRICTED_PATHS.some(
+            (path) => pathname === path || pathname.startsWith(path + '/')
+          );
+          if (isBranchRestricted) {
+            router.push('/my-store');
+            return;
+          }
         }
       }
     }

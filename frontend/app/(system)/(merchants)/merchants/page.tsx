@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useMerchants, useDeleteMerchant } from '@/hooks/useMerchants';
-import { Merchant, MerchantQueryParams, MerchantStatus } from '@/types/api';
+import { Merchant, MerchantQueryParams, MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +36,7 @@ import Link from 'next/link';
 
 const statusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500 hover:bg-yellow-600',
+  submitted: 'bg-orange-500 hover:bg-orange-600',
   approved: 'bg-blue-500 hover:bg-blue-600',
   active: 'bg-emerald-500 hover:bg-emerald-600',
   rejected: 'bg-red-500 hover:bg-red-600',
@@ -48,6 +49,7 @@ const filters: FilterField[] = [
     key: 'status', label: 'Status', type: 'select',
     options: [
       { label: 'Pending', value: 'pending' },
+      { label: 'For Review', value: 'submitted' },
       { label: 'Approved', value: 'approved' },
       { label: 'Active', value: 'active' },
       { label: 'Rejected', value: 'rejected' },
@@ -107,7 +109,7 @@ export default function MerchantsPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        {(['pending', 'approved', 'active', 'suspended'] as MerchantStatus[]).map((status) => (
+        {(['pending', 'submitted', 'approved', 'active', 'suspended'] as MerchantStatus[]).map((status) => (
           <Card key={status}>
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
@@ -115,7 +117,7 @@ export default function MerchantsPage() {
                   <Store className={`h-5 w-5 ${statusColors[status].split(' ')[0].replace('bg-', 'text-')}`} />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground capitalize">{status}</p>
+                  <p className="text-sm text-muted-foreground">{merchantStatusLabels[status]}</p>
                   <p className="text-2xl font-bold">
                     {data?.data?.filter((m) => m.status === status).length || 0}
                   </p>
@@ -187,7 +189,12 @@ export default function MerchantsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
+                        {merchant.parent_id && (
+                          <Badge variant="secondary" className="text-xs">Branch</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
@@ -198,7 +205,7 @@ export default function MerchantsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[merchant.status]}>
-                        {merchant.status}
+                        {merchantStatusLabels[merchant.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

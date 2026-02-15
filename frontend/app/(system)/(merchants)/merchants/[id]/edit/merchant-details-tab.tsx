@@ -30,9 +30,9 @@ import { Store, Trash2, Upload } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
-interface Props { merchant: Merchant; }
+interface Props { merchant: Merchant; isBranch?: boolean; }
 
-export function MerchantDetailsTab({ merchant }: Props) {
+export function MerchantDetailsTab({ merchant, isBranch = false }: Props) {
   const updateMutation = useUpdateMerchant();
   const uploadLogoMutation = useUploadMerchantLogo();
   const deleteLogoMutation = useDeleteMerchantLogo();
@@ -55,6 +55,7 @@ export function MerchantDetailsTab({ merchant }: Props) {
       parent_id: merchant.parent_id,
       business_type_id: merchant.business_type_id,
       description: merchant.description || '',
+      contact_email: merchant.contact_email || '',
       contact_phone: merchant.contact_phone || '',
       can_sell_products: merchant.can_sell_products,
       can_take_bookings: merchant.can_take_bookings,
@@ -77,6 +78,7 @@ export function MerchantDetailsTab({ merchant }: Props) {
       parent_id: merchant.parent_id,
       business_type_id: merchant.business_type_id,
       description: merchant.description || '',
+      contact_email: merchant.contact_email || '',
       contact_phone: merchant.contact_phone || '',
       can_sell_products: merchant.can_sell_products,
       can_take_bookings: merchant.can_take_bookings,
@@ -107,6 +109,7 @@ export function MerchantDetailsTab({ merchant }: Props) {
       ...data,
       business_type_id: data.business_type_id || undefined,
       parent_id: data.parent_id || undefined,
+      contact_email: data.contact_email || undefined,
       address: addressInput,
     };
     updateMutation.mutate({ id: merchant.id, data: cleaned }, {
@@ -172,43 +175,45 @@ export function MerchantDetailsTab({ merchant }: Props) {
 
   return (
     <div className="space-y-6 mt-6">
-      {/* Logo Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Logo</CardTitle>
-          <CardDescription>Upload or change the merchant logo</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6">
-            {logoSrc ? (
-              <img src={logoSrc} alt={merchant.name} className="h-24 w-24 rounded-xl object-cover border" />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-xl bg-muted">
-                <Store className="h-10 w-10 text-muted-foreground" />
-              </div>
-            )}
-            <div className="flex gap-2">
-              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadLogoMutation.isPending}>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload
-              </Button>
-              {hasLogo && (
-                <Button type="button" variant="outline" onClick={handleLogoDelete} disabled={deleteLogoMutation.isPending}>
-                  {deleteLogoMutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                  Remove
-                </Button>
+      {/* Logo Section — hide for branches */}
+      {!isBranch && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Logo</CardTitle>
+            <CardDescription>Upload or change the merchant logo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              {logoSrc ? (
+                <img src={logoSrc} alt={merchant.name} className="h-24 w-24 rounded-xl object-cover border" />
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-xl bg-muted">
+                  <Store className="h-10 w-10 text-muted-foreground" />
+                </div>
               )}
+              <div className="flex gap-2">
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadLogoMutation.isPending}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload
+                </Button>
+                {hasLogo && (
+                  <Button type="button" variant="outline" onClick={handleLogoDelete} disabled={deleteLogoMutation.isPending}>
+                    {deleteLogoMutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                    Remove
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Details Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Basic Details</CardTitle>
-          <CardDescription>Update the merchant&apos;s core information</CardDescription>
+          <CardTitle>{isBranch ? 'Branch Details' : 'Basic Details'}</CardTitle>
+          <CardDescription>{isBranch ? 'Update branch name, contact, and address' : 'Update the merchant\u0027s core information'}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -219,80 +224,92 @@ export function MerchantDetailsTab({ merchant }: Props) {
                 <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )} />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="type" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="individual">Individual</SelectItem>
-                        <SelectItem value="organization">Organization</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="business_type_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Type</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === '__none__' ? null : parseInt(v))} value={field.value ? String(field.value) : '__none__'}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">None</SelectItem>
-                        {businessTypes.map((bt) => (<SelectItem key={bt.id} value={String(bt.id)}>{bt.name}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
+              {!isBranch && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="type" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="individual">Individual</SelectItem>
+                            <SelectItem value="organization">Organization</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="business_type_id" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business Type</FormLabel>
+                        <Select onValueChange={(v) => field.onChange(v === '__none__' ? null : parseInt(v))} value={field.value ? String(field.value) : '__none__'}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {businessTypes.map((bt) => (<SelectItem key={bt.id} value={String(bt.id)}>{bt.name}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
 
-              {watchType === 'organization' && (
-                <FormField control={form.control} name="parent_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Parent Merchant</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === '__none__' ? null : parseInt(v))} value={field.value ? String(field.value) : '__none__'}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">None</SelectItem>
-                        {allMerchants.map((m) => (<SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                  {watchType === 'organization' && (
+                    <FormField control={form.control} name="parent_id" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Parent Merchant</FormLabel>
+                        <Select onValueChange={(v) => field.onChange(v === '__none__' ? null : parseInt(v))} value={field.value ? String(field.value) : '__none__'}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {allMerchants.map((m) => (<SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
+
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </>
               )}
-
-              <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
-              )} />
 
               <Separator />
               <p className="text-sm font-medium">Contact</p>
+
+              <FormField control={form.control} name="contact_email" render={({ field }) => (
+                <FormItem><FormLabel>Contact Email</FormLabel><FormControl><Input type="email" disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+              )} />
 
               <FormField control={form.control} name="contact_phone" render={({ field }) => (
                 <FormItem><FormLabel>Contact Phone</FormLabel><FormControl><Input disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )} />
 
-              <Separator />
-              <div>
-                <p className="text-sm font-medium">Capabilities</p>
-                {merchant.business_type && (
-                  <p className="text-xs text-muted-foreground mt-1">Inherited from: {merchant.business_type.name}</p>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <FormField control={form.control} name="can_sell_products" render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Sell Products</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
-                )} />
-                <FormField control={form.control} name="can_take_bookings" render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Take Bookings</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
-                )} />
-                <FormField control={form.control} name="can_rent_units" render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Rent Units</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
-                )} />
-              </div>
+              {!isBranch && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-medium">Capabilities</p>
+                    {merchant.business_type && (
+                      <p className="text-xs text-muted-foreground mt-1">Inherited from: {merchant.business_type.name}</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField control={form.control} name="can_sell_products" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Sell Products</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
+                    )} />
+                    <FormField control={form.control} name="can_take_bookings" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Take Bookings</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
+                    )} />
+                    <FormField control={form.control} name="can_rent_units" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>Rent Units</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={updateMutation.isPending} /></FormControl></FormItem>
+                    )} />
+                  </div>
+                </>
+              )}
 
               <Separator />
               <p className="text-sm font-medium">Address</p>
@@ -315,17 +332,19 @@ export function MerchantDetailsTab({ merchant }: Props) {
       </Card>
 
       {/* Logo Crop Dialog */}
-      <AvatarCropDialog
-        open={cropDialogOpen}
-        onOpenChange={setCropDialogOpen}
-        imageSrc={selectedImage}
-        onCropComplete={handleCropComplete}
-        isUploading={uploadLogoMutation.isPending}
-        title="Crop Logo"
-        description="Adjust and crop the merchant logo"
-        saveLabel="Upload Logo"
-        cropShape="rect"
-      />
+      {!isBranch && (
+        <AvatarCropDialog
+          open={cropDialogOpen}
+          onOpenChange={setCropDialogOpen}
+          imageSrc={selectedImage}
+          onCropComplete={handleCropComplete}
+          isUploading={uploadLogoMutation.isPending}
+          title="Crop Logo"
+          description="Adjust and crop the merchant logo"
+          saveLabel="Upload Logo"
+          cropShape="rect"
+        />
+      )}
     </div>
   );
 }

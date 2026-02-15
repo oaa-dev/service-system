@@ -103,21 +103,24 @@ QueryBuilder::for(Model::class)
 - `ModelNotFoundException` → 404 "Resource not found"
 - `NotFoundHttpException` → 404 "Endpoint not found"
 - `AuthenticationException` → 401 "Unauthenticated"
+- `InvalidArgumentException` → 400 with exception message
 - `ApiException` → custom status code with optional errors array
 
 **Route middleware tiers** (in `routes/api.php`):
 1. Public — no auth (e.g., `/active` endpoints, login, register)
 2. Auth only — `auth:api` (e.g., verify OTP, logout, `auth/me`)
 3. Auth + verified + onboarded — `auth:api` + `ensure.verified` + `onboarding` (main app routes)
+4. Active merchant — `merchant.active` within tier 3 (e.g., gallery routes). Enforces `status === 'active'` for merchant-role users; admin/super-admin bypass
 
 ### Conventions & Patterns
 
 - **Permissions:** `module_name.action` format (e.g., `merchants.view`, `services.create`). Defined in `RolePermissionSeeder`, applied via `permission:` middleware on routes
-- **Roles:** super-admin (bypasses all checks via Gate::before in `AppServiceProvider`), admin, manager, user, customer
+- **Roles:** super-admin (bypasses all checks via Gate::before in `AppServiceProvider`), admin, manager, merchant, user, customer
 - **Guard:** Spatie Permission uses `'api'` guard — User model sets `$guard_name = 'api'`
 - **FormRequests:** Always return `authorize(): true` — permission checks happen in route middleware, not FormRequests
 - **Public routes:** Reference data has `/active` endpoints (no auth). CRUD routes require auth + permissions
 - **Unpaginated lists:** `/all` route inside auth middleware for dropdown data
+- **Dual merchant controllers:** `MerchantController` (admin CRUD at `merchants/{merchant}/`) and `MyMerchantController` (self-service at `auth/merchant/`). Self-service auto-resolves merchant from `$request->user()->merchant`. Both share the same `MerchantService`
 - **Merchant sub-entities:** Nested under `merchants/{merchant}/` (services, bookings, reservations, orders, service-categories)
 - **Status workflows:** Validated in service layer using `VALID_TRANSITIONS` constant map
 - **Model defaults:** Use `$attributes` array (not DB defaults) since Eloquent `Model::create()` doesn't pick up DB defaults
@@ -140,7 +143,8 @@ Tests use Pest with `describe()`/`it()` BDD syntax. Global setup in `tests/Pest.
 **Route groups** under `app/`:
 - `(auth)` — Login/register pages
 - `(system)` — Authenticated layout (`SystemLayout`) containing all admin pages:
-  - `(merchants)/` — Merchant CRUD, services, bookings, reservations, orders
+  - `(merchants)/` — Admin merchant CRUD, services, bookings, reservations, orders
+  - `(my-store)/` — Merchant self-service (onboarding dashboard, settings, own store management)
   - `(settings)/` — Reference data management (business types, payment methods, etc.)
   - `(customers)/` — Customer management
   - `(users)/` — User management
@@ -176,8 +180,9 @@ Tests use Pest with `describe()`/`it()` BDD syntax. Global setup in `tests/Pest.
 
 **Zustand auth store** (`stores/authStore.ts`):
 - Persisted to localStorage (`'auth-storage'` key) — stores user, token, isAuthenticated
-- Built-in permission helpers: `hasRole()`, `hasPermission()`, `hasAnyPermission()`, `hasAllPermissions()`
+- Built-in permission helpers: `hasRole()`, `hasAnyRole()`, `hasPermission()`, `hasAnyPermission()`, `hasAllPermissions()`, `isMerchantUser()`
 - Super-admin returns true for all permission checks
+- `isMerchantUser()` — true when user has `merchant` role but not `super-admin`/`admin`
 
 **WebSocket** (`lib/echo.ts`): Laravel Echo with Reverb broadcaster, singleton pattern via `getEcho()`
 

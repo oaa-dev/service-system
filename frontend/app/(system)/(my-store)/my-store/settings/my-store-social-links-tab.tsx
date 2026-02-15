@@ -56,6 +56,7 @@ export function MyStoreSocialLinksTab({ merchant }: Props) {
     const validLinks = links.filter((l) => l.url.trim());
     syncMutation.mutate({ social_links: validLinks }, {
       onSuccess: () => toast.success('Social links updated'),
+      onError: () => toast.error('Failed to update social links'),
     });
   };
 

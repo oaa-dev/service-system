@@ -25,6 +25,7 @@ class MerchantResource extends JsonResource
             'status_changed_at' => $this->status_changed_at?->toISOString(),
             'status_reason' => $this->status_reason,
             'approved_at' => $this->approved_at?->toISOString(),
+            'submitted_at' => $this->submitted_at?->toISOString(),
             'accepted_terms_at' => $this->accepted_terms_at?->toISOString(),
             'terms_version' => $this->terms_version,
             'can_sell_products' => $this->can_sell_products,
@@ -41,6 +42,9 @@ class MerchantResource extends JsonResource
             'social_links' => $this->whenLoaded('socialLinks', fn () => MerchantSocialLinkResource::collection($this->socialLinks)),
             'documents' => $this->whenLoaded('documents', fn () => MerchantDocumentResource::collection($this->documents)),
             'business_hours' => $this->whenLoaded('businessHours', fn () => MerchantBusinessHourResource::collection($this->businessHours)),
+            'children' => $this->whenLoaded('children', fn () => MerchantResource::collection($this->children)),
+            'children_count' => $this->when($this->children_count !== null, $this->children_count),
+            'status_logs' => $this->whenLoaded('statusLogs', fn () => MerchantStatusLogResource::collection($this->statusLogs)),
             'logo' => $this->when($this->hasMedia('logo'), fn () => [
                 'url' => $this->getFirstMediaUrl('logo'),
                 'thumb' => $this->getFirstMediaUrl('logo', 'thumb'),

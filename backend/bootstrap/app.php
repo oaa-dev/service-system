@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'ensure.verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'onboarding' => \App\Http\Middleware\EnsureOnboardingComplete::class,
+            'merchant.active' => \App\Http\Middleware\EnsureActiveMerchant::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

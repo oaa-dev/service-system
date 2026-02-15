@@ -14,6 +14,7 @@ import {
   UpdateServiceRequest,
   ServiceQueryParams,
   UpdateServiceScheduleRequest,
+  BranchQueryParams,
   ApiError,
 } from '@/types/api';
 import { AxiosError } from 'axios';
@@ -104,6 +105,7 @@ export function useUpdateMerchantStatus() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['merchants'] });
       queryClient.invalidateQueries({ queryKey: ['merchants', id] });
+      queryClient.invalidateQueries({ queryKey: ['merchants', id, 'status-logs'] });
     },
     onError: (error: AxiosError<ApiError>) => {
       console.error('Update merchant status failed:', error.response?.data?.message);
@@ -319,5 +321,26 @@ export function useUpdateServiceSchedules() {
     onError: (error: AxiosError<ApiError>) => {
       console.error('Update service schedules failed:', error.response?.data?.message);
     },
+  });
+}
+
+export function useMerchantStatusLogs(merchantId: number) {
+  return useQuery({
+    queryKey: ['merchants', merchantId, 'status-logs'],
+    queryFn: async () => {
+      const response = await merchantService.getStatusLogs(merchantId);
+      return response.data;
+    },
+    enabled: !!merchantId,
+  });
+}
+
+// Branch hooks (admin)
+
+export function useMerchantBranches(merchantId: number, params?: BranchQueryParams) {
+  return useQuery({
+    queryKey: ['merchants', merchantId, 'branches', params],
+    queryFn: () => merchantService.getBranches(merchantId, params),
+    enabled: !!merchantId,
   });
 }

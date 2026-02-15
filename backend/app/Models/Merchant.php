@@ -39,6 +39,7 @@ class Merchant extends Model implements HasMedia
         'status_changed_at',
         'status_reason',
         'approved_at',
+        'submitted_at',
         'accepted_terms_at',
         'terms_version',
         'can_sell_products',
@@ -51,6 +52,7 @@ class Merchant extends Model implements HasMedia
         return [
             'status_changed_at' => 'datetime',
             'approved_at' => 'datetime',
+            'submitted_at' => 'datetime',
             'accepted_terms_at' => 'datetime',
             'can_sell_products' => 'boolean',
             'can_take_bookings' => 'boolean',
@@ -194,5 +196,10 @@ class Merchant extends Model implements HasMedia
     public function serviceOrders(): HasMany
     {
         return $this->hasMany(ServiceOrder::class);
+    }
+
+    public function statusLogs(): HasMany
+    {
+        return $this->hasMany(MerchantStatusLog::class)->orderBy('created_at', 'desc');
     }
 }

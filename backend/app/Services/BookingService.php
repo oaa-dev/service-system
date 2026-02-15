@@ -69,8 +69,11 @@ class BookingService implements BookingServiceInterface
             ]);
         }
 
-        $service = Service::where('merchant_id', $merchantId)
-            ->where('is_bookable', true)
+        // Branch merchants use parent organization's services
+        $serviceMerchantId = $merchant->parent_id ?? $merchantId;
+
+        $service = Service::where('merchant_id', $serviceMerchantId)
+            ->where('service_type', 'bookable')
             ->findOrFail($data->service_id);
 
         // Validate schedule availability

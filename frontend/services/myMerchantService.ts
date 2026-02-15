@@ -1,6 +1,7 @@
 import api from '@/lib/axios';
 import {
   ApiResponse,
+  PaginatedResponse,
   Merchant,
   MerchantStats,
   UpdateMerchantRequest,
@@ -13,6 +14,11 @@ import {
   PaymentMethod,
   MerchantGallery,
   GalleryImage,
+  MerchantStatusLog,
+  OnboardingChecklist,
+  StoreBranchRequest,
+  UpdateBranchRequest,
+  BranchQueryParams,
 } from '@/types/api';
 
 export const myMerchantService = {
@@ -99,6 +105,50 @@ export const myMerchantService = {
 
   deleteGalleryImage: async (mediaId: number): Promise<ApiResponse<null>> => {
     const response = await api.delete<ApiResponse<null>>(`/auth/merchant/gallery/${mediaId}`);
+    return response.data;
+  },
+
+  // Status logs
+  getStatusLogs: async (): Promise<ApiResponse<MerchantStatusLog[]>> => {
+    const response = await api.get<ApiResponse<MerchantStatusLog[]>>('/auth/merchant/status-logs');
+    return response.data;
+  },
+
+  // Onboarding checklist
+  getOnboardingChecklist: async (): Promise<ApiResponse<OnboardingChecklist>> => {
+    const response = await api.get<ApiResponse<OnboardingChecklist>>('/auth/merchant/onboarding-checklist');
+    return response.data;
+  },
+
+  // Submit application
+  submitApplication: async (): Promise<ApiResponse<Merchant>> => {
+    const response = await api.post<ApiResponse<Merchant>>('/auth/merchant/submit-application');
+    return response.data;
+  },
+
+  // Branches
+  getBranches: async (params?: BranchQueryParams): Promise<PaginatedResponse<Merchant>> => {
+    const response = await api.get<PaginatedResponse<Merchant>>('/auth/merchant/branches', { params });
+    return response.data;
+  },
+
+  getBranch: async (branchId: number): Promise<ApiResponse<Merchant>> => {
+    const response = await api.get<ApiResponse<Merchant>>(`/auth/merchant/branches/${branchId}`);
+    return response.data;
+  },
+
+  createBranch: async (data: StoreBranchRequest): Promise<ApiResponse<Merchant>> => {
+    const response = await api.post<ApiResponse<Merchant>>('/auth/merchant/branches', data);
+    return response.data;
+  },
+
+  updateBranch: async (branchId: number, data: UpdateBranchRequest): Promise<ApiResponse<Merchant>> => {
+    const response = await api.put<ApiResponse<Merchant>>(`/auth/merchant/branches/${branchId}`, data);
+    return response.data;
+  },
+
+  deleteBranch: async (branchId: number): Promise<ApiResponse<null>> => {
+    const response = await api.delete<ApiResponse<null>>(`/auth/merchant/branches/${branchId}`);
     return response.data;
   },
 };

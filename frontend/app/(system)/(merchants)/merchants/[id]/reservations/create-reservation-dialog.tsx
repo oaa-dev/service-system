@@ -25,13 +25,14 @@ import { AxiosError } from 'axios';
 
 interface Props {
   merchantId: number;
+  serviceMerchantId?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateReservationDialog({ merchantId, open, onOpenChange }: Props) {
+export function CreateReservationDialog({ merchantId, serviceMerchantId, open, onOpenChange }: Props) {
   const mutation = useCreateReservation();
-  const { data: servicesData } = useMerchantServices(merchantId, { per_page: 100, 'filter[service_type]': 'reservation' });
+  const { data: servicesData } = useMerchantServices(serviceMerchantId ?? merchantId, { per_page: 100, 'filter[service_type]': 'reservation' });
   const services = servicesData?.data || [];
 
   const form = useForm<CreateReservationFormData>({

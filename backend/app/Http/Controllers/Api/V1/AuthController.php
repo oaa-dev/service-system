@@ -185,6 +185,11 @@ class AuthController extends Controller
         $user->load(['profile.media', 'roles', 'merchant']);
         $token = $user->createToken('auth_token')->accessToken;
 
+        // Send OTP if email is not verified
+        if ($user->email_verified_at === null) {
+            $this->emailVerificationService->generateAndSendOtp($user);
+        }
+
         return $this->successResponse([
             'user' => new UserResource($user),
             'access_token' => $token,

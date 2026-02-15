@@ -24,6 +24,8 @@ import {
   ServiceQueryParams,
   ServiceSchedule,
   UpdateServiceScheduleRequest,
+  MerchantStatusLog,
+  BranchQueryParams,
 } from '@/types/api';
 
 export const merchantService = {
@@ -179,6 +181,17 @@ export const merchantService = {
 
   updateServiceSchedules: async (merchantId: number, serviceId: number, data: UpdateServiceScheduleRequest): Promise<ApiResponse<ServiceSchedule[]>> => {
     const response = await api.put<ApiResponse<ServiceSchedule[]>>(`/merchants/${merchantId}/services/${serviceId}/schedules`, data);
+    return response.data;
+  },
+
+  getStatusLogs: async (merchantId: number): Promise<ApiResponse<MerchantStatusLog[]>> => {
+    const response = await api.get<ApiResponse<MerchantStatusLog[]>>(`/merchants/${merchantId}/status-logs`);
+    return response.data;
+  },
+
+  // Branch methods (admin - read only)
+  getBranches: async (merchantId: number, params?: BranchQueryParams): Promise<PaginatedResponse<Merchant>> => {
+    const response = await api.get<PaginatedResponse<Merchant>>(`/merchants/${merchantId}/branches`, { params });
     return response.data;
   },
 };

@@ -15,7 +15,7 @@ class UpdateMerchantStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'string', Rule::in(['pending', 'approved', 'active', 'rejected', 'suspended'])],
+            'status' => ['required', 'string', Rule::in(['pending', 'submitted', 'approved', 'active', 'rejected', 'suspended'])],
             'status_reason' => ['nullable', 'required_if:status,rejected,suspended', 'string', 'max:1000'],
         ];
     }

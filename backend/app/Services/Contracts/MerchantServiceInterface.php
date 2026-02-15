@@ -28,7 +28,13 @@ interface MerchantServiceInterface
 
     public function deleteMerchant(int $id): bool;
 
-    public function updateStatus(int $id, string $status, ?string $reason = null): Merchant;
+    public function updateStatus(int $id, string $status, ?string $reason = null, ?int $changedBy = null): Merchant;
+
+    public function getMerchantStatusLogs(int $merchantId): \Illuminate\Database\Eloquent\Collection;
+
+    public function submitApplication(int $merchantId): Merchant;
+
+    public function getOnboardingChecklist(int $merchantId, int $userId): array;
 
     public function updateBusinessHours(int $merchantId, array $hours): Merchant;
 
@@ -51,4 +57,14 @@ interface MerchantServiceInterface
     public function deleteMerchantService(int $merchantId, int $serviceId): bool;
 
     public function getMerchantStats(int $merchantId): array;
+
+    public function getMerchantBranches(int $merchantId, array $filters = []): LengthAwarePaginator;
+
+    public function getMerchantBranchById(int $merchantId, int $branchId): Merchant;
+
+    public function createBranch(int $parentId, MerchantData $data, ?int $userId = null): Merchant;
+
+    public function updateBranch(int $parentId, int $branchId, MerchantData $data): Merchant;
+
+    public function deleteBranch(int $parentId, int $branchId): bool;
 }

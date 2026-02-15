@@ -80,4 +80,23 @@ class MerchantFactory extends Factory
             'status_reason' => fake()->sentence(),
         ]);
     }
+
+    public function submitted(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'submitted_at' => now(),
+        ]);
+    }
+
+    public function branchWithUser(int $parentId): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'parent_id' => $parentId,
+            'user_id' => User::factory(),
+            'type' => 'individual',
+            'status' => 'active',
+            'approved_at' => now(),
+            'status_changed_at' => now(),
+        ]);
+    }
 }

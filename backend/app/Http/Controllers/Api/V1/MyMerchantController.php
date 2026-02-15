@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Data\MerchantData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Merchant\StoreBranchRequest;
+use App\Http\Requests\Api\V1\Merchant\UpdateBranchRequest;
 use App\Http\Requests\Api\V1\Merchant\UpdateMyMerchantRequest;
 use App\Http\Requests\Api\V1\Merchant\UpdateBusinessHoursRequest;
 use App\Http\Requests\Api\V1\Merchant\SyncPaymentMethodsRequest;
@@ -17,12 +19,16 @@ use App\Http\Resources\Api\V1\MerchantBusinessHourResource;
 use App\Http\Resources\Api\V1\MerchantDocumentResource;
 use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\MerchantSocialLinkResource;
+use App\Http\Resources\Api\V1\MerchantStatusLogResource;
 use App\Http\Resources\Api\V1\PaymentMethodResource;
 use App\Models\Merchant;
+use App\Models\User;
 use App\Services\Contracts\MerchantServiceInterface;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class MyMerchantController extends Controller
 {
@@ -166,7 +172,7 @@ class MyMerchantController extends Controller
 
         $document = $this->merchantService->createDocument(
             $merchant->id,
-            $request->validated('document_type_id'),
+            (int) $request->validated('document_type_id'),
             $request->validated('notes')
         );
 
@@ -280,5 +286,158 @@ class MyMerchantController extends Controller
         $media->delete();
 
         return $this->successResponse(null, 'Gallery image deleted successfully');
+    }
+
+    public function statusLogs(Request $request): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $logs = $this->merchantService->getMerchantStatusLogs($merchant->id);
+
+        return $this->successResponse(
+            MerchantStatusLogResource::collection($logs),
+            'Status logs retrieved successfully'
+        );
+    }
+
+    public function submitApplication(Request $request): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $merchant = $this->merchantService->submitApplication($merchant->id);
+
+        return $this->successResponse(
+            new MerchantResource($merchant->load(['user', 'businessType'])),
+            'Application submitted successfully'
+        );
+    }
+
+    public function onboardingChecklist(Request $request): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $checklist = $this->merchantService->getOnboardingChecklist(
+            $merchant->id,
+            $request->user()->id
+        );
+
+        return $this->successResponse($checklist, 'Onboarding checklist retrieved successfully');
+    }
+
+    public function branches(Request $request): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $branches = $this->merchantService->getMerchantBranches($merchant->id, $request->all());
+
+        return $this->paginatedResponse($branches, MerchantResource::class);
+    }
+
+    public function showBranch(Request $request, int $branchId): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $branch = $this->merchantService->getMerchantBranchById($merchant->id, $branchId);
+
+        return $this->successResponse(
+            new MerchantResource($branch),
+            'Branch retrieved successfully'
+        );
+    }
+
+    public function storeBranch(StoreBranchRequest $request): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $branch = DB::transaction(function () use ($request, $merchant) {
+            $validated = $request->validated();
+
+            // Create user account for the branch manager
+            $user = User::create([
+                'name' => $validated['user_name'],
+                'email' => $validated['user_email'],
+                'password' => Hash::make($validated['user_password']),
+            ]);
+            $user->assignRole('branch-merchant');
+
+            // Build merchant data excluding user fields
+            $merchantFields = collect($validated)
+                ->except(['user_name', 'user_email', 'user_password'])
+                ->toArray();
+
+            // Default contact_email to user_email if not provided
+            if (empty($merchantFields['contact_email'])) {
+                $merchantFields['contact_email'] = $validated['user_email'];
+            }
+
+            $data = MerchantData::from($merchantFields);
+
+            $branch = $this->merchantService->createBranch($merchant->id, $data, $user->id);
+
+            return $branch;
+        });
+
+        return $this->createdResponse(
+            new MerchantResource($branch),
+            'Branch created successfully'
+        );
+    }
+
+    public function updateBranch(UpdateBranchRequest $request, int $branchId): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        $data = MerchantData::from($request->validated());
+        $branch = $this->merchantService->updateBranch($merchant->id, $branchId, $data);
+
+        return $this->successResponse(
+            new MerchantResource($branch),
+            'Branch updated successfully'
+        );
+    }
+
+    public function destroyBranch(Request $request, int $branchId): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (! $merchant) {
+            return $this->notFoundResponse('No merchant associated with your account');
+        }
+
+        try {
+            $this->merchantService->deleteBranch($merchant->id, $branchId);
+
+            return $this->successResponse(null, 'Branch deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->errorResponse('Branch not found', 422);
+        }
     }
 }

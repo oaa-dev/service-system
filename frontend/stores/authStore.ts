@@ -19,6 +19,7 @@ interface AuthState {
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
   isMerchantUser: () => boolean;
+  isBranchMerchant: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -94,7 +95,17 @@ export const useAuthStore = create<AuthState>()(
       isMerchantUser: () => {
         const { user } = get();
         return (
-          (user?.roles?.includes('merchant') &&
+          ((user?.roles?.includes('merchant') || user?.roles?.includes('branch-merchant')) &&
+            !user?.roles?.includes('super-admin') &&
+            !user?.roles?.includes('admin')) ??
+          false
+        );
+      },
+
+      isBranchMerchant: () => {
+        const { user } = get();
+        return (
+          (user?.roles?.includes('branch-merchant') &&
             !user?.roles?.includes('super-admin') &&
             !user?.roles?.includes('admin')) ??
           false

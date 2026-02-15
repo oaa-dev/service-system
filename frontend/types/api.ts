@@ -626,6 +626,7 @@ export interface Merchant {
   status_changed_at: string | null;
   status_reason: string | null;
   approved_at: string | null;
+  submitted_at: string | null;
   accepted_terms_at: string | null;
   terms_version: string | null;
   can_sell_products: boolean;
@@ -635,6 +636,8 @@ export interface Merchant {
   business_type?: BusinessType;
   address?: Address | null;
   parent?: { id: number; name: string } | null;
+  children?: Merchant[];
+  children_count?: number;
   payment_methods?: PaymentMethod[];
   social_links?: MerchantSocialLink[];
   documents?: MerchantDocument[];
@@ -644,7 +647,44 @@ export interface Merchant {
   updated_at: string | null;
 }
 
-export type MerchantStatus = 'pending' | 'approved' | 'active' | 'rejected' | 'suspended';
+export type MerchantStatus = 'pending' | 'submitted' | 'approved' | 'active' | 'rejected' | 'suspended';
+
+export const merchantStatusLabels: Record<MerchantStatus, string> = {
+  pending: 'Pending',
+  submitted: 'For Review',
+  approved: 'Approved',
+  active: 'Active',
+  rejected: 'Rejected',
+  suspended: 'Suspended',
+};
+
+export interface MerchantStatusLog {
+  id: number;
+  merchant_id: number;
+  from_status: MerchantStatus | null;
+  to_status: MerchantStatus;
+  reason: string | null;
+  changed_by: {
+    id: number;
+    name: string;
+  } | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface OnboardingChecklistItem {
+  key: string;
+  label: string;
+  description: string;
+  completed: boolean;
+}
+
+export interface OnboardingChecklist {
+  items: OnboardingChecklistItem[];
+  completed_count: number;
+  total_count: number;
+  completion_percentage: number;
+}
 
 export interface CreateMerchantRequest {
   user_first_name: string;
@@ -690,6 +730,45 @@ export interface MerchantQueryParams {
   'filter[name]'?: string;
   'filter[status]'?: MerchantStatus | '';
   'filter[type]'?: 'individual' | 'organization' | '';
+}
+
+// Branch Types (self-service)
+
+export interface StoreBranchRequest {
+  name: string;
+  user_name: string;
+  user_email: string;
+  user_password: string;
+  business_type_id?: number | null;
+  description?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  address?: AddressInput | null;
+  can_sell_products?: boolean;
+  can_take_bookings?: boolean;
+  can_rent_units?: boolean;
+}
+
+export interface UpdateBranchRequest {
+  name?: string;
+  slug?: string;
+  business_type_id?: number | null;
+  description?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  address?: AddressInput | null;
+  can_sell_products?: boolean;
+  can_take_bookings?: boolean;
+  can_rent_units?: boolean;
+}
+
+export interface BranchQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[name]'?: string;
+  'filter[status]'?: MerchantStatus | '';
 }
 
 // Merchant Business Hour Types

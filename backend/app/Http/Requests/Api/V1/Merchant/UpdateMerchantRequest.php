@@ -30,6 +30,7 @@ class UpdateMerchantRequest extends FormRequest
                 Rule::unique('merchants', 'slug')->ignore($this->route('merchant')),
             ],
             'description' => ['nullable', 'string'],
+            'contact_email' => ['nullable', 'string', 'email', 'max:255'],
             'contact_phone' => ['nullable', 'string', 'max:20'],
             'address' => ['sometimes', 'nullable', 'array'],
             'address.street' => ['nullable', 'string', 'max:255'],

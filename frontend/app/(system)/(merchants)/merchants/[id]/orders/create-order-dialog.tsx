@@ -25,15 +25,16 @@ import { AxiosError } from 'axios';
 
 interface Props {
   merchantId: number;
+  serviceMerchantId?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 const UNIT_LABEL_OPTIONS = ['kg', 'pcs', 'gal', 'load', 'lbs', 'liters', 'meters', 'hours'];
 
-export function CreateOrderDialog({ merchantId, open, onOpenChange }: Props) {
+export function CreateOrderDialog({ merchantId, serviceMerchantId, open, onOpenChange }: Props) {
   const mutation = useCreateServiceOrder();
-  const { data: servicesData } = useMerchantServices(merchantId, { per_page: 100 });
+  const { data: servicesData } = useMerchantServices(serviceMerchantId ?? merchantId, { per_page: 100, 'filter[service_type]': 'sellable' });
   const activeServices = (servicesData?.data || []).filter((s) => s.is_active);
 
   const form = useForm<CreateServiceOrderFormData>({

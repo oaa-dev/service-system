@@ -14,10 +14,8 @@ beforeEach(function () {
     Passport::actingAs($this->actingUser);
 
     $this->merchant = Merchant::factory()->create(['can_take_bookings' => true]);
-    $this->service = Service::factory()->create([
+    $this->service = Service::factory()->bookable(60)->create([
         'merchant_id' => $this->merchant->id,
-        'is_bookable' => true,
-        'duration' => 60,
         'max_capacity' => 2,
         'requires_confirmation' => true,
     ]);
@@ -122,10 +120,8 @@ describe('Booking Create', function () {
     });
 
     it('auto-confirms when service does not require confirmation', function () {
-        $service = Service::factory()->create([
+        $service = Service::factory()->bookable(30)->create([
             'merchant_id' => $this->merchant->id,
-            'is_bookable' => true,
-            'duration' => 30,
             'requires_confirmation' => false,
         ]);
         ServiceSchedule::create([
@@ -152,7 +148,7 @@ describe('Booking Create', function () {
 
     it('rejects booking when merchant cannot take bookings', function () {
         $merchant = Merchant::factory()->create(['can_take_bookings' => false]);
-        $service = Service::factory()->create(['merchant_id' => $merchant->id, 'is_bookable' => true, 'duration' => 60]);
+        $service = Service::factory()->bookable(60)->create(['merchant_id' => $merchant->id]);
 
         $response = $this->postJson("/api/v1/merchants/{$merchant->id}/bookings", [
             'service_id' => $service->id,

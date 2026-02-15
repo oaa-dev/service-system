@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useMyMerchant } from '@/hooks/useMyMerchant';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Store } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { MyStoreDetailsTab } from './my-store-details-tab';
 import { MyStoreBusinessHoursTab } from './my-store-business-hours-tab';
 import { MyStorePaymentMethodsTab } from './my-store-payment-methods-tab';
@@ -13,6 +15,8 @@ import { MyStoreDocumentsTab } from './my-store-documents-tab';
 export default function MyStoreSettingsPage() {
   const { data, isLoading } = useMyMerchant();
   const merchant = data;
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'details');
 
   if (isLoading) {
     return (
@@ -39,7 +43,7 @@ export default function MyStoreSettingsPage() {
         <p className="text-muted-foreground">Update your store details and settings</p>
       </div>
 
-      <Tabs defaultValue="details">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="business-hours">Business Hours</TabsTrigger>

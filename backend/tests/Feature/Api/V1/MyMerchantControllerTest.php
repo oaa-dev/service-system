@@ -428,7 +428,7 @@ describe('My Merchant Update', function () {
         $response->assertStatus(200);
     });
 
-    it('cannot update capability flags which are admin-only', function () {
+    it('can update capability flags independently', function () {
         Passport::actingAs($this->merchantUser);
 
         $this->merchant->update([
@@ -438,7 +438,6 @@ describe('My Merchant Update', function () {
         ]);
 
         $response = $this->putJson('/api/v1/auth/merchant', [
-            'name' => 'Good Name',
             'can_sell_products' => true,
             'can_take_bookings' => true,
             'can_rent_units' => true,
@@ -447,7 +446,37 @@ describe('My Merchant Update', function () {
         $response->assertStatus(200);
 
         $this->merchant->refresh();
-        expect($this->merchant->can_sell_products)->toBeFalse();
+        expect($this->merchant->can_sell_products)->toBeTrue();
+        expect($this->merchant->can_take_bookings)->toBeTrue();
+        expect($this->merchant->can_rent_units)->toBeTrue();
+    });
+
+    it('overrides capabilities when business type changes', function () {
+        Passport::actingAs($this->merchantUser);
+
+        $this->merchant->update([
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => true,
+        ]);
+
+        $businessType = \App\Models\BusinessType::factory()->create([
+            'can_sell_products' => true,
+            'can_take_bookings' => false,
+            'can_rent_units' => false,
+        ]);
+
+        $response = $this->putJson('/api/v1/auth/merchant', [
+            'business_type_id' => $businessType->id,
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => true,
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->merchant->refresh();
+        expect($this->merchant->can_sell_products)->toBeTrue();
         expect($this->merchant->can_take_bookings)->toBeFalse();
         expect($this->merchant->can_rent_units)->toBeFalse();
     });
@@ -487,6 +516,28 @@ describe('My Merchant Update', function () {
         ]);
 
         $response->assertStatus(404);
+    });
+
+    it('copies capabilities from business type when business_type_id is updated', function () {
+        Passport::actingAs($this->merchantUser);
+
+        $businessType = \App\Models\BusinessType::factory()->create([
+            'can_sell_products' => true,
+            'can_take_bookings' => true,
+            'can_rent_units' => false,
+        ]);
+
+        $response = $this->putJson('/api/v1/auth/merchant', [
+            'business_type_id' => $businessType->id,
+        ]);
+
+        $response->assertOk();
+
+        $this->merchant->refresh();
+        expect($this->merchant->can_sell_products)->toBeTrue();
+        expect($this->merchant->can_take_bookings)->toBeTrue();
+        expect($this->merchant->can_rent_units)->toBeFalse();
+        expect($this->merchant->business_type_id)->toBe($businessType->id);
     });
 });
 

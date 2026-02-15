@@ -2,9 +2,10 @@
 'use client';
 
 import { use } from 'react';
-import { useMerchant } from '@/hooks/useMerchants';
-import { MerchantStatus } from '@/types/api';
+import { useMerchant, useMerchantStatusLogs } from '@/hooks/useMerchants';
+import { MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { formatDate } from '@/lib/utils';
+import { MerchantStatusTimeline } from '@/components/merchant-status-timeline';
 import { Button } from '@/components/ui/button';
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -13,12 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import {
-  ArrowLeft, Store, Mail, Phone, Globe, Calendar, User, Briefcase, Pencil, Images, ClipboardList, FolderOpen, CalendarClock, CalendarDays, ClipboardCheck,
+  ArrowLeft, Store, Mail, Phone, Globe, User, Briefcase, Pencil, Images, ClipboardList, FolderOpen, CalendarClock, CalendarDays, ClipboardCheck, GitBranch, Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const statusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500 hover:bg-yellow-600',
+  submitted: 'bg-orange-500 hover:bg-orange-600',
   approved: 'bg-blue-500 hover:bg-blue-600',
   active: 'bg-emerald-500 hover:bg-emerald-600',
   rejected: 'bg-red-500 hover:bg-red-600',
@@ -28,6 +30,7 @@ const statusColors: Record<MerchantStatus, string> = {
 export default function MerchantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data, isLoading } = useMerchant(parseInt(id));
+  const { data: statusLogs, isLoading: isLoadingLogs } = useMerchantStatusLogs(parseInt(id));
   const merchant = data?.data;
 
   if (isLoading) {
@@ -69,39 +72,53 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ id: s
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight">{merchant.name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={statusColors[merchant.status]}>{merchant.status}</Badge>
+              <Badge className={statusColors[merchant.status]}>{merchantStatusLabels[merchant.status]}</Badge>
               <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
+              {merchant.parent_id && <Badge variant="secondary"><GitBranch className="mr-1 h-3 w-3" />Branch</Badge>}
               <span className="text-sm text-muted-foreground">{merchant.slug}</span>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Services */}
+            {/* Services & Operations */}
             <div className="flex items-center gap-1 rounded-lg border border-dashed p-1">
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/merchants/${merchant.id}/service-categories`}><FolderOpen className="mr-1.5 h-4 w-4" /> Categories</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/merchants/${merchant.id}/services`}><ClipboardList className="mr-1.5 h-4 w-4" /> Services</Link>
-              </Button>
-              {merchant.can_take_bookings && (
+              {!merchant.parent_id && (
+                <>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/merchants/${merchant.id}/service-categories`}><FolderOpen className="mr-1.5 h-4 w-4" /> Categories</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/merchants/${merchant.id}/services`}><ClipboardList className="mr-1.5 h-4 w-4" /> Services</Link>
+                  </Button>
+                </>
+              )}
+              {merchant.can_take_bookings && merchant.type !== 'organization' && (
                 <Button asChild variant="ghost" size="sm">
                   <Link href={`/merchants/${merchant.id}/bookings`}><CalendarClock className="mr-1.5 h-4 w-4" /> Bookings</Link>
                 </Button>
               )}
-              {merchant.can_sell_products && (
+              {merchant.can_sell_products && merchant.type !== 'organization' && (
                 <Button asChild variant="ghost" size="sm">
                   <Link href={`/merchants/${merchant.id}/orders`}><ClipboardCheck className="mr-1.5 h-4 w-4" /> Orders</Link>
                 </Button>
               )}
-              {merchant.can_rent_units && (
+              {merchant.can_rent_units && merchant.type !== 'organization' && (
                 <Button asChild variant="ghost" size="sm">
                   <Link href={`/merchants/${merchant.id}/reservations`}><CalendarDays className="mr-1.5 h-4 w-4" /> Reservations</Link>
                 </Button>
               )}
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/merchants/${merchant.id}/gallery`}><Images className="mr-1.5 h-4 w-4" /> Gallery</Link>
-            </Button>
+            {!merchant.parent_id && (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/merchants/${merchant.id}/gallery`}><Images className="mr-1.5 h-4 w-4" /> Gallery</Link>
+                </Button>
+                {merchant.type === 'organization' && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/merchants/${merchant.id}/branches`}><Building2 className="mr-1.5 h-4 w-4" /> Branches</Link>
+                  </Button>
+                )}
+              </>
+            )}
             <Button asChild size="sm">
               <Link href={`/merchants/${merchant.id}/edit`}><Pencil className="mr-1.5 h-4 w-4" /> Edit</Link>
             </Button>
@@ -174,44 +191,18 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ id: s
           </CardContent>
         </Card>
 
-        {/* Status Info */}
+        {/* Status History Timeline */}
         <Card>
           <CardHeader>
             <CardTitle>Status History</CardTitle>
-            <CardDescription>Merchant approval status details</CardDescription>
+            <CardDescription>Merchant approval and status change timeline</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Created</p>
-                <p className="text-sm">{merchant.created_at ? formatDate(merchant.created_at) : '-'}</p>
-              </div>
-            </div>
-            {merchant.approved_at && (
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Approved At</p>
-                  <p className="text-sm">{formatDate(merchant.approved_at)}</p>
-                </div>
-              </div>
-            )}
-            {merchant.status_changed_at && (
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Last Status Change</p>
-                  <p className="text-sm">{formatDate(merchant.status_changed_at)}</p>
-                </div>
-              </div>
-            )}
-            {merchant.status_reason && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Status Reason</p>
-                <p className="text-sm mt-1 p-3 bg-muted rounded-lg">{merchant.status_reason}</p>
-              </div>
-            )}
+          <CardContent>
+            <MerchantStatusTimeline
+              logs={statusLogs || []}
+              isLoading={isLoadingLogs}
+              showChangedBy={true}
+            />
           </CardContent>
         </Card>
 

@@ -69,7 +69,10 @@ class ReservationService implements ReservationServiceInterface
             ]);
         }
 
-        $service = Service::where('merchant_id', $merchantId)
+        // Branch merchants use parent organization's services
+        $serviceMerchantId = $merchant->parent_id ?? $merchantId;
+
+        $service = Service::where('merchant_id', $serviceMerchantId)
             ->where('service_type', 'reservation')
             ->where('is_active', true)
             ->where('unit_status', 'available')

@@ -3,12 +3,12 @@
 
 import { use } from 'react';
 import { useMerchant } from '@/hooks/useMerchants';
-import { MerchantStatus } from '@/types/api';
+import { MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Store, Images, ClipboardList, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Store, Images, ClipboardList, FolderOpen, GitBranch } from 'lucide-react';
 import Link from 'next/link';
 import { MerchantDetailsTab } from './merchant-details-tab';
 import { MerchantAccountTab } from './merchant-account-tab';
@@ -18,6 +18,7 @@ import { MerchantDocumentsTab } from './merchant-documents-tab';
 
 const statusColors: Record<MerchantStatus, string> = {
   pending: 'bg-yellow-500 hover:bg-yellow-600',
+  submitted: 'bg-orange-500 hover:bg-orange-600',
   approved: 'bg-blue-500 hover:bg-blue-600',
   active: 'bg-emerald-500 hover:bg-emerald-600',
   rejected: 'bg-red-500 hover:bg-red-600',
@@ -51,6 +52,8 @@ export default function MerchantEditPage({ params }: { params: Promise<{ id: str
     );
   }
 
+  const isBranch = !!merchant.parent_id;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -68,46 +71,55 @@ export default function MerchantEditPage({ params }: { params: Promise<{ id: str
           <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight">Edit: {merchant.name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={statusColors[merchant.status]}>{merchant.status}</Badge>
+              <Badge className={statusColors[merchant.status]}>{merchantStatusLabels[merchant.status]}</Badge>
               <Badge variant="outline" className="capitalize">{merchant.type}</Badge>
+              {isBranch && <Badge variant="secondary"><GitBranch className="mr-1 h-3 w-3" />Branch</Badge>}
             </div>
           </div>
-          <Button asChild variant="outline">
-            <Link href={`/merchants/${merchant.id}/service-categories`}><FolderOpen className="mr-2 h-4 w-4" /> Categories</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/merchants/${merchant.id}/services`}><ClipboardList className="mr-2 h-4 w-4" /> Services</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/merchants/${merchant.id}/gallery`}><Images className="mr-2 h-4 w-4" /> Gallery</Link>
-          </Button>
+          {!isBranch && (
+            <>
+              <Button asChild variant="outline">
+                <Link href={`/merchants/${merchant.id}/service-categories`}><FolderOpen className="mr-2 h-4 w-4" /> Categories</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/merchants/${merchant.id}/services`}><ClipboardList className="mr-2 h-4 w-4" /> Services</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/merchants/${merchant.id}/gallery`}><Images className="mr-2 h-4 w-4" /> Gallery</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      <Tabs defaultValue="details">
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
-          <TabsTrigger value="social-links">Social Links</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-        </TabsList>
-        <TabsContent value="details">
-          <MerchantDetailsTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="payment-methods">
-          <MerchantPaymentMethodsTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="social-links">
-          <MerchantSocialLinksTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="documents">
-          <MerchantDocumentsTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="account">
-          <MerchantAccountTab merchant={merchant} />
-        </TabsContent>
-      </Tabs>
+      {isBranch ? (
+        <MerchantDetailsTab merchant={merchant} isBranch />
+      ) : (
+        <Tabs defaultValue="details">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
+            <TabsTrigger value="social-links">Social Links</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details">
+            <MerchantDetailsTab merchant={merchant} />
+          </TabsContent>
+          <TabsContent value="payment-methods">
+            <MerchantPaymentMethodsTab merchant={merchant} />
+          </TabsContent>
+          <TabsContent value="social-links">
+            <MerchantSocialLinksTab merchant={merchant} />
+          </TabsContent>
+          <TabsContent value="documents">
+            <MerchantDocumentsTab merchant={merchant} />
+          </TabsContent>
+          <TabsContent value="account">
+            <MerchantAccountTab merchant={merchant} />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }

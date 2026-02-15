@@ -34,6 +34,7 @@ export function MyStorePaymentMethodsTab({ merchant }: Props) {
   const handleSave = () => {
     syncMutation.mutate({ payment_method_ids: selectedIds }, {
       onSuccess: () => toast.success('Payment methods updated'),
+      onError: () => toast.error('Failed to update payment methods'),
     });
   };
 

@@ -5,12 +5,21 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUpdateMyMerchant, useUploadMyMerchantLogo, useDeleteMyMerchantLogo } from '@/hooks/useMyMerchant';
+import { useActiveBusinessTypes } from '@/hooks/useBusinessTypes';
 import { updateMerchantSchema, type UpdateMerchantFormData } from '@/lib/validations';
 import { Merchant, ApiError, AddressInput } from '@/types/api';
 import { AddressFormFields } from '@/components/address-form-fields';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from '@/components/ui/card';
@@ -31,6 +40,8 @@ export function MyStoreDetailsTab({ merchant }: Props) {
   const updateMutation = useUpdateMyMerchant();
   const uploadLogoMutation = useUploadMyMerchantLogo();
   const deleteLogoMutation = useDeleteMyMerchantLogo();
+  const { data: businessTypesData, isLoading: isLoadingBusinessTypes } = useActiveBusinessTypes();
+  const businessTypes = businessTypesData?.data || [];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -43,6 +54,10 @@ export function MyStoreDetailsTab({ merchant }: Props) {
       name: merchant.name,
       description: merchant.description || '',
       contact_phone: merchant.contact_phone || '',
+      business_type_id: merchant.business_type?.id || null,
+      can_sell_products: merchant.can_sell_products,
+      can_take_bookings: merchant.can_take_bookings,
+      can_rent_units: merchant.can_rent_units,
       address: {
         street: merchant.address?.street || '',
         region_id: merchant.address?.region?.id || null,
@@ -59,6 +74,10 @@ export function MyStoreDetailsTab({ merchant }: Props) {
       name: merchant.name,
       description: merchant.description || '',
       contact_phone: merchant.contact_phone || '',
+      business_type_id: merchant.business_type?.id || null,
+      can_sell_products: merchant.can_sell_products,
+      can_take_bookings: merchant.can_take_bookings,
+      can_rent_units: merchant.can_rent_units,
       address: {
         street: merchant.address?.street || '',
         region_id: merchant.address?.region?.id || null,
@@ -186,6 +205,70 @@ export function MyStoreDetailsTab({ merchant }: Props) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {form.formState.errors.root && (<Alert variant="destructive"><AlertDescription>{form.formState.errors.root.message}</AlertDescription></Alert>)}
+
+              {/* Business Type */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Business Type</label>
+                <Select
+                  value={form.watch('business_type_id') ? String(form.watch('business_type_id')) : '__none__'}
+                  onValueChange={(v) => {
+                    const newId = v === '__none__' ? null : parseInt(v);
+                    form.setValue('business_type_id', newId);
+                    if (newId) {
+                      const bt = businessTypes.find((b) => b.id === newId);
+                      if (bt) {
+                        form.setValue('can_sell_products', bt.can_sell_products);
+                        form.setValue('can_take_bookings', bt.can_take_bookings);
+                        form.setValue('can_rent_units', bt.can_rent_units);
+                      }
+                    }
+                  }}
+                  disabled={updateMutation.isPending || isLoadingBusinessTypes}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a business type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select a business type</SelectItem>
+                    {businessTypes.map((bt) => (
+                      <SelectItem key={bt.id} value={String(bt.id)}>{bt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Changing business type will update capabilities below</p>
+              </div>
+
+              {/* Capabilities */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Store Capabilities</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.watch('can_sell_products') ?? false}
+                      onCheckedChange={(checked) => form.setValue('can_sell_products', !!checked)}
+                      disabled={updateMutation.isPending}
+                    />
+                    <span className="text-sm">Sell Products</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.watch('can_take_bookings') ?? false}
+                      onCheckedChange={(checked) => form.setValue('can_take_bookings', !!checked)}
+                      disabled={updateMutation.isPending}
+                    />
+                    <span className="text-sm">Take Bookings</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.watch('can_rent_units') ?? false}
+                      onCheckedChange={(checked) => form.setValue('can_rent_units', !!checked)}
+                      disabled={updateMutation.isPending}
+                    />
+                    <span className="text-sm">Rent Units</span>
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">Select what your store can do</p>
+              </div>
 
               <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>

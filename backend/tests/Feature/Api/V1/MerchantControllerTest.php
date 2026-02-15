@@ -426,8 +426,8 @@ describe('Merchant Delete', function () {
 });
 
 describe('Merchant Status', function () {
-    it('can approve a pending merchant', function () {
-        $merchant = Merchant::factory()->create(['status' => 'pending']);
+    it('can approve a submitted merchant', function () {
+        $merchant = Merchant::factory()->create(['status' => 'submitted', 'submitted_at' => now()]);
 
         $response = $this->patchJson("/api/v1/merchants/{$merchant->id}/status", [
             'status' => 'approved',
@@ -449,8 +449,8 @@ describe('Merchant Status', function () {
         expect($response->json('data.approved_at'))->not->toBeNull();
     });
 
-    it('can reject a pending merchant with reason', function () {
-        $merchant = Merchant::factory()->create(['status' => 'pending']);
+    it('can reject a submitted merchant with reason', function () {
+        $merchant = Merchant::factory()->create(['status' => 'submitted', 'submitted_at' => now()]);
 
         $response = $this->patchJson("/api/v1/merchants/{$merchant->id}/status", [
             'status' => 'rejected',
@@ -534,8 +534,18 @@ describe('Merchant Status', function () {
         $response->assertStatus(422);
     });
 
-    it('requires reason for rejection', function () {
+    it('rejects pending to approved without going through submitted', function () {
         $merchant = Merchant::factory()->create(['status' => 'pending']);
+
+        $response = $this->patchJson("/api/v1/merchants/{$merchant->id}/status", [
+            'status' => 'approved',
+        ]);
+
+        $response->assertStatus(422);
+    });
+
+    it('requires reason for rejection', function () {
+        $merchant = Merchant::factory()->create(['status' => 'submitted', 'submitted_at' => now()]);
 
         $response = $this->patchJson("/api/v1/merchants/{$merchant->id}/status", [
             'status' => 'rejected',

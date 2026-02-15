@@ -73,7 +73,10 @@ class ServiceOrderService implements ServiceOrderServiceInterface
             ]);
         }
 
-        $service = Service::where('merchant_id', $merchantId)
+        // Branch merchants use parent organization's services
+        $serviceMerchantId = $merchant->parent_id ?? $merchantId;
+
+        $service = Service::where('merchant_id', $serviceMerchantId)
             ->where('is_active', true)
             ->findOrFail($data->service_id);
 

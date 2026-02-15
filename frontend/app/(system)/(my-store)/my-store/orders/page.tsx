@@ -229,7 +229,7 @@ export default function MyStoreOrdersPage() {
         )}
       </Card>
 
-      <CreateOrderDialog merchantId={merchantId} open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateOrderDialog merchantId={merchantId} serviceMerchantId={user?.merchant?.parent_id ?? undefined} open={createOpen} onOpenChange={setCreateOpen} />
 
       <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
         <AlertDialogContent>
