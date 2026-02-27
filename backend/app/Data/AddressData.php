@@ -17,5 +17,7 @@ class AddressData extends Data
         public int|Optional|null $province_id = new Optional(),
         public int|Optional|null $city_id = new Optional(),
         public int|Optional|null $barangay_id = new Optional(),
+        public float|Optional|null $latitude = new Optional(),
+        public float|Optional|null $longitude = new Optional(),
     ) {}
 }

@@ -135,6 +135,65 @@ describe('Auth Registration', function () {
         expect(User::where('email', 'unverified@example.com')->count())->toBe(1);
     });
 
+    it('registers as merchant by default', function () {
+        Mail::fake();
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Default',
+            'last_name' => 'Role',
+            'email' => 'default@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(201);
+
+        $user = User::where('email', 'default@example.com')->first();
+        expect($user->hasRole('merchant'))->toBeTrue();
+        expect($user->customer)->toBeNull();
+    });
+
+    it('can register as customer with role param', function () {
+        Mail::fake();
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Customer',
+            'last_name' => 'User',
+            'email' => 'customer@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'customer',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'requires_verification' => true,
+                ],
+            ]);
+
+        $user = User::where('email', 'customer@example.com')->first();
+        expect($user->hasRole('customer'))->toBeTrue();
+        expect($user->hasRole('merchant'))->toBeFalse();
+        expect($user->customer)->not->toBeNull();
+        expect($user->customer->status)->toBe('active');
+    });
+
+    it('rejects invalid role param', function () {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'admin',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['role']);
+    });
+
     it('validates password confirmation', function () {
         $response = $this->postJson('/api/v1/auth/register', [
             'first_name' => 'Test',

@@ -1,0 +1,230 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Data\BookingData;
+use App\Data\ReservationData;
+use App\Data\ServiceOrderData;
+use App\Models\Booking;
+use App\Models\Merchant;
+use App\Models\Reservation;
+use App\Models\ServiceOrder;
+use App\Repositories\Contracts\MerchantRepositoryInterface;
+use App\Services\Contracts\BookingServiceInterface;
+use App\Services\Contracts\CustomerPortalServiceInterface;
+use App\Services\Contracts\ReservationServiceInterface;
+use App\Services\Contracts\ServiceOrderServiceInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use InvalidArgumentException;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
+
+class CustomerPortalService implements CustomerPortalServiceInterface
+{
+    public function __construct(
+        protected MerchantRepositoryInterface $merchantRepository,
+        protected BookingServiceInterface $bookingService,
+        protected ReservationServiceInterface $reservationService,
+        protected ServiceOrderServiceInterface $serviceOrderService
+    ) {}
+
+    public function createBooking(string $slug, BookingData $data): Booking
+    {
+        $merchant = $this->resolveActiveMerchant($slug);
+
+        return $this->bookingService->createBooking($merchant->id, $data);
+    }
+
+    public function createReservation(string $slug, ReservationData $data): Reservation
+    {
+        $merchant = $this->resolveActiveMerchant($slug);
+
+        return $this->reservationService->createReservation($merchant->id, $data);
+    }
+
+    public function createOrder(string $slug, ServiceOrderData $data): ServiceOrder
+    {
+        $merchant = $this->resolveActiveMerchant($slug);
+
+        return $this->serviceOrderService->createServiceOrder($merchant->id, $data);
+    }
+
+    public function getMyBookings(Request $request): LengthAwarePaginator
+    {
+        $customerId = auth()->id();
+
+        return QueryBuilder::for(Booking::class)
+            ->where('customer_id', $customerId)
+            ->allowedFilters([
+                AllowedFilter::exact('status'),
+                AllowedFilter::callback('date_from', function ($query, $value) {
+                    $query->where('booking_date', '>=', $value);
+                }),
+                AllowedFilter::callback('date_to', function ($query, $value) {
+                    $query->where('booking_date', '<=', $value);
+                }),
+            ])
+            ->allowedSorts(['booking_date', 'created_at', 'status'])
+            ->defaultSort('-created_at')
+            ->with(['service', 'service.media'])
+            ->paginate($request->per_page ?? 15)
+            ->appends(request()->query());
+    }
+
+    public function getMyBooking(int $bookingId): Booking
+    {
+        $customerId = auth()->id();
+
+        $booking = Booking::where('customer_id', $customerId)
+            ->with(['service', 'service.media'])
+            ->findOrFail($bookingId);
+
+        return $booking;
+    }
+
+    public function cancelMyBooking(int $bookingId): Booking
+    {
+        $customerId = auth()->id();
+
+        $booking = Booking::where('customer_id', $customerId)->findOrFail($bookingId);
+
+        if (! in_array($booking->status, ['pending', 'confirmed'])) {
+            throw new InvalidArgumentException('Only pending or confirmed bookings can be cancelled.');
+        }
+
+        $booking->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+        ]);
+
+        return $booking->fresh()->load(['service', 'service.media']);
+    }
+
+    public function getMyReservations(Request $request): LengthAwarePaginator
+    {
+        $customerId = auth()->id();
+
+        return QueryBuilder::for(Reservation::class)
+            ->where('customer_id', $customerId)
+            ->allowedFilters([
+                AllowedFilter::exact('status'),
+                AllowedFilter::callback('date_from', function ($query, $value) {
+                    $query->where('check_in', '>=', $value);
+                }),
+                AllowedFilter::callback('date_to', function ($query, $value) {
+                    $query->where('check_out', '<=', $value);
+                }),
+            ])
+            ->allowedSorts(['check_in', 'created_at', 'status'])
+            ->defaultSort('-created_at')
+            ->with(['service', 'service.media'])
+            ->paginate($request->per_page ?? 15)
+            ->appends(request()->query());
+    }
+
+    public function cancelMyReservation(int $reservationId): Reservation
+    {
+        $customerId = auth()->id();
+
+        $reservation = Reservation::where('customer_id', $customerId)->findOrFail($reservationId);
+
+        if (! in_array($reservation->status, ['pending', 'confirmed'])) {
+            throw new InvalidArgumentException('Only pending or confirmed reservations can be cancelled.');
+        }
+
+        $reservation->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+        ]);
+
+        return $reservation->fresh()->load(['service', 'service.media']);
+    }
+
+    public function getMyOrders(Request $request): LengthAwarePaginator
+    {
+        $customerId = auth()->id();
+
+        return QueryBuilder::for(ServiceOrder::class)
+            ->where('customer_id', $customerId)
+            ->allowedFilters([
+                AllowedFilter::exact('status'),
+                AllowedFilter::callback('date_from', function ($query, $value) {
+                    $query->where('created_at', '>=', $value);
+                }),
+                AllowedFilter::callback('date_to', function ($query, $value) {
+                    $query->where('created_at', '<=', $value);
+                }),
+                AllowedFilter::partial('search', 'order_number'),
+            ])
+            ->allowedSorts(['created_at', 'status', 'order_number'])
+            ->defaultSort('-created_at')
+            ->with(['service', 'service.media'])
+            ->paginate($request->per_page ?? 15)
+            ->appends(request()->query());
+    }
+
+    public function cancelMyOrder(int $orderId): ServiceOrder
+    {
+        $customerId = auth()->id();
+
+        $order = ServiceOrder::where('customer_id', $customerId)->findOrFail($orderId);
+
+        if ($order->status !== 'pending') {
+            throw new InvalidArgumentException('Only pending orders can be cancelled.');
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+        ]);
+
+        return $order->fresh()->load(['service', 'service.media']);
+    }
+
+    public function getMyStats(): array
+    {
+        $customerId = auth()->id();
+
+        return [
+            'bookings' => [
+                'total' => Booking::where('customer_id', $customerId)->count(),
+                'upcoming' => Booking::where('customer_id', $customerId)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->where('booking_date', '>=', now()->toDateString())
+                    ->count(),
+            ],
+            'reservations' => [
+                'total' => Reservation::where('customer_id', $customerId)->count(),
+                'active' => Reservation::where('customer_id', $customerId)
+                    ->whereIn('status', ['confirmed', 'checked_in'])
+                    ->count(),
+            ],
+            'orders' => [
+                'total' => ServiceOrder::where('customer_id', $customerId)->count(),
+                'active' => ServiceOrder::where('customer_id', $customerId)
+                    ->whereNotIn('status', ['completed', 'cancelled'])
+                    ->count(),
+            ],
+        ];
+    }
+
+    /**
+     * Look up a merchant by slug and ensure it is active.
+     *
+     * @throws ModelNotFoundException
+     */
+    private function resolveActiveMerchant(string $slug): Merchant
+    {
+        $merchant = $this->merchantRepository->findBySlug($slug);
+
+        if (! $merchant || $merchant->status !== 'active') {
+            throw new ModelNotFoundException('Merchant not found or not active.');
+        }
+
+        return $merchant;
+    }
+}

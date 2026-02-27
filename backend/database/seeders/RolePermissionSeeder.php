@@ -114,6 +114,14 @@ class RolePermissionSeeder extends Seeder
                 'fields.update',
                 'fields.delete',
             ],
+            'customer_portal' => [
+                'customer_portal.browse',
+                'customer_portal.book',
+                'customer_portal.reserve',
+                'customer_portal.order',
+                'customer_portal.view_own',
+                'customer_portal.cancel_own',
+            ],
         ];
 
         // Create all permissions
@@ -172,6 +180,8 @@ class RolePermissionSeeder extends Seeder
             ],
             'customer' => [
                 'profile.view', 'profile.update',
+                'customer_portal.browse', 'customer_portal.book', 'customer_portal.reserve',
+                'customer_portal.order', 'customer_portal.view_own', 'customer_portal.cancel_own',
             ],
         ];
 

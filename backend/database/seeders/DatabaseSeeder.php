@@ -38,6 +38,9 @@ class DatabaseSeeder extends Seeder
             SocialPlatformSeeder::class,
             CustomerTagSeeder::class,
             PlatformFeeSeeder::class,
+            DemoMerchantSeeder::class,
+            DemoCustomerSeeder::class,
+            DemoTransactionSeeder::class,
         ]);
     }
 }

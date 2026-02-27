@@ -28,6 +28,8 @@ class AddressResource extends JsonResource
                 'id' => $this->barangay->id,
                 'name' => $this->barangay->name,
             ] : null),
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
         ];
     }
 }

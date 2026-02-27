@@ -45,11 +45,45 @@ class MerchantResource extends JsonResource
             'children' => $this->whenLoaded('children', fn () => MerchantResource::collection($this->children)),
             'children_count' => $this->when($this->children_count !== null, $this->children_count),
             'status_logs' => $this->whenLoaded('statusLogs', fn () => MerchantStatusLogResource::collection($this->statusLogs)),
+            'service_categories' => $this->whenLoaded('serviceCategories', fn () => ServiceCategoryResource::collection($this->serviceCategories)),
             'logo' => $this->when($this->hasMedia('logo'), fn () => [
                 'url' => $this->getFirstMediaUrl('logo'),
                 'thumb' => $this->getFirstMediaUrl('logo', 'thumb'),
                 'preview' => $this->getFirstMediaUrl('logo', 'preview'),
             ]),
+            'gallery_feature' => $this->when($this->hasMedia('gallery_feature'), fn () => [
+                'url' => $this->getFirstMediaUrl('gallery_feature'),
+                'thumb' => $this->getFirstMediaUrl('gallery_feature', 'thumb'),
+                'preview' => $this->getFirstMediaUrl('gallery_feature', 'preview'),
+            ]),
+            'gallery_photos' => $this->when($this->getMedia('gallery_photos')->isNotEmpty(), fn () =>
+                $this->getMedia('gallery_photos')->map(fn ($m) => [
+                    'id' => $m->id,
+                    'url' => $m->getUrl(),
+                    'thumb' => $m->getUrl('thumb'),
+                    'preview' => $m->getUrl('preview'),
+                    'name' => $m->file_name,
+                ])->values()
+            ),
+            'gallery_interiors' => $this->when($this->getMedia('gallery_interiors')->isNotEmpty(), fn () =>
+                $this->getMedia('gallery_interiors')->map(fn ($m) => [
+                    'id' => $m->id,
+                    'url' => $m->getUrl(),
+                    'thumb' => $m->getUrl('thumb'),
+                    'preview' => $m->getUrl('preview'),
+                    'name' => $m->file_name,
+                ])->values()
+            ),
+            'gallery_exteriors' => $this->when($this->getMedia('gallery_exteriors')->isNotEmpty(), fn () =>
+                $this->getMedia('gallery_exteriors')->map(fn ($m) => [
+                    'id' => $m->id,
+                    'url' => $m->getUrl(),
+                    'thumb' => $m->getUrl('thumb'),
+                    'preview' => $m->getUrl('preview'),
+                    'name' => $m->file_name,
+                ])->values()
+            ),
+            'distance' => $this->when($this->resource->getAttribute('distance') !== null, fn () => round((float) $this->distance, 2)),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

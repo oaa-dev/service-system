@@ -25,6 +25,8 @@ class UpdateProfileRequest extends FormRequest
             'address.city_id' => ['nullable', 'integer', 'exists:cities,id'],
             'address.barangay_id' => ['nullable', 'integer', 'exists:barangays,id'],
             'address.postal_code' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 }

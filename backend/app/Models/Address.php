@@ -21,6 +21,13 @@ class Address extends Model
         'province_id',
         'city_id',
         'barangay_id',
+        'latitude',
+        'longitude',
+    ];
+
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function addressable(): MorphTo

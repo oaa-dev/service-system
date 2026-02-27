@@ -22,7 +22,9 @@ use App\Http\Controllers\Api\V1\PlatformFeeController;
 use App\Http\Controllers\Api\V1\MerchantServiceController;
 use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
+use App\Http\Controllers\Api\V1\CustomerPortalController;
 use App\Http\Controllers\Api\V1\SocialPlatformController;
+use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -49,6 +51,17 @@ Route::prefix('v1')->group(function () {
     Route::get('geographic/regions/{region}/provinces', [GeographicController::class, 'provinces']);
     Route::get('geographic/provinces/{province}/cities', [GeographicController::class, 'cities']);
     Route::get('geographic/cities/{city}/barangays', [GeographicController::class, 'barangays']);
+
+    // Storefront routes (public)
+    Route::prefix('storefront')->group(function () {
+        Route::get('business-types', [StorefrontController::class, 'businessTypes']);
+        Route::get('payment-methods', [StorefrontController::class, 'paymentMethods']);
+        Route::get('merchants/map', [StorefrontController::class, 'mapMerchants']);
+        Route::get('merchants', [StorefrontController::class, 'merchants']);
+        Route::get('merchants/{slug}', [StorefrontController::class, 'merchantDetail']);
+        Route::get('merchants/{slug}/services', [StorefrontController::class, 'merchantServices']);
+        Route::get('merchants/{slug}/services/{service}', [StorefrontController::class, 'serviceDetail']);
+    });
 
     // Protected routes
     Route::middleware('auth:api')->group(function () {
@@ -332,6 +345,25 @@ Route::prefix('v1')->group(function () {
             Route::get('messages/unread-count', [MessagingController::class, 'unreadCount']);
             Route::get('messages/search', [MessagingController::class, 'searchMessages']);
             Route::delete('messages/{messageId}', [MessagingController::class, 'deleteMessage']);
+
+            // Customer Portal - Booking/Ordering
+            Route::prefix('customer/merchants/{slug}')->group(function () {
+                Route::post('/bookings', [CustomerPortalController::class, 'createBooking'])->middleware('permission:customer_portal.book');
+                Route::post('/reservations', [CustomerPortalController::class, 'createReservation'])->middleware('permission:customer_portal.reserve');
+                Route::post('/orders', [CustomerPortalController::class, 'createOrder'])->middleware('permission:customer_portal.order');
+            });
+
+            // Customer Portal - My History & Dashboard
+            Route::prefix('customer/my')->group(function () {
+                Route::get('/stats', [CustomerPortalController::class, 'myStats'])->middleware('permission:customer_portal.view_own');
+                Route::get('/bookings', [CustomerPortalController::class, 'myBookings'])->middleware('permission:customer_portal.view_own');
+                Route::get('/bookings/{booking}', [CustomerPortalController::class, 'myBooking'])->middleware('permission:customer_portal.view_own');
+                Route::patch('/bookings/{booking}/cancel', [CustomerPortalController::class, 'cancelMyBooking'])->middleware('permission:customer_portal.cancel_own');
+                Route::get('/reservations', [CustomerPortalController::class, 'myReservations'])->middleware('permission:customer_portal.view_own');
+                Route::patch('/reservations/{reservation}/cancel', [CustomerPortalController::class, 'cancelMyReservation'])->middleware('permission:customer_portal.cancel_own');
+                Route::get('/orders', [CustomerPortalController::class, 'myOrders'])->middleware('permission:customer_portal.view_own');
+                Route::patch('/orders/{order}/cancel', [CustomerPortalController::class, 'cancelMyOrder'])->middleware('permission:customer_portal.cancel_own');
+            });
 
             // Broadcasting authentication
             Broadcast::routes();

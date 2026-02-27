@@ -25,6 +25,7 @@ class RegisterRequest extends FormRequest
                 Rule::unique('users', 'email')->whereNotNull('email_verified_at'),
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['sometimes', 'in:merchant,customer'],
         ];
     }
 }

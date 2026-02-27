@@ -112,10 +112,16 @@ class AuthController extends Controller
             'last_name' => $lastName,
         ]);
 
-        // Assign merchant role to newly registered users
+        // Assign role based on request (default: merchant)
+        $role = $validated['role'] ?? 'merchant';
         if ($user->roles->isEmpty()) {
-            $user->assignRole('merchant');
+            $user->assignRole($role);
             $user->load('roles');
+        }
+
+        // Auto-create Customer record when registering as customer
+        if ($role === 'customer') {
+            $user->customer()->create(['user_id' => $user->id]);
         }
 
         // Send OTP verification email
@@ -249,7 +255,7 @@ class AuthController extends Controller
     )]
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['profile.media', 'roles', 'merchant']);
+        $user = $request->user()->load(['profile.media', 'roles', 'merchant', 'customer']);
 
         return $this->successResponse(
             new UserResource($user),
