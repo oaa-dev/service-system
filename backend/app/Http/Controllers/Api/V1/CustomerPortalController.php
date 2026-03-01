@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerBookingRequest;
 use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerOrderRequest;
 use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerReservationRequest;
 use App\Http\Resources\Api\V1\BookingResource;
+use App\Http\Resources\Api\V1\PaymentMethodResource;
 use App\Http\Resources\Api\V1\ReservationResource;
 use App\Http\Resources\Api\V1\ServiceOrderResource;
 use App\Services\Contracts\CustomerPortalServiceInterface;
@@ -99,6 +100,16 @@ class CustomerPortalController extends Controller
         return $this->paginatedResponse($reservations, ReservationResource::class);
     }
 
+    public function myReservation(int $reservation): JsonResponse
+    {
+        $reservationModel = $this->customerPortalService->getMyReservation($reservation);
+
+        return $this->successResponse(
+            new ReservationResource($reservationModel),
+            'Reservation retrieved successfully'
+        );
+    }
+
     public function cancelMyReservation(int $reservation): JsonResponse
     {
         try {
@@ -120,6 +131,16 @@ class CustomerPortalController extends Controller
         return $this->paginatedResponse($orders, ServiceOrderResource::class);
     }
 
+    public function myOrder(int $order): JsonResponse
+    {
+        $orderModel = $this->customerPortalService->getMyOrder($order);
+
+        return $this->successResponse(
+            new ServiceOrderResource($orderModel),
+            'Order retrieved successfully'
+        );
+    }
+
     public function cancelMyOrder(int $order): JsonResponse
     {
         try {
@@ -134,10 +155,50 @@ class CustomerPortalController extends Controller
         }
     }
 
+    public function getPaymentMethods(): JsonResponse
+    {
+        $customerId = auth()->id();
+        $result = $this->customerPortalService->getAvailablePaymentMethods($customerId);
+
+        return $this->successResponse([
+            'methods' => PaymentMethodResource::collection($result['methods']),
+            'preferred' => $result['preferred'],
+        ], 'Payment methods retrieved successfully');
+    }
+
+    public function updatePaymentPreferences(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'preferred_payment_method' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $customerId = auth()->id();
+        $result = $this->customerPortalService->updatePaymentPreferences(
+            $customerId,
+            $validated['preferred_payment_method'] ?? null
+        );
+
+        return $this->successResponse($result, 'Payment preferences updated successfully');
+    }
+
     public function myStats(): JsonResponse
     {
         $stats = $this->customerPortalService->getMyStats();
 
         return $this->successResponse($stats, 'Dashboard stats retrieved successfully');
+    }
+
+    public function uploadIdentityDocument(Request $request): JsonResponse
+    {
+        $request->validate([
+            'document' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ]);
+
+        $result = $this->customerPortalService->uploadIdentityDocument(
+            auth()->id(),
+            $request->file('document')
+        );
+
+        return $this->successResponse($result, 'Identity document uploaded successfully');
     }
 }

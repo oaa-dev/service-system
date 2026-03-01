@@ -5,11 +5,13 @@ namespace App\Services;
 use App\Data\CustomerData;
 use App\Data\ProfileData;
 use App\Models\Customer;
+use App\Models\User;
 use App\Models\UserProfile;
 use App\Repositories\Contracts\ProfileRepositoryInterface;
 use App\Services\Contracts\ProfileServiceInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Spatie\LaravelData\Optional;
 
 class ProfileService implements ProfileServiceInterface
@@ -67,7 +69,17 @@ class ProfileService implements ProfileServiceInterface
 
     public function getCustomerByUserId(int $userId): Customer
     {
-        $customer = Customer::where('user_id', $userId)->with('tags')->first();
+        $customer = Customer::where('user_id', $userId)
+            ->with([
+                'tags',
+                'user.profile.media',
+                'user.profile.address.region',
+                'user.profile.address.province',
+                'user.profile.address.geoCity',
+                'user.profile.address.barangay',
+                'user.roles',
+            ])
+            ->first();
 
         if (! $customer) {
             throw new ModelNotFoundException('Customer profile not found');
@@ -78,7 +90,11 @@ class ProfileService implements ProfileServiceInterface
 
     public function updateCustomerPreferences(int $userId, CustomerData $data): Customer
     {
-        $customer = $this->getCustomerByUserId($userId);
+        $customer = Customer::where('user_id', $userId)->first();
+
+        if (! $customer) {
+            throw new ModelNotFoundException('Customer profile not found');
+        }
 
         $updateData = collect($data->toArray())
             ->reject(fn ($value) => $value instanceof Optional)
@@ -87,6 +103,22 @@ class ProfileService implements ProfileServiceInterface
 
         $customer->update($updateData);
 
-        return $customer->fresh(['tags']);
+        return $customer->fresh([
+            'tags',
+            'user.profile.media',
+            'user.profile.address.region',
+            'user.profile.address.province',
+            'user.profile.address.geoCity',
+            'user.profile.address.barangay',
+            'user.roles',
+        ]);
+    }
+
+    public function changePassword(int $userId, string $newPassword): User
+    {
+        $user = User::findOrFail($userId);
+        $user->update(['password' => Hash::make($newPassword)]);
+
+        return $user->fresh();
     }
 }

@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\PlatformFeeController;
 use App\Http\Controllers\Api\V1\MerchantServiceController;
 use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
+use App\Http\Controllers\Api\V1\ConversationController;
 use App\Http\Controllers\Api\V1\CustomerPortalController;
 use App\Http\Controllers\Api\V1\SocialPlatformController;
 use App\Http\Controllers\Api\V1\StorefrontController;
@@ -61,6 +62,8 @@ Route::prefix('v1')->group(function () {
         Route::get('merchants/{slug}', [StorefrontController::class, 'merchantDetail']);
         Route::get('merchants/{slug}/services', [StorefrontController::class, 'merchantServices']);
         Route::get('merchants/{slug}/services/{service}', [StorefrontController::class, 'serviceDetail']);
+        Route::get('merchants/{slug}/services/{service}/booking-availability', [StorefrontController::class, 'bookingAvailability']);
+        Route::get('merchants/{slug}/services/{service}/reservation-availability', [StorefrontController::class, 'reservationAvailability']);
     });
 
     // Protected routes
@@ -225,6 +228,8 @@ Route::prefix('v1')->group(function () {
                 Route::post('customers/{customer}/tags', [CustomerController::class, 'syncTags']);
                 Route::post('customers/{customer}/interactions', [CustomerController::class, 'storeInteraction']);
                 Route::delete('customers/{customer}/interactions/{interaction}', [CustomerController::class, 'destroyInteraction']);
+                Route::patch('customers/{customer}/verify-identity', [CustomerController::class, 'verifyIdentity']);
+                Route::patch('customers/{customer}/reject-identity', [CustomerController::class, 'rejectIdentity']);
             });
             Route::middleware('permission:customers.update_status')->patch('customers/{customer}/status', [CustomerController::class, 'updateStatus']);
             Route::middleware('permission:customers.delete')->delete('customers/{customer}', [CustomerController::class, 'destroy']);
@@ -322,6 +327,7 @@ Route::prefix('v1')->group(function () {
             // Profile routes
             Route::get('profile', [ProfileController::class, 'show']);
             Route::put('profile', [ProfileController::class, 'update']);
+            Route::put('profile/password', [ProfileController::class, 'changePassword']);
             Route::post('profile/avatar', [ProfileController::class, 'uploadAvatar']);
             Route::delete('profile/avatar', [ProfileController::class, 'deleteAvatar']);
             Route::get('profile/customer', [ProfileController::class, 'showCustomer']);
@@ -360,9 +366,23 @@ Route::prefix('v1')->group(function () {
                 Route::get('/bookings/{booking}', [CustomerPortalController::class, 'myBooking'])->middleware('permission:customer_portal.view_own');
                 Route::patch('/bookings/{booking}/cancel', [CustomerPortalController::class, 'cancelMyBooking'])->middleware('permission:customer_portal.cancel_own');
                 Route::get('/reservations', [CustomerPortalController::class, 'myReservations'])->middleware('permission:customer_portal.view_own');
+                Route::get('/reservations/{reservation}', [CustomerPortalController::class, 'myReservation'])->middleware('permission:customer_portal.view_own');
                 Route::patch('/reservations/{reservation}/cancel', [CustomerPortalController::class, 'cancelMyReservation'])->middleware('permission:customer_portal.cancel_own');
                 Route::get('/orders', [CustomerPortalController::class, 'myOrders'])->middleware('permission:customer_portal.view_own');
+                Route::get('/orders/{order}', [CustomerPortalController::class, 'myOrder'])->middleware('permission:customer_portal.view_own');
                 Route::patch('/orders/{order}/cancel', [CustomerPortalController::class, 'cancelMyOrder'])->middleware('permission:customer_portal.cancel_own');
+
+                Route::get('/payment-methods', [CustomerPortalController::class, 'getPaymentMethods'])->middleware('permission:customer_portal.view_own');
+                Route::put('/payment-preferences', [CustomerPortalController::class, 'updatePaymentPreferences'])->middleware('permission:customer_portal.view_own');
+
+                Route::post('/identity-document', [CustomerPortalController::class, 'uploadIdentityDocument'])->middleware('permission:customer_portal.view_own');
+
+                // Chat conversations (scoped per booking/reservation/order)
+                Route::prefix('conversations/{type}/{id}')->middleware('permission:customer_portal.view_own')->group(function () {
+                    Route::get('messages', [ConversationController::class, 'messages']);
+                    Route::post('messages', [ConversationController::class, 'send']);
+                    Route::patch('read', [ConversationController::class, 'markRead']);
+                });
             });
 
             // Broadcasting authentication

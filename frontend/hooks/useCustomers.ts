@@ -218,6 +218,28 @@ export function useDeleteCustomerInteraction() {
   });
 }
 
+// Identity verification hooks
+
+export function useVerifyCustomerIdentity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => customerService.verifyIdentity(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['customers', id] });
+    },
+  });
+}
+
+export function useRejectCustomerIdentity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) => customerService.rejectIdentity(id, reason),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['customers', id] });
+    },
+  });
+}
+
 // Self-service hooks
 
 export function useCustomerProfile() {

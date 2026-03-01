@@ -231,4 +231,38 @@ class CustomerController extends Controller
             return $this->errorResponse($e->getMessage(), 422);
         }
     }
+
+    public function verifyIdentity(int $id): JsonResponse
+    {
+        $customer = $this->customerService->getCustomerById($id);
+
+        $customer->update([
+            'identity_verified_at' => now(),
+            'identity_document_status' => 'approved',
+        ]);
+
+        return $this->successResponse(
+            new CustomerResource($customer->fresh()->load(['user', 'tags'])),
+            'Identity verified successfully'
+        );
+    }
+
+    public function rejectIdentity(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $customer = $this->customerService->getCustomerById($id);
+
+        $customer->update([
+            'identity_document_status' => 'rejected',
+            'identity_verified_at' => null,
+        ]);
+
+        return $this->successResponse(
+            new CustomerResource($customer->fresh()->load(['user', 'tags'])),
+            'Identity rejected successfully'
+        );
+    }
 }

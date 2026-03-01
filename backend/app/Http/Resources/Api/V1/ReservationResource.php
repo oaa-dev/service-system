@@ -31,6 +31,19 @@ class ReservationResource extends JsonResource
             'checked_in_at' => $this->checked_in_at?->toISOString(),
             'checked_out_at' => $this->checked_out_at?->toISOString(),
             'service' => $this->whenLoaded('service', fn () => new ServiceResource($this->service)),
+            'merchant' => $this->whenLoaded('merchant', fn () => [
+                'id' => $this->merchant->id,
+                'name' => $this->merchant->name,
+                'slug' => $this->merchant->slug,
+                'logo' => $this->merchant->getFirstMediaUrl('logo', 'thumb') ?: null,
+                'address' => $this->merchant->relationLoaded('address') && $this->merchant->address
+                    ? new \App\Http\Resources\Api\V1\AddressResource($this->merchant->address)
+                    : null,
+            ]),
+            'unit' => $this->whenLoaded('unit', fn () => [
+                'id' => $this->unit->id,
+                'name' => $this->unit->name,
+            ]),
             'customer' => $this->whenLoaded('customer', fn () => [
                 'id' => $this->customer->id,
                 'name' => $this->customer->name,

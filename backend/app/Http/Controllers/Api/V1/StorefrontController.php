@@ -68,6 +68,28 @@ class StorefrontController extends Controller
         );
     }
 
+    public function bookingAvailability(string $slug, int $service, Request $request): JsonResponse
+    {
+        $request->validate([
+            'month' => 'required|date_format:Y-m',
+        ]);
+
+        $data = $this->storefrontService->getBookingAvailability($slug, $service, $request->month);
+
+        return $this->successResponse($data, 'Booking availability retrieved successfully');
+    }
+
+    public function reservationAvailability(string $slug, int $service, Request $request): JsonResponse
+    {
+        $request->validate([
+            'month' => 'required|date_format:Y-m',
+        ]);
+
+        $data = $this->storefrontService->getReservationAvailability($slug, $service, $request->month);
+
+        return $this->successResponse($data, 'Reservation availability retrieved successfully');
+    }
+
     public function mapMerchants(Request $request): JsonResponse
     {
         $hasLocationParams = $request->filled(['lat', 'lng', 'radius']);

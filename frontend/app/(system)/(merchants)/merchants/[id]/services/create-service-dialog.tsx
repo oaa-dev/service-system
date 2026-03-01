@@ -283,6 +283,7 @@ export function CreateServiceDialog({ merchantId, businessTypeId, open, onOpenCh
         description="Adjust and crop the service image"
         saveLabel="Apply Crop"
         cropShape="rect"
+        aspect={3/2}
       />
     </>
   );

@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
+CUSTOMER_PORTAL_DIR="$PROJECT_ROOT/frontend-customer-portal"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -66,6 +67,22 @@ check_frontend() {
     return 1
 }
 
+check_customer_portal() {
+    log "Checking customer portal..."
+    local max_attempts=15
+    local attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -sf http://localhost:3001 > /dev/null 2>&1; then
+            log "Customer portal is responding at http://localhost:3001"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    warn "Customer portal not responding yet — npm install + dev may still be running."
+    return 1
+}
+
 cmd_up() {
     local skip_migrate=false
     for arg in "$@"; do
@@ -78,6 +95,9 @@ cmd_up() {
     log "Starting frontend services..."
     docker compose -f "$FRONTEND_DIR/docker-compose.yml" up -d
 
+    log "Starting customer portal services..."
+    docker compose -f "$CUSTOMER_PORTAL_DIR/docker-compose.yml" up -d
+
     wait_for_mysql
 
     if [ "$skip_migrate" = false ]; then
@@ -89,17 +109,22 @@ cmd_up() {
 
     check_api
     check_frontend
+    check_customer_portal
 
     echo ""
     log "=== Dev environment is up ==="
-    log "API:        http://localhost:8090/api/v1"
-    log "Frontend:   http://localhost:3000"
-    log "phpMyAdmin: http://localhost:8091"
-    log "Mailpit:    http://localhost:8092"
-    log "RabbitMQ:   http://localhost:8093"
+    log "API:             http://localhost:8090/api/v1"
+    log "Frontend:        http://localhost:3000"
+    log "Customer Portal: http://localhost:3001"
+    log "phpMyAdmin:      http://localhost:8091"
+    log "Mailpit:         http://localhost:8092"
+    log "RabbitMQ:        http://localhost:8093"
 }
 
 cmd_down() {
+    log "Stopping customer portal services..."
+    docker compose -f "$CUSTOMER_PORTAL_DIR/docker-compose.yml" down
+
     log "Stopping frontend services..."
     docker compose -f "$FRONTEND_DIR/docker-compose.yml" down
 
@@ -115,6 +140,9 @@ cmd_status() {
     echo ""
     echo "=== Frontend ==="
     docker compose -f "$FRONTEND_DIR/docker-compose.yml" ps
+    echo ""
+    echo "=== Customer Portal ==="
+    docker compose -f "$CUSTOMER_PORTAL_DIR/docker-compose.yml" ps
 }
 
 case "${1:-}" in

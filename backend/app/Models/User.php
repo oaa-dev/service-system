@@ -68,19 +68,9 @@ class User extends Authenticatable implements HasMedia
         return $this->hasOne(UserProfile::class);
     }
 
-    public function conversationsAsUserOne(): HasMany
+    public function conversations(): HasMany
     {
-        return $this->hasMany(Conversation::class, 'user_one_id');
-    }
-
-    public function conversationsAsUserTwo(): HasMany
-    {
-        return $this->hasMany(Conversation::class, 'user_two_id');
-    }
-
-    public function conversationParticipants(): HasMany
-    {
-        return $this->hasMany(ConversationParticipant::class);
+        return $this->hasMany(Conversation::class, 'customer_id');
     }
 
     public function sentMessages(): HasMany

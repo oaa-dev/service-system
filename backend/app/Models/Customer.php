@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Customer extends Model
+class Customer extends Model implements HasMedia
 {
     use HasFactory;
+    use InteractsWithMedia;
 
     protected $attributes = [
         'customer_type' => 'individual',
@@ -18,6 +21,7 @@ class Customer extends Model
         'loyalty_points' => 0,
         'communication_preference' => 'both',
         'status' => 'active',
+        'identity_document_status' => 'none',
     ];
 
     protected $fillable = [
@@ -30,13 +34,22 @@ class Customer extends Model
         'preferred_payment_method',
         'communication_preference',
         'status',
+        'identity_verified_at',
+        'identity_document_status',
     ];
 
     protected function casts(): array
     {
         return [
             'loyalty_points' => 'integer',
+            'identity_verified_at' => 'datetime',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('identity_document')
+            ->singleFile();
     }
 
     public function user(): BelongsTo

@@ -8,10 +8,12 @@ use App\Data\BookingData;
 use App\Data\ReservationData;
 use App\Data\ServiceOrderData;
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\Merchant;
 use App\Models\Reservation;
 use App\Models\ServiceOrder;
 use App\Repositories\Contracts\MerchantRepositoryInterface;
+use App\Repositories\Contracts\PaymentMethodRepositoryInterface;
 use App\Services\Contracts\BookingServiceInterface;
 use App\Services\Contracts\CustomerPortalServiceInterface;
 use App\Services\Contracts\ReservationServiceInterface;
@@ -27,6 +29,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
 {
     public function __construct(
         protected MerchantRepositoryInterface $merchantRepository,
+        protected PaymentMethodRepositoryInterface $paymentMethodRepository,
         protected BookingServiceInterface $bookingService,
         protected ReservationServiceInterface $reservationService,
         protected ServiceOrderServiceInterface $serviceOrderService
@@ -80,7 +83,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $booking = Booking::where('customer_id', $customerId)
-            ->with(['service', 'service.media'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address'])
             ->findOrFail($bookingId);
 
         return $booking;
@@ -126,6 +129,17 @@ class CustomerPortalService implements CustomerPortalServiceInterface
             ->appends(request()->query());
     }
 
+    public function getMyReservation(int $reservationId): Reservation
+    {
+        $customerId = auth()->id();
+
+        $reservation = Reservation::where('customer_id', $customerId)
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address'])
+            ->findOrFail($reservationId);
+
+        return $reservation;
+    }
+
     public function cancelMyReservation(int $reservationId): Reservation
     {
         $customerId = auth()->id();
@@ -165,6 +179,17 @@ class CustomerPortalService implements CustomerPortalServiceInterface
             ->with(['service', 'service.media'])
             ->paginate($request->per_page ?? 15)
             ->appends(request()->query());
+    }
+
+    public function getMyOrder(int $orderId): ServiceOrder
+    {
+        $customerId = auth()->id();
+
+        $order = ServiceOrder::where('customer_id', $customerId)
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address'])
+            ->findOrFail($orderId);
+
+        return $order;
     }
 
     public function cancelMyOrder(int $orderId): ServiceOrder
@@ -209,6 +234,42 @@ class CustomerPortalService implements CustomerPortalServiceInterface
                     ->whereNotIn('status', ['completed', 'cancelled'])
                     ->count(),
             ],
+        ];
+    }
+
+    public function getAvailablePaymentMethods(int $customerId): array
+    {
+        $methods = $this->paymentMethodRepository->getActive();
+        $customer = Customer::where('user_id', $customerId)->firstOrFail();
+
+        return [
+            'methods' => $methods,
+            'preferred' => $customer->preferred_payment_method,
+        ];
+    }
+
+    public function updatePaymentPreferences(int $customerId, ?string $preferredMethod): array
+    {
+        $customer = Customer::where('user_id', $customerId)->firstOrFail();
+        $customer->update(['preferred_payment_method' => $preferredMethod]);
+
+        return [
+            'preferred_payment_method' => $customer->fresh()->preferred_payment_method,
+        ];
+    }
+
+    public function uploadIdentityDocument(int $userId, \Illuminate\Http\UploadedFile $file): array
+    {
+        $customer = Customer::where('user_id', $userId)->firstOrFail();
+
+        $customer->addMedia($file)->toMediaCollection('identity_document');
+        $customer->update(['identity_document_status' => 'pending']);
+
+        $customer->refresh();
+
+        return [
+            'identity_document_status' => $customer->identity_document_status,
+            'identity_document_url' => $customer->getFirstMediaUrl('identity_document') ?: null,
         ];
     }
 

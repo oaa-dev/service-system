@@ -5,6 +5,7 @@ namespace App\Services\Contracts;
 use App\Data\CustomerData;
 use App\Data\ProfileData;
 use App\Models\Customer;
+use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Http\UploadedFile;
 
@@ -21,4 +22,6 @@ interface ProfileServiceInterface
     public function getCustomerByUserId(int $userId): Customer;
 
     public function updateCustomerPreferences(int $userId, CustomerData $data): Customer;
+
+    public function changePassword(int $userId, string $newPassword): User;
 }

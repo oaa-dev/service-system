@@ -23,4 +23,8 @@ interface StorefrontServiceInterface
     public function getAllActiveMerchants();
 
     public function getNearbyMerchants(float $lat, float $lng, float $radiusKm);
+
+    public function getBookingAvailability(string $slug, int $serviceId, string $month): array;
+
+    public function getReservationAvailability(string $slug, int $serviceId, string $month): array;
 }

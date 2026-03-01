@@ -1,0 +1,1088 @@
+[ 2323683ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2327067ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2333028ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2340748ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2345942ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2353188ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2369881ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 2416917ms] [ERROR] ./app/(storefront)/layout.tsx:1:1
+Module not found: Can't resolve 'leaflet/dist/leaflet.css'
+> 1 | import 'leaflet/dist/leaflet.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Link from 'next/link';
+  3 | import { Store } from 'lucide-react';
+  4 | import { StorefrontNav } from '@/components/storefront/storefront-nav';
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4572613ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4572613ms] [ERROR] ./lib/leaflet-setup.ts:1:1
+Module not found: Can't resolve 'leaflet'
+> 1 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | // Fix default marker icon paths for bundled environments.
+  4 | // Leaflet's default icon URLs are relative and break when assets are served
+
+Import trace:
+  Client Component Browser:
+    ./lib/leaflet-setup.ts [Client Component Browser]
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4572614ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4572614ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4575714ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4575714ms] [ERROR] ./lib/leaflet-setup.ts:1:1
+Module not found: Can't resolve 'leaflet'
+> 1 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | // Fix default marker icon paths for bundled environments.
+  4 | // Leaflet's default icon URLs are relative and break when assets are served
+
+Import trace:
+  Client Component Browser:
+    ./lib/leaflet-setup.ts [Client Component Browser]
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4575714ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4575714ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4576609ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4576609ms] [ERROR] ./lib/leaflet-setup.ts:1:1
+Module not found: Can't resolve 'leaflet'
+> 1 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | // Fix default marker icon paths for bundled environments.
+  4 | // Leaflet's default icon URLs are relative and break when assets are served
+
+Import trace:
+  Client Component Browser:
+    ./lib/leaflet-setup.ts [Client Component Browser]
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4576609ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4576609ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4584614ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4584614ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4584614ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4584614ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4584615ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585662ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585662ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585662ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585662ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585662ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585830ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585830ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585830ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585830ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4585831ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4586388ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4586388ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4586388ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4586388ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4586389ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_7a8122d0._.js:3117
+[ 4586516ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/merchants/azure-lagoon-resort?_rsc=1pnnk:0
+[ 4586596ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/merchants/azure-lagoon-resort:0
+[ 4586836ms] Error: ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./components/storefront/merchant-map-view.tsx:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at Object.getCompilationErrors (file:///app/node_modules/next/dist/server/dev/hot-reloader-turbopack.js:996:59)
+    at DevBundlerService.getCompilationError (file:///app/node_modules/next/dist/server/lib/dev-bundler-service.js:39:55)
+    at DevServer.getCompilationError (file:///app/node_modules/next/dist/server/dev/next-dev-server.js:701:42)
+    at DevServer.findPageComponents (file:///app/node_modules/next/dist/server/dev/next-dev-server.js:671:43)
+    at async DevServer.renderErrorToResponseImpl (file:///app/node_modules/next/dist/server/base-server.js:1704:26)
+[ 4586838ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586839ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586839ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586839ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586839ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586935ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586935ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586935ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586935ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586935ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586971ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586972ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586972ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586972ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4586972ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4589050ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4589050ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4589050ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4589050ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+  5 |
+  6 | interface MerchantMiniMapProps {
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4589050ms] [ERROR] ./components/storefront/merchant-mini-map.tsx:4:1
+Module not found: Can't resolve 'react-leaflet'
+  2 |
+  3 | import '@/lib/leaflet-setup';
+> 4 | import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | interface MerchantMiniMapProps {
+  7 |   latitude: number;
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-mini-map.tsx [Client Component Browser]
+    ./components/storefront/merchant-sidebar.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/[slug]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4595487ms] [ERROR] ./components/storefront/merchant-map-view.tsx:3:1
+Module not found: Can't resolve '@/lib/leaflet-setup'
+  1 | 'use client';
+  2 |
+> 3 | import '@/lib/leaflet-setup';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+
+Import map: aliased to relative './lib/leaflet-setup' inside of [project]/
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4595487ms] [ERROR] ./components/storefront/merchant-map-view.tsx:5:1
+Module not found: Can't resolve 'leaflet'
+  3 | import '@/lib/leaflet-setup';
+  4 | import { useEffect } from 'react';
+> 5 | import L from 'leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945
+[ 4595487ms] [ERROR] ./components/storefront/merchant-map-view.tsx:6:1
+Module not found: Can't resolve 'react-leaflet'
+  4 | import { useEffect } from 'react';
+  5 | import L from 'leaflet';
+> 6 | import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Link from 'next/link';
+  8 | import type { Merchant } from '@/types/api';
+  9 |
+
+Import trace:
+  Client Component Browser:
+    ./components/storefront/merchant-map-view.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Client Component Browser]
+    ./app/(storefront)/merchants/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_b0a279d5._.js:1945

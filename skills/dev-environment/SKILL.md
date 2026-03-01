@@ -29,11 +29,13 @@ bash <skill-path>/scripts/dev.sh status
 
 1. Starts backend containers (`backend/docker-compose.yml`): app, nginx, MySQL, Redis, RabbitMQ, Mailpit, phpMyAdmin, Reverb
 2. Starts frontend container (`frontend/docker-compose.yml`): Next.js dev server
-3. Waits for MySQL to accept connections (up to 60s)
-4. Runs `php artisan migrate --force` (skip with `--skip-migrate`)
-5. Verifies API responds at `http://localhost:8090`
-6. Verifies frontend responds at `http://localhost:3000`
-7. Prints summary with all service URLs
+3. Starts customer portal container (`frontend-customer-portal/docker-compose.yml`): Next.js dev server
+4. Waits for MySQL to accept connections (up to 60s)
+5. Runs `php artisan migrate --force` (skip with `--skip-migrate`)
+6. Verifies API responds at `http://localhost:8090`
+7. Verifies frontend responds at `http://localhost:3000`
+8. Verifies customer portal responds at `http://localhost:3001`
+9. Prints summary with all service URLs
 
 ## Service URLs
 
@@ -41,6 +43,7 @@ bash <skill-path>/scripts/dev.sh status
 |---------|-----|
 | API | http://localhost:8090/api/v1 |
 | Frontend | http://localhost:3000 |
+| Customer Portal | http://localhost:3001 |
 | phpMyAdmin | http://localhost:8091 |
 | Mailpit | http://localhost:8092 |
 | RabbitMQ | http://localhost:8093 |

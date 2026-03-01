@@ -78,7 +78,6 @@ export function EditServiceDialog({ merchantId, businessTypeId, item, open, onOp
         unit_status: item.unit_status || 'available',
         amenities: item.amenities || null,
       });
-      cleanup();
 
       // Initialize custom fields from existing service data
       if (item.custom_fields && item.custom_fields.length > 0) {
@@ -105,7 +104,8 @@ export function EditServiceDialog({ merchantId, businessTypeId, item, open, onOp
         setCustomFieldValues({});
       }
     }
-  }, [item, open, form, cleanup]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item, open]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -305,6 +305,7 @@ export function EditServiceDialog({ merchantId, businessTypeId, item, open, onOp
         description="Adjust and crop the service image"
         saveLabel="Upload Image"
         cropShape="rect"
+        aspect={3/2}
       />
     </>
   );

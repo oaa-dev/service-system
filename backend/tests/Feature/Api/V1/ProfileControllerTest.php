@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\Passport;
 
@@ -557,5 +559,237 @@ describe('Profile Avatar in Response', function () {
                     ],
                 ],
             ]);
+    });
+});
+
+describe('Profile Change Password', function () {
+    it('can change password with valid current password', function () {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'old-password-123',
+            'password' => 'new-password-456',
+            'password_confirmation' => 'new-password-456',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Password changed successfully',
+            ]);
+
+        // Verify new password works
+        $this->assertTrue(Hash::check('new-password-456', $user->fresh()->password));
+    });
+
+    it('fails with incorrect current password', function () {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'wrong-password',
+            'password' => 'new-password-456',
+            'password_confirmation' => 'new-password-456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['current_password']);
+    });
+
+    it('fails when password confirmation does not match', function () {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'old-password-123',
+            'password' => 'new-password-456',
+            'password_confirmation' => 'different-password',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    });
+
+    it('fails when new password is too short', function () {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'old-password-123',
+            'password' => 'short',
+            'password_confirmation' => 'short',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    });
+
+    it('requires current_password field', function () {
+        $user = User::factory()->create();
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/password', [
+            'password' => 'new-password-456',
+            'password_confirmation' => 'new-password-456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['current_password']);
+    });
+
+    it('requires password field', function () {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'old-password-123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    });
+
+    it('returns unauthorized when not authenticated', function () {
+        $response = $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'old-password-123',
+            'password' => 'new-password-456',
+            'password_confirmation' => 'new-password-456',
+        ]);
+
+        $response->assertStatus(401);
+    });
+});
+
+describe('Profile Customer Show', function () {
+    it('can get customer profile with user and profile data', function () {
+        $user = User::factory()->create();
+        $user->profile->update([
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'phone' => '+1234567890',
+        ]);
+        $customer = Customer::factory()->create(['user_id' => $user->id]);
+        $user->assignRole('customer');
+        Passport::actingAs($user);
+
+        $response = $this->getJson('/api/v1/profile/customer');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Customer profile retrieved successfully',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'id',
+                    'user' => [
+                        'id',
+                        'name',
+                        'first_name',
+                        'last_name',
+                        'email',
+                        'profile',
+                    ],
+                    'customer_type',
+                    'preferred_payment_method',
+                    'communication_preference',
+                    'status',
+                ],
+            ]);
+
+        $data = $response->json('data');
+        $this->assertEquals('John', $data['user']['first_name']);
+        $this->assertEquals('Doe', $data['user']['last_name']);
+        $this->assertEquals($user->email, $data['user']['email']);
+    });
+
+    it('returns 404 when user has no customer record', function () {
+        $user = User::factory()->create();
+        Passport::actingAs($user);
+
+        $response = $this->getJson('/api/v1/profile/customer');
+
+        $response->assertStatus(404);
+    });
+
+    it('returns unauthorized when not authenticated', function () {
+        $response = $this->getJson('/api/v1/profile/customer');
+
+        $response->assertStatus(401);
+    });
+});
+
+describe('Profile Customer Update Preferences', function () {
+    it('can update customer preferences', function () {
+        $user = User::factory()->create();
+        $customer = Customer::factory()->create([
+            'user_id' => $user->id,
+            'preferred_payment_method' => 'cash',
+            'communication_preference' => 'sms',
+        ]);
+        $user->assignRole('customer');
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/customer', [
+            'preferred_payment_method' => 'e-wallet',
+            'communication_preference' => 'email',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Customer preferences updated successfully',
+                'data' => [
+                    'preferred_payment_method' => 'e-wallet',
+                    'communication_preference' => 'email',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'preferred_payment_method' => 'e-wallet',
+            'communication_preference' => 'email',
+        ]);
+    });
+
+    it('validates preferred_payment_method enum', function () {
+        $user = User::factory()->create();
+        Customer::factory()->create(['user_id' => $user->id]);
+        $user->assignRole('customer');
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/customer', [
+            'preferred_payment_method' => 'bitcoin',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['preferred_payment_method']);
+    });
+
+    it('validates communication_preference enum', function () {
+        $user = User::factory()->create();
+        Customer::factory()->create(['user_id' => $user->id]);
+        $user->assignRole('customer');
+        Passport::actingAs($user);
+
+        $response = $this->putJson('/api/v1/profile/customer', [
+            'communication_preference' => 'carrier_pigeon',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['communication_preference']);
     });
 });

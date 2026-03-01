@@ -3,7 +3,6 @@
 namespace App\Repositories;
 
 use App\Models\Conversation;
-use App\Models\ConversationParticipant;
 use App\Repositories\Contracts\ConversationRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -14,44 +13,32 @@ class ConversationRepository extends BaseRepository implements ConversationRepos
         parent::__construct($model);
     }
 
-    public function findByUsers(int $userOneId, int $userTwoId): ?Conversation
-    {
-        return Conversation::findBetweenUsers($userOneId, $userTwoId);
-    }
-
-    public function getForUser(int $userId, int $perPage = 15): LengthAwarePaginator
+    public function findByParticipants(int $merchantId, int $customerId, string $conversableType, int $conversableId): ?Conversation
     {
         return $this->model->newQuery()
-            ->where(function ($query) use ($userId) {
-                $query->where('user_one_id', $userId)
-                    ->orWhere('user_two_id', $userId);
-            })
-            ->whereHas('participants', function ($query) use ($userId) {
-                $query->where('user_id', $userId)
-                    ->whereNull('deleted_at');
-            })
-            ->with([
-                'userOne.profile.media',
-                'userTwo.profile.media',
-                'latestMessage.sender',
-                'participants' => fn ($q) => $q->where('user_id', $userId),
-            ])
+            ->where('merchant_id', $merchantId)
+            ->where('customer_id', $customerId)
+            ->where('conversable_type', $conversableType)
+            ->where('conversable_id', $conversableId)
+            ->first();
+    }
+
+    public function getForCustomer(int $customerId, int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->model->newQuery()
+            ->where('customer_id', $customerId)
+            ->with(['merchant', 'conversable', 'latestMessage.sender'])
             ->orderByDesc('last_message_at')
             ->paginate($perPage);
     }
 
-    public function getParticipant(int $conversationId, int $userId): ?ConversationParticipant
+    public function getForMerchant(int $merchantId, int $perPage = 15): LengthAwarePaginator
     {
-        return ConversationParticipant::where('conversation_id', $conversationId)
-            ->where('user_id', $userId)
-            ->first();
-    }
-
-    public function getTotalUnreadCount(int $userId): int
-    {
-        return ConversationParticipant::where('user_id', $userId)
-            ->whereNull('deleted_at')
-            ->sum('unread_count');
+        return $this->model->newQuery()
+            ->where('merchant_id', $merchantId)
+            ->with(['customer', 'conversable', 'latestMessage.sender'])
+            ->orderByDesc('last_message_at')
+            ->paginate($perPage);
     }
 
     public function updateLastMessageAt(int $conversationId): void

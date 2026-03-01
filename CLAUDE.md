@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Monorepo with two applications:
+Monorepo with three applications:
 - **Backend**: `backend/` — Laravel 12 REST API with OAuth2 (Laravel Passport)
-- **Frontend**: `frontend/` — Next.js 16 with React 19
+- **Frontend (Admin)**: `frontend/` — Next.js 16 with React 19 (admin/merchant management)
+- **Frontend (Customer Portal)**: `frontend-customer-portal/` — Next.js 16 (customer-facing storefront, port 3001)
 
-This is a marketplace/merchant management platform with modules for merchants, services, bookings, reservations, orders, customers, and platform fees.
+This is a marketplace/merchant management platform with modules for merchants, services, bookings, reservations, orders, customers, and platform fees. Design docs live in `docs/` and domain-specific system designs in `documentation/`.
 
 ## Development Commands
 
@@ -42,6 +43,30 @@ npm run lint       # ESLint
 
 When running in Docker: `docker compose exec nextjs npm run build` (from `frontend/` dir)
 
+### Customer Portal Frontend
+
+From the `frontend-customer-portal/` directory:
+
+```bash
+npm install        # Install dependencies
+npm run dev        # Dev server at localhost:3001
+npm run build      # Production build
+npm run lint       # ESLint
+```
+
+When running in Docker: `docker compose exec nextjs-customer npm run build` (from `frontend-customer-portal/` dir)
+
+### Dev Environment Skill
+
+A `dev-environment` skill (`skills/dev-environment/`) manages the full Docker stack:
+
+```bash
+# Use the /dev-environment slash command, or run the script directly:
+bash skills/dev-environment/scripts/dev.sh up       # Start all containers + migrations + health checks
+bash skills/dev-environment/scripts/dev.sh down      # Stop everything
+bash skills/dev-environment/scripts/dev.sh status    # Check container status
+```
+
 ## Architecture
 
 ### Backend — Service-Repository Pattern
@@ -65,10 +90,12 @@ Route → Controller → FormRequest (validation) → DTO (data transfer) → Se
 - `config/images.php` — Centralized image upload config (avatar, document, merchant_logo, service_image, etc.)
 - `database/seeders/RolePermissionSeeder.php` — All permissions and role definitions
 
-**ApiResponse trait** (`app/Traits/ApiResponse.php`) — Used by all controllers. Key methods:
+**ApiResponse trait** (`app/Traits/ApiResponse.php`) — Used by all controllers and middleware. Key methods:
 - `successResponse($data, $message, $code)`, `createdResponse($data, $message)`
 - `paginatedResponse($paginator, $resourceClass)` — wraps paginated data with Resource + pagination meta
+- `paginatedDataResponse($paginator, $dataClass, ?$currentUserId)` — alternative pagination using DTO `::fromModel()` with optional context
 - `errorResponse($message, $code)`, `notFoundResponse()`, `validationErrorResponse($errors)`
+- `forbiddenResponse($message)` → 403, `unauthorizedResponse($message)` → 401, `noContentResponse()` → 204
 
 **Standard API Response:**
 ```json
@@ -110,7 +137,7 @@ QueryBuilder::for(Model::class)
 1. Public — no auth (e.g., `/active` endpoints, login, register)
 2. Auth only — `auth:api` (e.g., verify OTP, logout, `auth/me`)
 3. Auth + verified + onboarded — `auth:api` + `ensure.verified` + `onboarding` (main app routes)
-4. Active merchant — `merchant.active` within tier 3 (e.g., gallery routes). Enforces `status === 'active'` for merchant-role users; admin/super-admin bypass
+4. Active merchant — `merchant.active` within tier 3 (e.g., gallery routes). Allows `active` or `approved` merchant status; admin/super-admin bypass
 
 ### Conventions & Patterns
 
@@ -179,7 +206,7 @@ Tests use Pest with `describe()`/`it()` BDD syntax. Global setup in `tests/Pest.
 - Mutations: `retry: false`
 
 **Zustand auth store** (`stores/authStore.ts`):
-- Persisted to localStorage (`'auth-storage'` key) — stores user, token, isAuthenticated
+- Persisted to localStorage (`'auth-storage'` key, customer portal uses `'customer-auth-storage'`)
 - Built-in permission helpers: `hasRole()`, `hasAnyRole()`, `hasPermission()`, `hasAnyPermission()`, `hasAllPermissions()`, `isMerchantUser()`
 - Super-admin returns true for all permission checks
 - `isMerchantUser()` — true when user has `merchant` role but not `super-admin`/`admin`
@@ -187,7 +214,8 @@ Tests use Pest with `describe()`/`it()` BDD syntax. Global setup in `tests/Pest.
 **WebSocket** (`lib/echo.ts`): Laravel Echo with Reverb broadcaster, singleton pattern via `getEcho()`
 
 **Frontend env vars required:**
-- `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_REVERB_APP_KEY`, `NEXT_PUBLIC_REVERB_HOST`, `NEXT_PUBLIC_REVERB_PORT`, `NEXT_PUBLIC_REVERB_SCHEME`
+- Admin: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_REVERB_APP_KEY`, `NEXT_PUBLIC_REVERB_HOST`, `NEXT_PUBLIC_REVERB_PORT`, `NEXT_PUBLIC_REVERB_SCHEME`
+- Customer portal: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
 
 **Frontend gotchas:**
 - Use `z.number()` not `z.coerce.number()` with react-hook-form zodResolver (type mismatch)
@@ -198,15 +226,19 @@ Tests use Pest with `describe()`/`it()` BDD syntax. Global setup in `tests/Pest.
 
 ## Docker Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| API (Nginx) | 8090 | Laravel REST API |
-| phpMyAdmin | 8091 | Database management |
-| Mailpit | 8092 | Email testing UI |
-| RabbitMQ | 8093 | Message queue management |
-| Reverb | 8094 | WebSocket server |
-| MySQL | 3317 | Database |
-| Redis | 6389 | Cache |
+Each app directory has its own `docker-compose.yml` — run `docker compose` from the relevant directory (`backend/`, `frontend/`, `frontend-customer-portal/`).
+
+| Service | Port | Directory | Description |
+|---------|------|-----------|-------------|
+| API (Nginx) | 8090 | backend/ | Laravel REST API |
+| phpMyAdmin | 8091 | backend/ | Database management |
+| Mailpit | 8092 | backend/ | Email testing UI |
+| RabbitMQ | 8093 | backend/ | Message queue management |
+| Reverb | 8094 | backend/ | WebSocket server |
+| MySQL | 3317 | backend/ | Database |
+| Redis | 6389 | backend/ | Cache |
+| Admin Frontend | 3000 | frontend/ | Next.js admin app |
+| Customer Portal | 3001 | frontend-customer-portal/ | Customer-facing frontend |
 
 ## Git Configuration
 

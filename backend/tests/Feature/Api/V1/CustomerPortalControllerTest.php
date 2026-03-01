@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Address;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Merchant;
@@ -661,5 +662,183 @@ describe('My Stats', function () {
                     'orders' => ['total' => 0, 'active' => 0],
                 ],
             ]);
+    });
+});
+
+describe('Detail Endpoints', function () {
+    beforeEach(function () {
+        // Create an address for the merchant so address data appears in responses
+        $this->address = Address::factory()->create([
+            'addressable_type' => Merchant::class,
+            'addressable_id' => $this->merchant->id,
+            'street' => '123 Test Street',
+            'city' => 'Test City',
+            'state' => 'Test State',
+            'postal_code' => '12345',
+            'country' => 'Philippines',
+        ]);
+    });
+
+    describe('Reservation Detail', function () {
+        it('can fetch a single reservation with merchant details', function () {
+            $service = Service::factory()->reservation()->create([
+                'merchant_id' => $this->merchant->id,
+            ]);
+
+            $reservation = Reservation::factory()->create([
+                'merchant_id' => $this->merchant->id,
+                'service_id' => $service->id,
+                'customer_id' => $this->user->id,
+            ]);
+
+            $response = $this->getJson("/api/v1/customer/my/reservations/{$reservation->id}");
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'id' => $reservation->id,
+                        'customer_id' => $this->user->id,
+                        'status' => 'pending',
+                        'service' => [
+                            'id' => $service->id,
+                            'name' => $service->name,
+                        ],
+                        'merchant' => [
+                            'id' => $this->merchant->id,
+                            'name' => $this->merchant->name,
+                            'slug' => $this->merchant->slug,
+                            'address' => [
+                                'street' => '123 Test Street',
+                                'city' => 'Test City',
+                            ],
+                        ],
+                    ],
+                ]);
+        });
+
+        it('cannot fetch another customer\'s reservation', function () {
+            $service = Service::factory()->reservation()->create([
+                'merchant_id' => $this->merchant->id,
+            ]);
+
+            $otherUser = User::factory()->create();
+            $otherReservation = Reservation::factory()->create([
+                'merchant_id' => $this->merchant->id,
+                'service_id' => $service->id,
+                'customer_id' => $otherUser->id,
+            ]);
+
+            $response = $this->getJson("/api/v1/customer/my/reservations/{$otherReservation->id}");
+
+            $response->assertStatus(404);
+        });
+
+        it('returns 404 for non-existent reservation', function () {
+            $response = $this->getJson('/api/v1/customer/my/reservations/99999');
+
+            $response->assertStatus(404);
+        });
+    });
+
+    describe('Order Detail', function () {
+        it('can fetch a single order with merchant details', function () {
+            $service = Service::factory()->sellable()->create([
+                'merchant_id' => $this->merchant->id,
+            ]);
+
+            $order = ServiceOrder::factory()->create([
+                'merchant_id' => $this->merchant->id,
+                'service_id' => $service->id,
+                'customer_id' => $this->user->id,
+            ]);
+
+            $response = $this->getJson("/api/v1/customer/my/orders/{$order->id}");
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'id' => $order->id,
+                        'customer_id' => $this->user->id,
+                        'order_number' => $order->order_number,
+                        'status' => 'pending',
+                        'service' => [
+                            'id' => $service->id,
+                            'name' => $service->name,
+                        ],
+                        'merchant' => [
+                            'id' => $this->merchant->id,
+                            'name' => $this->merchant->name,
+                            'slug' => $this->merchant->slug,
+                            'address' => [
+                                'street' => '123 Test Street',
+                                'city' => 'Test City',
+                            ],
+                        ],
+                    ],
+                ]);
+        });
+
+        it('cannot fetch another customer\'s order', function () {
+            $service = Service::factory()->sellable()->create([
+                'merchant_id' => $this->merchant->id,
+            ]);
+
+            $otherUser = User::factory()->create();
+            $otherOrder = ServiceOrder::factory()->create([
+                'merchant_id' => $this->merchant->id,
+                'service_id' => $service->id,
+                'customer_id' => $otherUser->id,
+            ]);
+
+            $response = $this->getJson("/api/v1/customer/my/orders/{$otherOrder->id}");
+
+            $response->assertStatus(404);
+        });
+
+        it('returns 404 for non-existent order', function () {
+            $response = $this->getJson('/api/v1/customer/my/orders/99999');
+
+            $response->assertStatus(404);
+        });
+    });
+
+    describe('Booking Detail with Merchant', function () {
+        it('returns merchant details in booking response', function () {
+            $service = Service::factory()->bookable(60)->create([
+                'merchant_id' => $this->merchant->id,
+            ]);
+
+            $booking = Booking::factory()->create([
+                'merchant_id' => $this->merchant->id,
+                'service_id' => $service->id,
+                'customer_id' => $this->user->id,
+            ]);
+
+            $response = $this->getJson("/api/v1/customer/my/bookings/{$booking->id}");
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'id' => $booking->id,
+                        'customer_id' => $this->user->id,
+                        'service' => [
+                            'id' => $service->id,
+                            'name' => $service->name,
+                        ],
+                        'merchant' => [
+                            'id' => $this->merchant->id,
+                            'name' => $this->merchant->name,
+                            'slug' => $this->merchant->slug,
+                            'address' => [
+                                'street' => '123 Test Street',
+                                'city' => 'Test City',
+                            ],
+                        ],
+                    ],
+                ]);
+        });
     });
 });

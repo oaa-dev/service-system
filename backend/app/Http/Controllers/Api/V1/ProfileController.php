@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Data\CustomerData;
 use App\Data\ProfileData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Profile\ChangePasswordRequest;
 use App\Http\Requests\Api\V1\Profile\UpdateCustomerPreferencesRequest;
 use App\Http\Requests\Api\V1\Profile\UpdateProfileRequest;
 use App\Http\Requests\Api\V1\Profile\UploadAvatarRequest;
@@ -177,6 +178,46 @@ class ProfileController extends Controller
             new ProfileResource($profile),
             'Avatar deleted successfully'
         );
+    }
+
+    #[OA\Put(
+        path: '/profile/password',
+        summary: 'Change password',
+        description: 'Change the password of the currently authenticated user',
+        tags: ['Profile'],
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['current_password', 'password', 'password_confirmation'],
+                properties: [
+                    new OA\Property(property: 'current_password', type: 'string', format: 'password', example: 'oldpassword'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'newpassword'),
+                    new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'newpassword'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Password changed successfully',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(property: 'message', type: 'string', example: 'Password changed successfully'),
+                        new OA\Property(property: 'data', type: 'null'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ]
+    )]
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $this->profileService->changePassword(auth()->id(), $request->validated('password'));
+
+        return $this->successResponse(null, 'Password changed successfully');
     }
 
     public function showCustomer(): JsonResponse

@@ -40,6 +40,7 @@ use App\Services\BookingService;
 use App\Services\BusinessTypeService;
 use App\Services\Contracts\BookingServiceInterface;
 use App\Services\Contracts\BusinessTypeServiceInterface;
+use App\Services\Contracts\ConversationServiceInterface;
 use App\Services\Contracts\CustomerPortalServiceInterface;
 use App\Services\Contracts\EmailVerificationServiceInterface;
 use App\Services\Contracts\StorefrontServiceInterface;
@@ -47,6 +48,7 @@ use App\Services\Contracts\FieldServiceInterface;
 use App\Services\Contracts\PlatformFeeServiceInterface;
 use App\Services\Contracts\ReservationServiceInterface;
 use App\Services\Contracts\ServiceOrderServiceInterface;
+use App\Services\ConversationService;
 use App\Services\CustomerPortalService;
 use App\Services\EmailVerificationService;
 use App\Services\StorefrontService;
@@ -91,6 +93,7 @@ class RepositoryServiceProvider extends ServiceProvider
         RoleServiceInterface::class => RoleService::class,
         NotificationServiceInterface::class => NotificationService::class,
         ConversationRepositoryInterface::class => ConversationRepository::class,
+        ConversationServiceInterface::class => ConversationService::class,
         MessageRepositoryInterface::class => MessageRepository::class,
         MessagingServiceInterface::class => MessagingService::class,
         PaymentMethodRepositoryInterface::class => PaymentMethodRepository::class,

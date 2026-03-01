@@ -29,11 +29,21 @@ interface CustomerPortalServiceInterface
 
     public function getMyReservations(Request $request): LengthAwarePaginator;
 
+    public function getMyReservation(int $reservationId): Reservation;
+
     public function cancelMyReservation(int $reservationId): Reservation;
 
     public function getMyOrders(Request $request): LengthAwarePaginator;
 
+    public function getMyOrder(int $orderId): ServiceOrder;
+
     public function cancelMyOrder(int $orderId): ServiceOrder;
 
     public function getMyStats(): array;
+
+    public function getAvailablePaymentMethods(int $customerId): array;
+
+    public function updatePaymentPreferences(int $customerId, ?string $preferredMethod): array;
+
+    public function uploadIdentityDocument(int $userId, \Illuminate\Http\UploadedFile $file): array;
 }

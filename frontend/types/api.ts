@@ -205,6 +205,8 @@ export interface Address {
   province: GeoReference | null;
   city: GeoReference | null;
   barangay: GeoReference | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface AddressInput {
@@ -214,6 +216,8 @@ export interface AddressInput {
   city_id?: number | null;
   barangay_id?: number | null;
   postal_code?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 // Geographic Types (PSGC)
@@ -1187,6 +1191,9 @@ export interface Customer {
   tags?: CustomerTag[];
   documents?: CustomerDocument[];
   interactions_count?: number;
+  identity_document_status?: 'none' | 'pending' | 'approved' | 'rejected';
+  identity_verified_at?: string | null;
+  identity_document?: string | null;
   created_at: string | null;
   updated_at: string | null;
 }

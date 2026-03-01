@@ -113,6 +113,17 @@ export const customerService = {
     return response.data;
   },
 
+  // Identity verification endpoints
+  verifyIdentity: async (id: number): Promise<ApiResponse<Customer>> => {
+    const response = await api.patch<ApiResponse<Customer>>(`/customers/${id}/verify-identity`);
+    return response.data;
+  },
+
+  rejectIdentity: async (id: number, reason?: string): Promise<ApiResponse<Customer>> => {
+    const response = await api.patch<ApiResponse<Customer>>(`/customers/${id}/reject-identity`, { reason });
+    return response.data;
+  },
+
   // Self-service (profile) endpoints
   getOwnProfile: async (): Promise<ApiResponse<Customer>> => {
     const response = await api.get<ApiResponse<Customer>>('/profile/customer');

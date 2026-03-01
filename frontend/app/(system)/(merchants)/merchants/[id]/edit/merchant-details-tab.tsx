@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUpdateMerchant, useUploadMerchantLogo, useDeleteMerchantLogo, useAllMerchants } from '@/hooks/useMerchants';
@@ -9,6 +10,8 @@ import { useActiveBusinessTypes } from '@/hooks/useBusinessTypes';
 import { updateMerchantSchema, type UpdateMerchantFormData } from '@/lib/validations';
 import { Merchant, ApiError, AddressInput } from '@/types/api';
 import { AddressFormFields } from '@/components/address-form-fields';
+
+const MapLocationPicker = dynamic(() => import('@/components/map-location-picker'), { ssr: false });
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,6 +70,8 @@ export function MerchantDetailsTab({ merchant, isBranch = false }: Props) {
         city_id: merchant.address?.city?.id || null,
         barangay_id: merchant.address?.barangay?.id || null,
         postal_code: merchant.address?.postal_code || '',
+        latitude: merchant.address?.latitude || null,
+        longitude: merchant.address?.longitude || null,
       },
     },
   });
@@ -90,6 +95,8 @@ export function MerchantDetailsTab({ merchant, isBranch = false }: Props) {
         city_id: merchant.address?.city?.id || null,
         barangay_id: merchant.address?.barangay?.id || null,
         postal_code: merchant.address?.postal_code || '',
+        latitude: merchant.address?.latitude || null,
+        longitude: merchant.address?.longitude || null,
       },
     });
   }, [merchant, form]);
@@ -104,6 +111,8 @@ export function MerchantDetailsTab({ merchant, isBranch = false }: Props) {
       city_id: data.address.city_id ?? undefined,
       barangay_id: data.address.barangay_id ?? undefined,
       postal_code: data.address.postal_code || undefined,
+      latitude: data.address.latitude ?? undefined,
+      longitude: data.address.longitude ?? undefined,
     } : undefined;
     const cleaned = {
       ...data,
@@ -317,6 +326,16 @@ export function MerchantDetailsTab({ merchant, isBranch = false }: Props) {
               <AddressFormFields
                 control={form.control}
                 namePrefix="address"
+                disabled={updateMutation.isPending}
+              />
+
+              <MapLocationPicker
+                latitude={form.watch('address.latitude')}
+                longitude={form.watch('address.longitude')}
+                onChange={(lat, lng) => {
+                  form.setValue('address.latitude', lat, { shouldDirty: true });
+                  form.setValue('address.longitude', lng, { shouldDirty: true });
+                }}
                 disabled={updateMutation.isPending}
               />
 

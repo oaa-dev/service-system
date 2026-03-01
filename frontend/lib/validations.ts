@@ -120,6 +120,8 @@ export const addressSchema = z.object({
   city_id: z.number().optional().nullable(),
   barangay_id: z.number().optional().nullable(),
   postal_code: z.string().max(20).optional().nullable(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export type AddressFormData = z.infer<typeof addressSchema>;

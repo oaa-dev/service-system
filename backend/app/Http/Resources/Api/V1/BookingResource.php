@@ -27,6 +27,15 @@ class BookingResource extends JsonResource
             'confirmed_at' => $this->confirmed_at?->toISOString(),
             'cancelled_at' => $this->cancelled_at?->toISOString(),
             'service' => $this->whenLoaded('service', fn () => new ServiceResource($this->service)),
+            'merchant' => $this->whenLoaded('merchant', fn () => [
+                'id' => $this->merchant->id,
+                'name' => $this->merchant->name,
+                'slug' => $this->merchant->slug,
+                'logo' => $this->merchant->getFirstMediaUrl('logo', 'thumb') ?: null,
+                'address' => $this->merchant->relationLoaded('address') && $this->merchant->address
+                    ? new \App\Http\Resources\Api\V1\AddressResource($this->merchant->address)
+                    : null,
+            ]),
             'customer' => $this->whenLoaded('customer', fn () => [
                 'id' => $this->customer->id,
                 'name' => $this->customer->name,

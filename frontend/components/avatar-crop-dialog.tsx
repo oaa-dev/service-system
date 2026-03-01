@@ -26,6 +26,7 @@ interface AvatarCropDialogProps {
   description?: string;
   saveLabel?: string;
   cropShape?: 'round' | 'rect';
+  aspect?: number;
 }
 
 async function getCroppedImg(
@@ -141,6 +142,7 @@ export function AvatarCropDialog({
   description = 'Adjust and crop your profile picture',
   saveLabel = 'Save Avatar',
   cropShape = 'round',
+  aspect = 1,
 }: AvatarCropDialogProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -252,7 +254,7 @@ export function AvatarCropDialog({
                   crop={crop}
                   zoom={zoom}
                   rotation={rotation}
-                  aspect={1}
+                  aspect={aspect}
                   cropShape={cropShape}
                   showGrid={false}
                   onCropChange={onCropChange}
