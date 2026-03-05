@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DeployController;
 use App\Http\Controllers\Api\V1\BusinessTypeController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
@@ -48,6 +49,12 @@ Route::prefix('v1')->group(function () {
 
     // Config routes (public)
     Route::get('config/images', [ConfigController::class, 'images']);
+
+    // Deploy routes (protected by deploy key)
+    Route::get('deploy/seed', [DeployController::class, 'seed']);
+    Route::get('deploy/seed-psgc', [DeployController::class, 'seedPsgc']);
+    Route::get('deploy/migrate', [DeployController::class, 'migrate']);
+    Route::get('deploy/migrate-fresh', [DeployController::class, 'migrateFresh']);
 
     // Public reference data routes (active items for forms)
     Route::get('payment-methods/active', [PaymentMethodController::class, 'active']);

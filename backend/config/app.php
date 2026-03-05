@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'deploy_key' => env('DEPLOY_KEY', 'change-me-in-production'),
+
 ];

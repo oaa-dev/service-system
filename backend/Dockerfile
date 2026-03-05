@@ -46,6 +46,15 @@ chmod -R 775 storage bootstrap/cache || true && \
 chmod 600 storage/oauth-private.key storage/oauth-public.key 2>/dev/null || true && \
 php artisan storage:link 2>/dev/null || true && \
 php artisan migrate --force 2>/dev/null || true && \
+php artisan config:show database 2>&1 || true && \
+php artisan route:list --path=api/v1 2>&1 | head -20 || true && \
+php -r \"try { new PDO('mysql:host='.env('DB_HOST').';port='.env('DB_PORT').';dbname='.env('DB_DATABASE'), env('DB_USERNAME'), env('DB_PASSWORD')); echo 'DB OK'; } catch(Exception \\\$e) { echo 'DB FAIL: '.\\\$e->getMessage(); }\" 2>&1 || true && \
+echo '--- ENV CHECK ---' && \
+echo \"APP_KEY=\${APP_KEY:-NOT SET}\" && \
+echo \"APP_ENV=\${APP_ENV:-NOT SET}\" && \
+echo \"DB_HOST=\${DB_HOST:-NOT SET}\" && \
+echo \"DB_DATABASE=\${DB_DATABASE:-NOT SET}\" && \
+echo '--- END ENV CHECK ---' && \
 ln -sf /dev/stderr storage/logs/laravel.log && \
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf \
 "]
