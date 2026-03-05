@@ -5,13 +5,15 @@ RUN apt-get update && apt-get install -y \
     libpng-dev libjpeg62-turbo-dev libwebp-dev libfreetype6-dev \
     libonig-dev libxml2-dev \
     libzip-dev libicu-dev libmagickwand-dev \
+    libssl-dev librabbitmq-dev \
     nginx \
     supervisor \
     && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip sockets \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pecl install redis && docker-php-ext-enable redis
+RUN pecl install amqp redis \
+    && docker-php-ext-enable amqp redis
 
 # Composer from official image
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
