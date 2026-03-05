@@ -33,6 +33,7 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor
 
 CMD ["sh", "-c", "\
+mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache/data && \
 chown -R www-data:www-data storage bootstrap/cache || true && \
 chmod -R 775 storage bootstrap/cache || true && \
 chmod 600 storage/oauth-private.key storage/oauth-public.key 2>/dev/null || true && \
