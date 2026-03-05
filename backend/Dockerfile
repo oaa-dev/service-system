@@ -26,12 +26,17 @@ RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-s
 
 COPY . .
 
+# Remove .env so Railway env vars are used instead of local defaults
+RUN rm -f .env
+
 RUN mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache/data bootstrap/cache \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Nginx configuration
 COPY docker/nginx/railway.conf /etc/nginx/sites-available/default
+RUN rm -f /etc/nginx/sites-enabled/default && \
+    ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Supervisor configuration
 COPY docker/supervisor/railway.conf /etc/supervisor/conf.d/supervisord.conf
