@@ -24,7 +24,7 @@ export function MessageInput({ conversationId }: MessageInputProps) {
     setMessage('');
     sendMessage.mutate({
       conversationId,
-      data: { body: trimmedMessage },
+      body: trimmedMessage,
     });
   };
 

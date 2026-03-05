@@ -27,11 +27,10 @@ import {
   DataTableFilters, type FilterField, type FilterValues,
 } from '@/components/ui/data-table-filters';
 import {
-  ChevronLeft, ChevronRight, MoreHorizontal, Plus, Pencil, Trash2, ClipboardList, RefreshCw, CalendarClock,
+  ChevronLeft, ChevronRight, MoreHorizontal, Plus, Pencil, Trash2, ClipboardList, RefreshCw,
 } from 'lucide-react';
 import { CreateServiceDialog } from '@/app/(system)/(merchants)/merchants/[id]/services/create-service-dialog';
 import { EditServiceDialog } from '@/app/(system)/(merchants)/merchants/[id]/services/edit-service-dialog';
-import { ServiceScheduleDialog } from '@/app/(system)/(merchants)/merchants/[id]/services/service-schedule-dialog';
 
 const serviceTypeLabels: Record<ServiceType, string> = {
   sellable: 'Product',
@@ -68,7 +67,6 @@ export default function MyStoreServicesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Service | null>(null);
   const [deleteItem, setDeleteItem] = useState<Service | null>(null);
-  const [scheduleItem, setScheduleItem] = useState<Service | null>(null);
 
   const queryParams = useMemo<ServiceQueryParams>(() => {
     const params: ServiceQueryParams = { page, per_page: perPage };
@@ -178,7 +176,6 @@ export default function MyStoreServicesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditItem(item)}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                          {item.service_type === 'bookable' && (<DropdownMenuItem onClick={() => setScheduleItem(item)}><CalendarClock className="mr-2 h-4 w-4" /> Schedule</DropdownMenuItem>)}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => setDeleteItem(item)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -206,7 +203,6 @@ export default function MyStoreServicesPage() {
 
       <CreateServiceDialog merchantId={merchantId} businessTypeId={merchant?.business_type_id ?? null} open={createDialogOpen} onOpenChange={setCreateDialogOpen} canSellProducts={merchant?.can_sell_products} canTakeBookings={merchant?.can_take_bookings} canRentUnits={merchant?.can_rent_units} />
       <EditServiceDialog merchantId={merchantId} businessTypeId={merchant?.business_type_id ?? null} item={editItem} open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)} canSellProducts={merchant?.can_sell_products} canTakeBookings={merchant?.can_take_bookings} canRentUnits={merchant?.can_rent_units} />
-      <ServiceScheduleDialog merchantId={merchantId} service={scheduleItem} open={!!scheduleItem} onOpenChange={(open) => !open && setScheduleItem(null)} />
 
       <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
         <AlertDialogContent>

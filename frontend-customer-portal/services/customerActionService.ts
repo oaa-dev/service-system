@@ -4,9 +4,11 @@ import { ApiResponse, Booking, Reservation, ServiceOrder } from '@/types/api';
 export interface CreateBookingPayload {
   service_id: number;
   booking_date: string;
-  start_time: string;
-  party_size?: number;
+  start_time?: string;
+  booking_slot_id?: number;
+  party_size: number;
   notes?: string;
+  loyalty_reward_id?: number;
 }
 
 export interface CreateReservationPayload {
@@ -16,6 +18,7 @@ export interface CreateReservationPayload {
   guest_count?: number;
   notes?: string;
   special_requests?: string;
+  loyalty_reward_id?: number;
 }
 
 export interface CreateOrderPayload {
@@ -23,6 +26,7 @@ export interface CreateOrderPayload {
   quantity: number;
   unit_label: string;
   notes?: string;
+  loyalty_reward_id?: number;
 }
 
 export const customerActionService = {

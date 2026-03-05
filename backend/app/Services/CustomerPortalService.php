@@ -273,6 +273,36 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         ];
     }
 
+    public function toggleFavoriteMerchant(int $merchantId): bool
+    {
+        $customer = Customer::where('user_id', auth()->id())->firstOrFail();
+
+        Merchant::where('status', 'active')->findOrFail($merchantId);
+
+        $result = $customer->favoriteMerchants()->toggle([$merchantId]);
+
+        return ! empty($result['attached']);
+    }
+
+    public function getMyFavoriteMerchants(Request $request): LengthAwarePaginator
+    {
+        $customer = Customer::where('user_id', auth()->id())->firstOrFail();
+
+        $favoriteIds = $customer->favoriteMerchants()->pluck('merchants.id');
+
+        return QueryBuilder::for(
+            Merchant::whereIn('id', $favoriteIds)->where('status', 'active')
+        )
+            ->allowedFilters([
+                AllowedFilter::partial('search', 'name'),
+            ])
+            ->allowedSorts(['name', 'created_at'])
+            ->defaultSort('-created_at')
+            ->with(['businessType', 'media', 'address'])
+            ->paginate($request->per_page ?? 15)
+            ->appends(request()->query());
+    }
+
     /**
      * Look up a merchant by slug and ensure it is active.
      *

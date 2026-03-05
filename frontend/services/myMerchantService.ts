@@ -151,4 +151,63 @@ export const myMerchantService = {
     const response = await api.delete<ApiResponse<null>>(`/auth/merchant/branches/${branchId}`);
     return response.data;
   },
+
+  // Branch detail management (org managing a specific branch's full settings)
+  getBranchDetail: async (branchId: number): Promise<ApiResponse<Merchant>> => {
+    const response = await api.get<ApiResponse<Merchant>>(`/auth/merchant/branches/${branchId}/detail`);
+    return response.data;
+  },
+
+  updateBranchDetails: async (branchId: number, data: UpdateMerchantRequest): Promise<ApiResponse<Merchant>> => {
+    const response = await api.put<ApiResponse<Merchant>>(`/auth/merchant/branches/${branchId}/detail`, data);
+    return response.data;
+  },
+
+  uploadBranchLogo: async (branchId: number, file: File): Promise<ApiResponse<Merchant>> => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const response = await api.post<ApiResponse<Merchant>>(`/auth/merchant/branches/${branchId}/logo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  deleteBranchLogo: async (branchId: number): Promise<ApiResponse<null>> => {
+    const response = await api.delete<ApiResponse<null>>(`/auth/merchant/branches/${branchId}/logo`);
+    return response.data;
+  },
+
+  getBranchGallery: async (branchId: number): Promise<ApiResponse<MerchantGallery>> => {
+    const response = await api.get<ApiResponse<MerchantGallery>>(`/auth/merchant/branches/${branchId}/gallery`);
+    return response.data;
+  },
+
+  uploadBranchGalleryImage: async (branchId: number, collection: string, file: File): Promise<ApiResponse<GalleryImage>> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await api.post<ApiResponse<GalleryImage>>(`/auth/merchant/branches/${branchId}/gallery/${collection}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  deleteBranchGalleryImage: async (branchId: number, mediaId: number): Promise<ApiResponse<null>> => {
+    const response = await api.delete<ApiResponse<null>>(`/auth/merchant/branches/${branchId}/gallery/${mediaId}`);
+    return response.data;
+  },
+
+  updateBranchBusinessHours: async (branchId: number, data: UpdateBusinessHoursRequest): Promise<ApiResponse<MerchantBusinessHour[]>> => {
+    const response = await api.put<ApiResponse<MerchantBusinessHour[]>>(`/auth/merchant/branches/${branchId}/business-hours`, data);
+    return response.data;
+  },
+
+  syncBranchPaymentMethods: async (branchId: number, data: SyncPaymentMethodsRequest): Promise<ApiResponse<PaymentMethod[]>> => {
+    const response = await api.post<ApiResponse<PaymentMethod[]>>(`/auth/merchant/branches/${branchId}/payment-methods`, data);
+    return response.data;
+  },
+
+  syncBranchSocialLinks: async (branchId: number, data: SyncSocialLinksRequest): Promise<ApiResponse<MerchantSocialLink[]>> => {
+    const response = await api.post<ApiResponse<MerchantSocialLink[]>>(`/auth/merchant/branches/${branchId}/social-links`, data);
+    return response.data;
+  },
 };

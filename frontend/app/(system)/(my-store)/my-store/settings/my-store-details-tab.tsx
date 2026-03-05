@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useUpdateMyMerchant, useUploadMyMerchantLogo, useDeleteMyMerchantLogo } from '@/hooks/useMyMerchant';
+import { useUpdateMyMerchant, useUploadMyMerchantLogo, useDeleteMyMerchantLogo, useUpdateBranchDetails, useUploadBranchLogo, useDeleteBranchLogo } from '@/hooks/useMyMerchant';
 import { useActiveBusinessTypes } from '@/hooks/useBusinessTypes';
 import { updateMerchantSchema, type UpdateMerchantFormData } from '@/lib/validations';
 import { Merchant, ApiError, AddressInput } from '@/types/api';
@@ -37,12 +37,21 @@ import { Store, Trash2, Upload } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
-interface Props { merchant: Merchant; }
+interface Props { merchant: Merchant; branchId?: number; }
 
-export function MyStoreDetailsTab({ merchant }: Props) {
-  const updateMutation = useUpdateMyMerchant();
-  const uploadLogoMutation = useUploadMyMerchantLogo();
-  const deleteLogoMutation = useDeleteMyMerchantLogo();
+export function MyStoreDetailsTab({ merchant, branchId }: Props) {
+  const selfUpdateMutation = useUpdateMyMerchant();
+  const branchUpdateMutation = useUpdateBranchDetails();
+
+  const selfUploadLogoMutation = useUploadMyMerchantLogo();
+  const branchUploadLogoMutation = useUploadBranchLogo();
+
+  const selfDeleteLogoMutation = useDeleteMyMerchantLogo();
+  const branchDeleteLogoMutation = useDeleteBranchLogo();
+
+  const isUpdating = branchId ? branchUpdateMutation.isPending : selfUpdateMutation.isPending;
+  const isUploadingLogo = branchId ? branchUploadLogoMutation.isPending : selfUploadLogoMutation.isPending;
+  const isDeletingLogo = branchId ? branchDeleteLogoMutation.isPending : selfDeleteLogoMutation.isPending;
   const { data: businessTypesData, isLoading: isLoadingBusinessTypes } = useActiveBusinessTypes();
   const businessTypes = businessTypesData?.data || [];
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +70,8 @@ export function MyStoreDetailsTab({ merchant }: Props) {
       can_sell_products: merchant.can_sell_products,
       can_take_bookings: merchant.can_take_bookings,
       can_rent_units: merchant.can_rent_units,
+      enable_loyalty_program: merchant.enable_loyalty_program,
+      enable_referral_program: merchant.enable_referral_program,
       address: {
         street: merchant.address?.street || '',
         region_id: merchant.address?.region?.id || null,
@@ -83,6 +94,8 @@ export function MyStoreDetailsTab({ merchant }: Props) {
       can_sell_products: merchant.can_sell_products,
       can_take_bookings: merchant.can_take_bookings,
       can_rent_units: merchant.can_rent_units,
+      enable_loyalty_program: merchant.enable_loyalty_program,
+      enable_referral_program: merchant.enable_referral_program,
       address: {
         street: merchant.address?.street || '',
         region_id: merchant.address?.region?.id || null,
@@ -111,19 +124,23 @@ export function MyStoreDetailsTab({ merchant }: Props) {
       ...data,
       address: addressInput,
     };
-    updateMutation.mutate(cleaned, {
-      onSuccess: () => toast.success('Store details updated'),
-      onError: (error) => {
-        const axiosError = error as AxiosError<ApiError>;
-        if (axiosError.response?.data?.errors) {
-          Object.entries(axiosError.response.data.errors).forEach(([key, value]) => {
-            form.setError(key as keyof UpdateMerchantFormData, { message: Array.isArray(value) ? value[0] : value });
-          });
-        } else {
-          form.setError('root', { message: axiosError.response?.data?.message || 'Failed to update' });
-        }
-      },
-    });
+    const onError = (error: Error) => {
+      const axiosError = error as AxiosError<ApiError>;
+      if (axiosError.response?.data?.errors) {
+        Object.entries(axiosError.response.data.errors).forEach(([key, value]) => {
+          form.setError(key as keyof UpdateMerchantFormData, { message: Array.isArray(value) ? value[0] : value });
+        });
+      } else {
+        form.setError('root', { message: axiosError.response?.data?.message || 'Failed to update' });
+      }
+    };
+    const onSuccess = () => toast.success('Store details updated');
+
+    if (branchId) {
+      branchUpdateMutation.mutate({ branchId, data: cleaned }, { onSuccess, onError });
+    } else {
+      selfUpdateMutation.mutate(cleaned, { onSuccess, onError });
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,30 +160,38 @@ export function MyStoreDetailsTab({ merchant }: Props) {
     const previewUrl = URL.createObjectURL(croppedImageBlob);
     const file = new File([croppedImageBlob], 'logo.jpg', { type: 'image/jpeg' });
 
-    uploadLogoMutation.mutate(file, {
-      onSuccess: () => {
-        if (uploadedLogoPreview) URL.revokeObjectURL(uploadedLogoPreview);
-        setUploadedLogoPreview(previewUrl);
-        setCropDialogOpen(false);
-        setSelectedImage(null);
-        toast.success('Logo uploaded');
-      },
-      onError: () => {
-        URL.revokeObjectURL(previewUrl);
-      },
-    });
-  }, [uploadLogoMutation, uploadedLogoPreview]);
+    const onSuccess = () => {
+      if (uploadedLogoPreview) URL.revokeObjectURL(uploadedLogoPreview);
+      setUploadedLogoPreview(previewUrl);
+      setCropDialogOpen(false);
+      setSelectedImage(null);
+      toast.success('Logo uploaded');
+    };
+    const onError = () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+
+    if (branchId) {
+      branchUploadLogoMutation.mutate({ branchId, file }, { onSuccess, onError });
+    } else {
+      selfUploadLogoMutation.mutate(file, { onSuccess, onError });
+    }
+  }, [branchId, selfUploadLogoMutation, branchUploadLogoMutation, uploadedLogoPreview]);
 
   const handleLogoDelete = () => {
-    deleteLogoMutation.mutate(undefined, {
-      onSuccess: () => {
-        if (uploadedLogoPreview) {
-          URL.revokeObjectURL(uploadedLogoPreview);
-          setUploadedLogoPreview(null);
-        }
-        toast.success('Logo deleted');
-      },
-    });
+    const onSuccess = () => {
+      if (uploadedLogoPreview) {
+        URL.revokeObjectURL(uploadedLogoPreview);
+        setUploadedLogoPreview(null);
+      }
+      toast.success('Logo deleted');
+    };
+
+    if (branchId) {
+      branchDeleteLogoMutation.mutate(branchId, { onSuccess });
+    } else {
+      selfDeleteLogoMutation.mutate(undefined, { onSuccess });
+    }
   };
 
   const logoSrc = uploadedLogoPreview || merchant.logo?.preview || merchant.logo?.url || null;
@@ -190,13 +215,13 @@ export function MyStoreDetailsTab({ merchant }: Props) {
             )}
             <div className="flex gap-2">
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadLogoMutation.isPending}>
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploadingLogo}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload
               </Button>
               {hasLogo && (
-                <Button type="button" variant="outline" onClick={handleLogoDelete} disabled={deleteLogoMutation.isPending}>
-                  {deleteLogoMutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                <Button type="button" variant="outline" onClick={handleLogoDelete} disabled={isDeletingLogo}>
+                  {isDeletingLogo ? <Spinner className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
                   Remove
                 </Button>
               )}
@@ -232,7 +257,7 @@ export function MyStoreDetailsTab({ merchant }: Props) {
                       }
                     }
                   }}
-                  disabled={updateMutation.isPending || isLoadingBusinessTypes}
+                  disabled={isUpdating || isLoadingBusinessTypes}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a business type" />
@@ -255,7 +280,7 @@ export function MyStoreDetailsTab({ merchant }: Props) {
                     <Checkbox
                       checked={form.watch('can_sell_products') ?? false}
                       onCheckedChange={(checked) => form.setValue('can_sell_products', !!checked)}
-                      disabled={updateMutation.isPending}
+                      disabled={isUpdating}
                     />
                     <span className="text-sm">Sell Products</span>
                   </label>
@@ -263,7 +288,7 @@ export function MyStoreDetailsTab({ merchant }: Props) {
                     <Checkbox
                       checked={form.watch('can_take_bookings') ?? false}
                       onCheckedChange={(checked) => form.setValue('can_take_bookings', !!checked)}
-                      disabled={updateMutation.isPending}
+                      disabled={isUpdating}
                     />
                     <span className="text-sm">Take Bookings</span>
                   </label>
@@ -271,27 +296,43 @@ export function MyStoreDetailsTab({ merchant }: Props) {
                     <Checkbox
                       checked={form.watch('can_rent_units') ?? false}
                       onCheckedChange={(checked) => form.setValue('can_rent_units', !!checked)}
-                      disabled={updateMutation.isPending}
+                      disabled={isUpdating}
                     />
                     <span className="text-sm">Rent Units</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.watch('enable_loyalty_program') ?? false}
+                      onCheckedChange={(checked) => form.setValue('enable_loyalty_program', !!checked)}
+                      disabled={isUpdating}
+                    />
+                    <span className="text-sm">Loyalty Program</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.watch('enable_referral_program') ?? false}
+                      onCheckedChange={(checked) => form.setValue('enable_referral_program', !!checked)}
+                      disabled={isUpdating}
+                    />
+                    <span className="text-sm">Referral Program</span>
                   </label>
                 </div>
                 <p className="text-xs text-muted-foreground">Select what your store can do</p>
               </div>
 
               <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input disabled={isUpdating} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )} />
 
               <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea disabled={isUpdating} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )} />
 
               <Separator />
               <p className="text-sm font-medium">Contact</p>
 
               <FormField control={form.control} name="contact_phone" render={({ field }) => (
-                <FormItem><FormLabel>Contact Phone</FormLabel><FormControl><Input disabled={updateMutation.isPending} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Contact Phone</FormLabel><FormControl><Input disabled={isUpdating} {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
               )} />
 
               <Separator />
@@ -300,7 +341,7 @@ export function MyStoreDetailsTab({ merchant }: Props) {
               <AddressFormFields
                 control={form.control}
                 namePrefix="address"
-                disabled={updateMutation.isPending}
+                disabled={isUpdating}
               />
 
               <MapLocationPicker
@@ -310,12 +351,12 @@ export function MyStoreDetailsTab({ merchant }: Props) {
                   form.setValue('address.latitude', lat, { shouldDirty: true });
                   form.setValue('address.longitude', lng, { shouldDirty: true });
                 }}
-                disabled={updateMutation.isPending}
+                disabled={isUpdating}
               />
 
               <div className="flex justify-end pt-4">
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending && <Spinner className="mr-2 h-4 w-4" />}
+                <Button type="submit" disabled={isUpdating}>
+                  {isUpdating && <Spinner className="mr-2 h-4 w-4" />}
                   Save Details
                 </Button>
               </div>
@@ -329,7 +370,7 @@ export function MyStoreDetailsTab({ merchant }: Props) {
         onOpenChange={setCropDialogOpen}
         imageSrc={selectedImage}
         onCropComplete={handleCropComplete}
-        isUploading={uploadLogoMutation.isPending}
+        isUploading={isUploadingLogo}
         title="Crop Logo"
         description="Adjust and crop your store logo"
         saveLabel="Upload Logo"

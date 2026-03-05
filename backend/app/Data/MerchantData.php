@@ -20,5 +20,9 @@ class MerchantData extends Data
         public bool|Optional $can_sell_products = new Optional(),
         public bool|Optional $can_take_bookings = new Optional(),
         public bool|Optional $can_rent_units = new Optional(),
+        public bool|Optional $allow_branch_self_edit = new Optional(),
+        public bool|Optional $inherit_from_parent = new Optional(),
+        public bool|Optional $enable_loyalty_program = new Optional(),
+        public bool|Optional $enable_referral_program = new Optional(),
     ) {}
 }

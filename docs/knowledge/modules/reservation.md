@@ -1,143 +1,101 @@
 # Reservation Module
 
 ## Model
-- **Path**: app/Models/Reservation.php
-- **Table**: reservations
+- **Path**: `backend/app/Models/Reservation.php`
+- **Table**: `reservations`
 - **Fillable**: merchant_id, service_id, customer_id, check_in, check_out, guest_count, nights, price_per_night, total_price, fee_rate, fee_amount, total_amount, status, notes, special_requests, confirmed_at, cancelled_at, checked_in_at, checked_out_at
-- **Defaults** ($attributes): guest_count=1, status='pending', fee_rate=0, fee_amount=0, total_amount=0
-- **Casts**:
-  - check_in -> date
-  - check_out -> date
-  - guest_count -> integer
-  - nights -> integer
-  - price_per_night -> decimal:2
-  - total_price -> decimal:2
-  - fee_rate -> decimal:2
-  - fee_amount -> decimal:2
-  - total_amount -> decimal:2
-  - confirmed_at -> datetime
-  - cancelled_at -> datetime
-  - checked_in_at -> datetime
-  - checked_out_at -> datetime
-- **Relationships**:
-  - merchant -> BelongsTo -> Merchant
-  - service -> BelongsTo -> Service
-  - customer -> BelongsTo -> User (FK: customer_id)
+- **Casts**: check_in/check_out→date, guest_count/nights→integer, price_per_night/total_price/fee_rate/fee_amount/total_amount→decimal:2, all timestamp fields→datetime
+- **Defaults** (`$attributes`): guest_count=1, status='pending', all fee fields=0
+- **Relationships**: merchant() BelongsTo Merchant, service() BelongsTo Service, customer() BelongsTo User (via customer_id FK)
 - **Traits**: HasFactory
-- **Scopes**: none
-
-## Status Workflow
-```
-pending --> confirmed --> checked_in --> checked_out
-    |           |
-    |           +--> cancelled
-    +--> cancelled
-```
-Valid transitions (enforced in ReservationService::VALID_TRANSITIONS):
-- pending -> confirmed, cancelled
-- confirmed -> checked_in, cancelled
-- checked_in -> checked_out
-
-Timestamps set automatically on transition:
-- confirmed -> confirmed_at = now()
-- cancelled -> cancelled_at = now()
-- checked_in -> checked_in_at = now()
-- checked_out -> checked_out_at = now()
-
-## Business Rules
-- Merchant must have `can_rent_units = true`
-- Service must be of `service_type = 'reservation'`, `is_active = true`, and `unit_status = 'available'`
-- check_out must be at least 1 day after check_in
-- Overlap check: no existing confirmed or checked_in reservation on the same service may overlap the requested date range
-- guest_count must not exceed `service.max_capacity`
-- Pricing: price_per_night is taken from `service.price_per_night` (falls back to `service.price`)
-- total_price = nights * price_per_night
-- nights is auto-calculated as diffInDays(check_in, check_out)
-- Platform fee is calculated at creation via `PlatformFeeService::calculateFee('reservation', $totalPrice)`
-- Branch merchants (`parent_id` set) use the parent organization's services
 
 ## Connected Files
 | Category | File | Notes |
 |----------|------|-------|
-| Controller | app/Http/Controllers/Api/V1/ReservationController.php | index, store, show, updateStatus |
-| Service Interface | app/Services/Contracts/ReservationServiceInterface.php | getMerchantReservations, getMerchantReservationById, createReservation, updateReservationStatus |
-| Service | app/Services/ReservationService.php | Business logic; uses QueryBuilder, PlatformFeeService, MerchantRepository |
-| Repository Interface | app/Repositories/Contracts/ReservationRepositoryInterface.php | Extends BaseRepositoryInterface (no extra methods) |
-| Repository | app/Repositories/ReservationRepository.php | Extends BaseRepository; no custom methods |
-| DTO | app/Data/ReservationData.php | service_id, check_in, check_out, guest_count, notes, special_requests (all Optional) |
-| FormRequest (Create) | app/Http/Requests/Api/V1/Reservation/CreateReservationRequest.php | service_id required; check_in required after_or_equal:today; check_out required after:check_in; guest_count optional integer min:1; notes/special_requests nullable max:1000 |
-| FormRequest (Status) | app/Http/Requests/Api/V1/Reservation/UpdateReservationStatusRequest.php | status required in:confirmed,cancelled,checked_in,checked_out |
-| Resource | app/Http/Resources/Api/V1/ReservationResource.php | Includes whenLoaded service (ServiceResource, with serviceCategory), customer (id/name/email) |
-| CustomerPortal Controller | app/Http/Controllers/Api/V1/CustomerPortalController.php | createReservation, myReservations, cancelMyReservation |
-| CustomerPortal FormRequest | app/Http/Requests/Api/V1/CustomerPortal/CreateCustomerReservationRequest.php | Same rules as CreateReservationRequest plus special_requests max:2000 |
-| CustomerPortal Service | app/Services/CustomerPortalService.php | Delegates to ReservationService for creation; handles customer-scoped queries and cancellation |
-| CustomerPortal Interface | app/Services/Contracts/CustomerPortalServiceInterface.php | createReservation, getMyReservations, cancelMyReservation |
-| ServiceProvider | app/Providers/RepositoryServiceProvider.php | Binds ReservationRepositoryInterface and ReservationServiceInterface |
-| Fee dependency | app/Services/PlatformFeeService.php | Injected into ReservationService for calculateFee('reservation', $totalPrice) |
+| Controller | `backend/app/Http/Controllers/Api/V1/ReservationController.php` | index, show, store, updateStatus (admin/merchant) |
+| Controller | `backend/app/Http/Controllers/Api/V1/MyMerchantController.php` | reservationsCalendar() — self-service calendar aggregation |
+| Controller | `backend/app/Http/Controllers/Api/V1/CustomerPortalController.php` | createReservation, myReservations, myReservation, cancelMyReservation |
+| Service | `backend/app/Services/ReservationService.php` | getMerchantReservations, getMerchantReservationById, createReservation, updateReservationStatus, getReservationCalendar |
+| Service Interface | `backend/app/Services/Contracts/ReservationServiceInterface.php` | — |
+| Service (customer) | `backend/app/Services/CustomerPortalService.php` | delegates to ReservationService |
+| Repository | `backend/app/Repositories/ReservationRepository.php` | extends BaseRepository |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Reservation/CreateReservationRequest.php` | validation for reservation creation |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Reservation/UpdateReservationStatusRequest.php` | status transition validation |
+| Resource | `backend/app/Http/Resources/Api/V1/ReservationResource.php` | API response shape |
+| StorefrontService | `backend/app/Services/StorefrontService.php` | reservationAvailability() — overlap detection |
+| AppServiceProvider | `backend/app/Providers/AppServiceProvider.php` | morph map: 'reservation' → Reservation::class |
+| ReviewService | `backend/app/Services/ReviewService.php` | references Reservation for review eligibility |
+| ConversationController | `backend/app/Http/Controllers/Api/V1/ConversationController.php` | conversation context via morph map |
 
 ## Routes
-| Method | URI | Action | Permission |
+| Method | URI | Action | Middleware |
 |--------|-----|--------|------------|
-| GET | /api/v1/merchants/{merchant}/reservations | ReservationController@index | reservations.view |
-| GET | /api/v1/merchants/{merchant}/reservations/{reservation} | ReservationController@show | reservations.view |
-| POST | /api/v1/merchants/{merchant}/reservations | ReservationController@store | reservations.create |
-| PATCH | /api/v1/merchants/{merchant}/reservations/{reservation}/status | ReservationController@updateStatus | reservations.update_status |
-| POST | /api/v1/customer/merchants/{slug}/reservations | CustomerPortalController@createReservation | customer_portal.reserve |
-| GET | /api/v1/customer/my/reservations | CustomerPortalController@myReservations | customer_portal.view_own |
-| PATCH | /api/v1/customer/my/reservations/{reservation}/cancel | CustomerPortalController@cancelMyReservation | customer_portal.cancel_own |
+| GET | `/api/v1/auth/merchant/reservations/calendar` | MyMerchantController@reservationsCalendar | auth:api, ensure.verified, onboarding |
+| GET | `/api/v1/merchants/{merchant}/reservations` | ReservationController@index | auth + reservations.view |
+| GET | `/api/v1/merchants/{merchant}/reservations/{reservation}` | ReservationController@show | auth + reservations.view |
+| POST | `/api/v1/merchants/{merchant}/reservations` | ReservationController@store | auth + reservations.create |
+| PATCH | `/api/v1/merchants/{merchant}/reservations/{reservation}/status` | ReservationController@updateStatus | auth + reservations.update_status |
+| GET | `/api/v1/storefront/merchants/{slug}/services/{service}/reservation-availability` | StorefrontController@reservationAvailability | public |
+| POST | `/api/v1/customer/merchants/{slug}/reservations` | CustomerPortalController@createReservation | auth + customer_portal.reserve |
+| GET | `/api/v1/customer/my/reservations` | CustomerPortalController@myReservations | auth + customer_portal.view_own |
+| GET | `/api/v1/customer/my/reservations/{reservation}` | CustomerPortalController@myReservation | auth + customer_portal.view_own |
+| PATCH | `/api/v1/customer/my/reservations/{reservation}/cancel` | CustomerPortalController@cancelMyReservation | auth + customer_portal.cancel_own |
 
-## Query Filters (index endpoint)
-Allowed filters via Spatie QueryBuilder:
-- `filter[status]` -- exact match
-- `filter[service_id]` -- exact match
-- `filter[customer_id]` -- exact match
-- `filter[date_from]` -- check_in >= value
-- `filter[date_to]` -- check_out <= value
-- `filter[search]` -- customer name or email LIKE
+## Calendar Endpoint Details
+`GET /api/v1/auth/merchant/reservations/calendar?month=YYYY-MM`
+- Returns array of daily summaries for the given month
+- Each day: `{ date, reservation_count, total_units, available_units, is_closed }`
+- Active statuses counted: pending, confirmed, checked_in
+- **Overlap detection**: reservation overlaps day if `check_in <= date AND check_out > date`
+- `total_units` = count of active `service_type='reservation'` Services for the merchant
+- `is_closed` = true when no MerchantBusinessHour record for that day_of_week
+- **Note**: No Unit model — reservations are at the Service level (one service = one "unit type")
 
-Allowed sorts: id, check_in, check_out, status, total_price, created_at
-Default sort: -check_in (descending)
+## Status Workflow
+```
+pending → confirmed | cancelled
+confirmed → checked_in | cancelled
+checked_in → checked_out
+```
+Validated in `ReservationService::VALID_TRANSITIONS`. Status is a **VARCHAR** (not ENUM) — safe for factory with any string.
 
-## Customer Portal Query Filters (myReservations)
-- `filter[status]` -- exact match
-- `filter[date_from]` -- check_in >= value
-- `filter[date_to]` -- check_out <= value
+## Overlap Detection Pattern
+```php
+// Used in createReservation validation (preventing double-booking):
+->where('check_in', '<', $checkOut)->where('check_out', '>', $checkIn)
+->whereIn('status', ['confirmed', 'checked_in'])
 
-Allowed sorts: check_in, created_at, status
-Default sort: -created_at (descending)
-Eager loads: service, service.media
+// Used in calendar for counting active reservations per day:
+->where('check_in', '<=', $date)->where('check_out', '>', $date)
+->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+```
 
 ## Database
 | Type | File |
 |------|------|
-| Migration (create) | database/migrations/2026_02_10_200013_create_reservations_table.php |
-| Factory | database/factories/ReservationFactory.php |
-| Seeder | none |
+| Migration | `backend/database/migrations/2026_02_10_200013_create_reservations_table.php` |
+| Migration (capability) | `backend/database/migrations/2026_02_10_200008_add_capability_fields_to_services_table.php` |
+| Migration (fee cols) | `backend/database/migrations/2026_02_11_200002_add_fee_columns_to_transaction_tables.php` |
+| Factory | `backend/database/factories/ReservationFactory.php` |
+| Demo Seeder | `backend/database/seeders/DemoTransactionSeeder.php` |
+| Demo Seeder | `backend/database/seeders/DemoMerchantSeeder.php` |
+| Platform Fee Seeder | `backend/database/seeders/PlatformFeeSeeder.php` |
 
-### Factory States
-- `withFee(float $feeRate)` -- recalculates fee_amount and total_amount from existing total_price
-- `confirmed()` -- status=confirmed, confirmed_at=now()
-- `cancelled()` -- status=cancelled, cancelled_at=now()
+## Frontend (Admin)
+| Category | File | Notes |
+|----------|------|-------|
+| Service | `frontend/services/reservationService.ts` | getAll(merchantId, params), getCalendar(month), create, updateStatus |
+| Hook | `frontend/hooks/useReservations.ts` | useReservations, useReservationCalendar, useReservation, useCreateReservation, useUpdateReservationStatus |
+| Types | `frontend/types/api.ts` | Reservation, ReservationQueryParams, ReservationCalendarDay interfaces |
+| My-Store Page | `frontend/app/(system)/(my-store)/my-store/reservations/page.tsx` | List/Calendar toggle, status actions, create dialog |
+| Calendar Component | `frontend/app/(system)/(my-store)/my-store/reservations/reservations-calendar-view.tsx` | Month grid by available_units/total_units ratio, click-to-filter |
+| Admin Page | `frontend/app/(system)/(merchants)/merchants/[id]/reservations/page.tsx` | Admin merchant reservations list |
+| Create Dialog | `frontend/app/(system)/(merchants)/merchants/[id]/reservations/create-reservation-dialog.tsx` | Reused by my-store page |
 
 ## Tests
 | Type | File |
 |------|------|
-| Feature | tests/Feature/Api/V1/ReservationControllerTest.php |
-| Feature (customer portal) | tests/Feature/Api/V1/CustomerPortalControllerTest.php |
-
-### Test Coverage
-- Reservation Index: list, filter by status, merchant scoping
-- Reservation Store: success with pricing, validation errors, rejects no-rental merchant, overlapping dates, guest count over capacity, pricing calculation
-- Reservation Show: show specific reservation, 404 for cross-merchant
-- Reservation Status Update: confirm, cancel, check_in, check_out, invalid transition, cross-merchant 404
-- Reservation Platform Fee: fee calculated at creation, zero fee when none active
-
-## Notes
-- The `customer_id` references the User model (not a separate Customer model) via `auth()->id()`.
-- `ReservationService` injects `MerchantRepositoryInterface` and `PlatformFeeServiceInterface`.
-- The `ReservationRepository` is registered in the service provider but not directly used by `ReservationService` -- the service queries the `Reservation` model directly via QueryBuilder and Eloquent.
-- Customer portal cancellation (`cancelMyReservation`) scopes to `customer_id = auth()->id()` for data isolation, and allows cancelling only `pending` or `confirmed` reservations.
-- Admin status update in `ReservationService` enforces `VALID_TRANSITIONS` constant map.
-- List endpoints eager load `service.serviceCategory` and `customer` relationships.
-- Overlap detection uses: `where('check_in', '<', $check_out)->where('check_out', '>', $check_in)` on confirmed/checked_in reservations for the same service.
-- Reservation is a `conversable` morph target (alias: `'reservation'`) in the Conversation system. Customers can chat with the merchant about a reservation via `GET/POST /api/v1/customer/my/conversations/reservations/{id}/messages`. See `conversation.md`.
+| Feature (admin) | `backend/tests/Feature/Api/V1/ReservationControllerTest.php` |
+| Feature (calendar) | `backend/tests/Feature/Api/V1/MyMerchantCalendarTest.php` |
+| Feature (customer) | `backend/tests/Feature/Api/V1/CustomerPortalControllerTest.php` |
+| Feature (storefront avail.) | `backend/tests/Feature/Api/V1/StorefrontAvailabilityTest.php` |

@@ -17,4 +17,10 @@ interface ConversationServiceInterface
     public function markAsRead(int $conversationId, int $userId): int;
 
     public function getMyConversations(int $userId, int $perPage = 15): LengthAwarePaginator;
+
+    public function getConversation(int $conversationId): Conversation;
+
+    public function getTotalUnreadCount(int $userId): int;
+
+    public function authorizeAccess(int $conversationId, int $userId): Conversation;
 }

@@ -52,10 +52,8 @@ describe('GET messages — booking conversation auto-create', function () {
         $response = $this->getJson("/api/v1/customer/my/conversations/bookings/{$this->booking->id}/messages");
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'data' => [],
-            ]);
+            ->assertJson(['success' => true])
+            ->assertJsonCount(0, 'data.messages.data');
 
         expect(Conversation::count())->toBe(1);
 
@@ -95,7 +93,7 @@ describe('GET messages — booking conversation auto-create', function () {
 
         $response->assertStatus(200)
             ->assertJson(['success' => true])
-            ->assertJsonCount(3, 'data');
+            ->assertJsonCount(3, 'data.messages.data');
     });
 
     it('returns messages with correct fields', function () {
@@ -116,7 +114,7 @@ describe('GET messages — booking conversation auto-create', function () {
 
         $response->assertStatus(200);
 
-        $message = $response->json('data.0');
+        $message = $response->json('data.messages.data.0');
         expect($message)->toHaveKeys(['id', 'conversation_id', 'sender_id', 'body', 'read_at', 'is_mine', 'created_at', 'updated_at']);
         expect($message['body'])->toBe('Hello, I have a question about my booking.');
         expect($message['sender_id'])->toBe($this->user->id);
@@ -157,7 +155,7 @@ describe('GET messages — booking conversation auto-create', function () {
 
         $response->assertStatus(200);
 
-        $messages = $response->json('data');
+        $messages = $response->json('data.messages.data');
         expect($messages[0]['body'])->toBe('First message');
         expect($messages[1]['body'])->toBe('Second message');
         expect($messages[2]['body'])->toBe('Third message');
@@ -181,20 +179,25 @@ describe('GET messages — booking conversation auto-create', function () {
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'success',
-                'data',
-                'meta' => [
-                    'total',
-                    'per_page',
-                    'current_page',
-                    'last_page',
-                    'from',
-                    'to',
-                ],
-                'links' => [
-                    'first',
-                    'last',
-                    'prev',
-                    'next',
+                'data' => [
+                    'conversation' => ['id'],
+                    'messages' => [
+                        'data',
+                        'meta' => [
+                            'total',
+                            'per_page',
+                            'current_page',
+                            'last_page',
+                            'from',
+                            'to',
+                        ],
+                        'links' => [
+                            'first',
+                            'last',
+                            'prev',
+                            'next',
+                        ],
+                    ],
                 ],
             ]);
     });
@@ -649,6 +652,159 @@ describe('Scoping and isolation', function () {
         $response = $this->getJson('/api/v1/customer/my/conversations/orders/99999/messages');
 
         $response->assertStatus(404);
+    });
+});
+
+describe('inquiry conversations', function () {
+    it('creates an inquiry conversation on first GET request using merchant slug', function () {
+        expect(Conversation::count())->toBe(0);
+
+        $response = $this->getJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages");
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonCount(0, 'data.messages.data');
+
+        expect(Conversation::count())->toBe(1);
+
+        $conversation = Conversation::first();
+        expect($conversation->merchant_id)->toBe($this->merchant->id);
+        expect($conversation->customer_id)->toBe($this->user->id);
+        expect($conversation->conversable_type)->toBe('inquiry');
+        expect($conversation->conversable_id)->toBe($this->merchant->id);
+    });
+
+    it('reuses the same inquiry conversation on subsequent requests', function () {
+        $this->getJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages");
+
+        expect(Conversation::count())->toBe(1);
+
+        $this->getJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages");
+
+        expect(Conversation::count())->toBe(1);
+    });
+
+    it('customer can send messages in an inquiry conversation', function () {
+        expect(Message::count())->toBe(0);
+
+        $response = $this->postJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages", [
+            'body' => 'Hi, I have a general question about your services.',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'sender_id' => $this->user->id,
+                    'body' => 'Hi, I have a general question about your services.',
+                    'is_mine' => true,
+                ],
+            ]);
+
+        expect(Message::count())->toBe(1);
+
+        $conversation = Conversation::first();
+        expect($conversation->conversable_type)->toBe('inquiry');
+        expect($conversation->conversable_id)->toBe($this->merchant->id);
+    });
+
+    it('auto-creates the inquiry conversation when customer sends the first message', function () {
+        expect(Conversation::count())->toBe(0);
+
+        $this->postJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages", [
+            'body' => 'First message triggers conversation creation.',
+        ]);
+
+        expect(Conversation::count())->toBe(1);
+        expect(Message::count())->toBe(1);
+    });
+
+    it('merchant sees inquiry conversation in their conversation list', function () {
+        // Customer sends a message to create the inquiry conversation
+        $this->postJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages", [
+            'body' => 'Hello from customer!',
+        ]);
+
+        // Switch to the merchant user and call the admin conversations endpoint
+        Passport::actingAs($this->merchantUser);
+
+        $response = $this->getJson('/api/v1/conversations');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true]);
+
+        $conversationIds = collect($response->json('data'))->pluck('id')->toArray();
+
+        $conversation = Conversation::where('conversable_type', 'inquiry')->first();
+        expect($conversation)->not->toBeNull();
+        expect($conversationIds)->toContain($conversation->id);
+    });
+
+    it('multiple customers each have separate inquiry conversations with the same merchant', function () {
+        $otherUser = User::factory()->create();
+        $otherUser->assignRole('customer');
+        Customer::factory()->create(['user_id' => $otherUser->id]);
+
+        // First customer sends an inquiry
+        $this->postJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages", [
+            'body' => 'Message from first customer',
+        ]);
+
+        // Switch to second customer
+        Passport::actingAs($otherUser);
+
+        // Second customer sends a separate inquiry to the same merchant
+        $this->postJson("/api/v1/customer/my/conversations/inquiries/{$this->merchant->slug}/messages", [
+            'body' => 'Message from second customer',
+        ]);
+
+        expect(Conversation::count())->toBe(2);
+        expect(Message::count())->toBe(2);
+
+        $firstConversation = Conversation::where('customer_id', $this->user->id)->first();
+        $secondConversation = Conversation::where('customer_id', $otherUser->id)->first();
+
+        expect($firstConversation->conversable_type)->toBe('inquiry');
+        expect($secondConversation->conversable_type)->toBe('inquiry');
+        expect($firstConversation->messages()->count())->toBe(1);
+        expect($secondConversation->messages()->count())->toBe(1);
+    });
+
+    it('returns 404 for a non-existent merchant slug', function () {
+        $response = $this->getJson('/api/v1/customer/my/conversations/inquiries/non-existent-merchant-slug/messages');
+
+        $response->assertStatus(404);
+    });
+
+    it('returns 404 for an inactive merchant slug', function () {
+        $inactiveMerchantUser = User::factory()->create();
+        $inactiveMerchant = Merchant::factory()->create([
+            'user_id' => $inactiveMerchantUser->id,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->getJson("/api/v1/customer/my/conversations/inquiries/{$inactiveMerchant->slug}/messages");
+
+        $response->assertStatus(404);
+    });
+
+    it('works for a merchant with approved status', function () {
+        $approvedMerchantUser = User::factory()->create();
+        $approvedMerchant = Merchant::factory()->create([
+            'user_id' => $approvedMerchantUser->id,
+            'status' => 'approved',
+        ]);
+
+        $response = $this->getJson("/api/v1/customer/my/conversations/inquiries/{$approvedMerchant->slug}/messages");
+
+        $response->assertStatus(200);
+
+        $conversation = Conversation::where('conversable_type', 'inquiry')
+            ->where('merchant_id', $approvedMerchant->id)
+            ->first();
+
+        expect($conversation)->not->toBeNull();
+        expect($conversation->conversable_id)->toBe($approvedMerchant->id);
     });
 });
 

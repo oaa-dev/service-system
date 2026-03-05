@@ -1,27 +1,17 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { messagingService } from '@/services/messagingService';
 import { useMessagingStore } from '@/stores/messagingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { getEcho } from '@/lib/echo';
-import {
-  ApiError,
-  Message,
-  ConversationQueryParams,
-  MessageQueryParams,
-  MessageSearchParams,
-  StartConversationRequest,
-  SendMessageRequest,
-  MessageSentEvent,
-  ConversationUpdatedEvent,
-} from '@/types/api';
+import { ApiError, Message } from '@/types/api';
 import { AxiosError } from 'axios';
 
 /**
  * Hook to get paginated list of conversations
  */
-export function useConversations(params?: ConversationQueryParams) {
+export function useConversations(params?: { per_page?: number; page?: number }) {
   const { isAuthenticated } = useAuthStore();
   const { setConversations } = useMessagingStore();
 
@@ -42,70 +32,16 @@ export function useConversations(params?: ConversationQueryParams) {
 }
 
 /**
- * Hook to get a single conversation
- */
-export function useConversation(conversationId: number | null) {
-  const { isAuthenticated } = useAuthStore();
-
-  return useQuery({
-    queryKey: ['conversations', conversationId],
-    queryFn: () => messagingService.getConversation(conversationId!),
-    enabled: isAuthenticated && conversationId !== null,
-    staleTime: 60 * 1000,
-  });
-}
-
-/**
- * Hook to start a new conversation
- */
-export function useStartConversation() {
-  const queryClient = useQueryClient();
-  const { addConversation, setActiveConversation } = useMessagingStore();
-
-  return useMutation({
-    mutationFn: (data: StartConversationRequest) => messagingService.startConversation(data),
-    onSuccess: (response) => {
-      addConversation(response.data);
-      setActiveConversation(response.data.id);
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    },
-    onError: (error: AxiosError<ApiError>) => {
-      toast.error(error.response?.data?.message || 'Failed to start conversation');
-    },
-  });
-}
-
-/**
- * Hook to delete a conversation
- */
-export function useDeleteConversation() {
-  const queryClient = useQueryClient();
-  const { removeConversation } = useMessagingStore();
-
-  return useMutation({
-    mutationFn: (conversationId: number) => messagingService.deleteConversation(conversationId),
-    onSuccess: (_, conversationId) => {
-      removeConversation(conversationId);
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success('Conversation deleted');
-    },
-    onError: (error: AxiosError<ApiError>) => {
-      toast.error(error.response?.data?.message || 'Failed to delete conversation');
-    },
-  });
-}
-
-/**
  * Hook to get messages for a conversation with infinite scroll
  */
-export function useMessages(conversationId: number | null, params?: MessageQueryParams) {
+export function useMessages(conversationId: number | null, params?: { per_page?: number; page?: number }) {
   const { isAuthenticated } = useAuthStore();
   const { setMessages } = useMessagingStore();
 
   const query = useInfiniteQuery({
     queryKey: ['messages', conversationId, params],
     queryFn: ({ pageParam = 1 }) =>
-      messagingService.getMessages(conversationId!, { ...params, page: pageParam }),
+      messagingService.getMessages(conversationId!, { ...params, page: pageParam as number }),
     getNextPageParam: (lastPage) =>
       lastPage.meta.current_page < lastPage.meta.last_page
         ? lastPage.meta.current_page + 1
@@ -136,14 +72,13 @@ export function useSendMessage() {
   const { addMessage, updateConversation } = useMessagingStore();
 
   return useMutation({
-    mutationFn: ({ conversationId, data }: { conversationId: number; data: SendMessageRequest }) =>
-      messagingService.sendMessage(conversationId, data),
-    onSuccess: (response, { conversationId }) => {
-      addMessage(conversationId, response.data);
-      // Update conversation's latest message
+    mutationFn: ({ conversationId, body }: { conversationId: number; body: string }) =>
+      messagingService.sendMessage(conversationId, body),
+    onSuccess: (message, { conversationId }) => {
+      addMessage(conversationId, message);
       updateConversation(conversationId, {
-        latest_message: response.data,
-        last_message_at: response.data.created_at,
+        latest_message: message,
+        last_message_at: message.created_at,
       });
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
@@ -185,11 +120,12 @@ export function useMessagesUnreadCount() {
     queryFn: () => messagingService.getUnreadCount(),
     enabled: isAuthenticated,
     staleTime: 30 * 1000,
+    refetchInterval: 30000,
   });
 
   useEffect(() => {
-    if (query.data?.data) {
-      setUnreadCount(query.data.data.count);
+    if (query.data) {
+      setUnreadCount(query.data.count);
     }
   }, [query.data, setUnreadCount]);
 
@@ -197,133 +133,46 @@ export function useMessagesUnreadCount() {
 }
 
 /**
- * Hook to search messages
+ * Hook to listen for real-time messages on a specific conversation channel
  */
-export function useSearchMessages(params: MessageSearchParams | null) {
-  const { isAuthenticated } = useAuthStore();
-
-  return useQuery({
-    queryKey: ['messages', 'search', params],
-    queryFn: () => messagingService.searchMessages(params!),
-    enabled: isAuthenticated && params !== null && params.q.length >= 2,
-    staleTime: 30 * 1000,
-  });
-}
-
-/**
- * Hook to delete a message
- */
-export function useDeleteMessage() {
-  const queryClient = useQueryClient();
-  const { removeMessage } = useMessagingStore();
-
-  return useMutation({
-    mutationFn: ({ conversationId, messageId }: { conversationId: number; messageId: number }) =>
-      messagingService.deleteMessage(messageId).then(() => ({ conversationId, messageId })),
-    onSuccess: ({ conversationId, messageId }) => {
-      removeMessage(conversationId, messageId);
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      toast.success('Message deleted');
-    },
-    onError: (error: AxiosError<ApiError>) => {
-      toast.error(error.response?.data?.message || 'Failed to delete message');
-    },
-  });
-}
-
-/**
- * Hook to listen for real-time messages via WebSocket
- */
-export function useRealtimeMessaging() {
-  const { user, isAuthenticated } = useAuthStore();
+export function useRealtimeMessaging(conversationId: number | null) {
   const {
     addMessage,
-    updateConversation,
     activeConversationId,
     incrementUnreadCount,
   } = useMessagingStore();
   const queryClient = useQueryClient();
-  const markAsRead = useMarkConversationAsRead();
+  const { mutate: markAsReadMutate } = useMarkConversationAsRead();
 
-  const handleMessageSent = useCallback(
-    (event: MessageSentEvent) => {
-      const message: Message = {
-        id: event.id,
-        conversation_id: event.conversation_id,
-        sender_id: event.sender_id,
-        sender: event.sender,
-        body: event.body,
-        read_at: event.read_at,
-        is_mine: false,
-        created_at: event.created_at,
-        updated_at: event.created_at,
-      };
+  useEffect(() => {
+    if (!conversationId) return;
 
-      addMessage(event.conversation_id, message);
+    const echo = getEcho();
+    if (!echo) return;
 
-      // If conversation is active, mark as read automatically
-      if (activeConversationId === event.conversation_id) {
-        markAsRead.mutate(event.conversation_id);
+    const channel = echo.private(`conversation.${conversationId}`);
+
+    channel.listen('.ChatMessageSent', (message: Message) => {
+      addMessage(conversationId, message);
+
+      // If this conversation is active, mark as read automatically
+      if (activeConversationId === conversationId) {
+        markAsReadMutate(conversationId);
       } else {
-        // Show toast notification for new message
-        toast.info(`New message from ${event.sender.name}`, {
-          description: event.body.length > 50 ? event.body.substring(0, 50) + '...' : event.body,
+        const senderName = message.sender?.name;
+        toast.info(senderName ? `New message from ${senderName}` : 'New message', {
+          description: message.body.length > 50 ? message.body.substring(0, 50) + '...' : message.body,
         });
         incrementUnreadCount();
       }
 
-      queryClient.invalidateQueries({ queryKey: ['messages', event.conversation_id] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['messages', 'unread-count'] });
-    },
-    [addMessage, activeConversationId, markAsRead, incrementUnreadCount, queryClient]
-  );
-
-  const handleConversationUpdated = useCallback(
-    (event: ConversationUpdatedEvent) => {
-      updateConversation(event.id, {
-        last_message_at: event.last_message_at,
-        latest_message: event.latest_message
-          ? {
-              id: event.latest_message.id,
-              conversation_id: event.id,
-              sender_id: event.latest_message.sender_id,
-              body: event.latest_message.body,
-              read_at: null,
-              is_mine: event.latest_message.sender_id === user?.id,
-              created_at: event.latest_message.created_at,
-              updated_at: event.latest_message.created_at,
-            }
-          : null,
-      });
-
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    },
-    [updateConversation, user?.id, queryClient]
-  );
-
-  useEffect(() => {
-    if (!isAuthenticated || !user?.id) {
-      return;
-    }
-
-    const echo = getEcho();
-    if (!echo) {
-      return;
-    }
-
-    const channelName = `App.Models.User.${user.id}`;
-
-    echo
-      .private(channelName)
-      .listen('.message.sent', handleMessageSent)
-      .listen('.conversation.updated', handleConversationUpdated);
+    });
 
     return () => {
-      const currentEcho = getEcho();
-      if (currentEcho) {
-        currentEcho.private(channelName).stopListening('.message.sent');
-        currentEcho.private(channelName).stopListening('.conversation.updated');
-      }
+      echo.leave(`conversation.${conversationId}`);
     };
-  }, [isAuthenticated, user?.id, handleMessageSent, handleConversationUpdated]);
+  }, [conversationId, addMessage, activeConversationId, incrementUnreadCount, queryClient, markAsReadMutate]);
 }

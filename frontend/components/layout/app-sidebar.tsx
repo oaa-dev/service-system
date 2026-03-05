@@ -12,6 +12,7 @@ import {
   Sparkles,
   Shield,
   MessageSquare,
+  Star,
   Store,
   Building2,
   CreditCard,
@@ -29,12 +30,15 @@ import {
   CalendarDays,
   Images,
   History,
+  Gift,
+  UserPlus,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { useMessagingStore } from '@/stores/messagingStore';
 import { useMessagesUnreadCount } from '@/hooks/useMessaging';
+import { useMerchantPresence } from '@/hooks/usePresence';
 import { getInitials } from '@/lib/utils';
 import {
   Sidebar,
@@ -78,6 +82,8 @@ interface NavItem {
   merchantType?: 'organization';
   requiresActiveMerchant?: boolean;
   hiddenForBranch?: boolean;
+  requiresBranchSelfEdit?: boolean;
+  requiresFeature?: 'enable_loyalty_program' | 'enable_referral_program';
   children?: NavItem[];
 }
 
@@ -128,6 +134,14 @@ const navItems: NavItem[] = [
     color: 'text-pink-500',
     bgColor: 'bg-pink-500/10',
     badge: 'messages',
+  },
+  {
+    title: 'Reviews',
+    href: '/reviews',
+    icon: Star,
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    permission: 'reviews.view',
   },
   {
     title: 'Profile',
@@ -211,7 +225,7 @@ const merchantNavItems: NavItem[] = [
     icon: Store,
     color: 'text-teal-500',
     bgColor: 'bg-teal-500/10',
-    hiddenForBranch: true,
+    requiresBranchSelfEdit: true,
     children: [
       {
         title: 'Store Details',
@@ -301,6 +315,32 @@ const merchantNavItems: NavItem[] = [
     requiresActiveMerchant: true,
   },
   {
+    title: 'Reviews',
+    href: '/my-store/reviews',
+    icon: Star,
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    requiresActiveMerchant: true,
+  },
+  {
+    title: 'Loyalty',
+    href: '/my-store/loyalty',
+    icon: Gift,
+    color: 'text-pink-500',
+    bgColor: 'bg-pink-500/10',
+    requiresActiveMerchant: true,
+    requiresFeature: 'enable_loyalty_program',
+  },
+  {
+    title: 'Referrals',
+    href: '/my-store/referrals',
+    icon: UserPlus,
+    color: 'text-indigo-500',
+    bgColor: 'bg-indigo-500/10',
+    requiresActiveMerchant: true,
+    requiresFeature: 'enable_referral_program',
+  },
+  {
     title: 'Messages',
     href: '/messages',
     icon: MessageSquare,
@@ -328,6 +368,9 @@ export function AppSidebar() {
   // Fetch unread count for messages
   useMessagesUnreadCount();
 
+  // Broadcast merchant presence so customers can see if the merchant is online
+  useMerchantPresence();
+
   const handleLogout = () => {
     logout.mutate();
   };
@@ -354,10 +397,15 @@ export function AppSidebar() {
 
   // Filter merchant nav items based on capabilities and active status
   const isMerchantActive = merchant?.status === 'active' || merchant?.status === 'approved';
+  const branchSelfEditAllowed = isBranchMerchant ? merchant?.parent?.allow_branch_self_edit === true : true;
 
   const filteredMerchantNavItems = merchantNavItems.filter((item) => {
-    // Hide items restricted from branch merchants
+    // Hide items always restricted from branch merchants
     if (item.hiddenForBranch && isBranchMerchant) {
+      return false;
+    }
+    // Hide items that require branch self-edit when the org has disabled it
+    if (item.requiresBranchSelfEdit && isBranchMerchant && !branchSelfEditAllowed) {
       return false;
     }
     // Hide items that require active merchant when not active
@@ -371,6 +419,10 @@ export function AppSidebar() {
     // Hide items that require specific capability when merchant lacks it
     if (item.capability && merchant) {
       return merchant[item.capability] === true;
+    }
+    // Hide items that require a specific feature toggle
+    if (item.requiresFeature && merchant) {
+      return merchant[item.requiresFeature] === true;
     }
     return true;
   });

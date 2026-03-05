@@ -246,7 +246,7 @@ export default function MerchantServicesPage({ params }: { params: Promise<{ id:
 
       <CreateServiceDialog merchantId={merchantId} businessTypeId={merchant?.business_type_id ?? null} open={createDialogOpen} onOpenChange={setCreateDialogOpen} canSellProducts={merchant?.can_sell_products} canTakeBookings={merchant?.can_take_bookings} canRentUnits={merchant?.can_rent_units} />
       <EditServiceDialog merchantId={merchantId} businessTypeId={merchant?.business_type_id ?? null} item={editItem} open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)} canSellProducts={merchant?.can_sell_products} canTakeBookings={merchant?.can_take_bookings} canRentUnits={merchant?.can_rent_units} />
-      <ServiceScheduleDialog merchantId={merchantId} service={scheduleItem} open={!!scheduleItem} onOpenChange={(open) => !open && setScheduleItem(null)} />
+      <ServiceScheduleDialog merchantId={merchantId} service={scheduleItem} open={!!scheduleItem} onOpenChange={(open) => !open && setScheduleItem(null)} isAdmin />
 
       <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
         <AlertDialogContent>

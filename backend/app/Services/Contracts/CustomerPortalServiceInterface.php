@@ -46,4 +46,8 @@ interface CustomerPortalServiceInterface
     public function updatePaymentPreferences(int $customerId, ?string $preferredMethod): array;
 
     public function uploadIdentityDocument(int $userId, \Illuminate\Http\UploadedFile $file): array;
+
+    public function toggleFavoriteMerchant(int $merchantId): bool;
+
+    public function getMyFavoriteMerchants(Request $request): LengthAwarePaginator;
 }

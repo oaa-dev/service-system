@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useBookings, useUpdateBookingStatus } from '@/hooks/useBookings';
+import { useMarkAsPaid, useCheckPaymentStatus } from '@/hooks/usePayments';
 import { Booking, BookingStatus, BookingQueryParams } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,9 +21,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ChevronLeft, ChevronRight, CalendarClock, RefreshCw, Check, X, UserX, CheckCircle, Plus,
+  ChevronLeft, ChevronRight, CalendarClock, RefreshCw, Check, X, UserX, CheckCircle, Plus, List, CalendarDays, CreditCard,
 } from 'lucide-react';
 import { CreateBookingDialog } from '@/app/(system)/(merchants)/merchants/[id]/bookings/create-booking-dialog';
+import { BookingsCalendarView } from './bookings-calendar-view';
 
 const bookingStatusColors: Record<BookingStatus, string> = {
   pending: 'bg-yellow-500',
@@ -30,6 +32,14 @@ const bookingStatusColors: Record<BookingStatus, string> = {
   cancelled: 'bg-gray-500',
   completed: 'bg-emerald-500',
   no_show: 'bg-red-500',
+};
+
+const paymentStatusConfig: Record<string, { label: string; variant: 'outline' | 'secondary' | 'default' | 'destructive'; className?: string }> = {
+  unpaid: { label: 'Unpaid', variant: 'outline' },
+  pending: { label: 'Pending', variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  paid: { label: 'Paid', variant: 'secondary', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  failed: { label: 'Failed', variant: 'destructive' },
+  refunded: { label: 'Refunded', variant: 'secondary', className: 'bg-purple-100 text-purple-800 border-purple-200' },
 };
 
 const filters: FilterField[] = [
@@ -61,31 +71,60 @@ const VALID_ACTIONS: Record<string, { label: string; status: BookingStatus; icon
 export default function MyStoreBookingsPage() {
   const { user } = useAuthStore();
   const merchantId = user?.merchant?.id;
+  const isOrganization = user?.merchant?.type === 'organization';
+
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [statusAction, setStatusAction] = useState<{ booking: Booking; status: BookingStatus } | null>(null);
+  const [paymentAction, setPaymentAction] = useState<'request_payment' | 'mark_cash' | ''>('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const queryParams = useMemo<BookingQueryParams>(() => {
     const params: BookingQueryParams = { page, per_page: perPage };
     if (filterValues.search) params['filter[search]'] = filterValues.search;
     if (filterValues.status) params['filter[status]'] = filterValues.status;
+    if (filterValues.booking_date) params['filter[booking_date]'] = filterValues.booking_date;
     return params;
   }, [page, perPage, filterValues]);
 
   const { data, isLoading, refetch, isFetching } = useBookings(merchantId!, queryParams);
   const statusMutation = useUpdateBookingStatus();
+  const markAsPaidMutation = useMarkAsPaid();
+  const checkStatusMutation = useCheckPaymentStatus();
 
   const handleFilterChange = useCallback((values: FilterValues) => { setFilterValues(values); setPage(1); }, []);
   const handleFilterReset = useCallback(() => { setFilterValues({}); setPage(1); }, []);
 
+  const handleDayClick = useCallback((date: string) => {
+    setFilterValues((prev) => ({ ...prev, booking_date: date }));
+    setPage(1);
+    setViewMode('list');
+  }, []);
+
   const handleStatusUpdate = () => {
     if (statusAction && merchantId) {
       statusMutation.mutate(
-        { merchantId, bookingId: statusAction.booking.id, data: { status: statusAction.status } },
-        { onSuccess: () => setStatusAction(null) }
+        {
+          merchantId,
+          bookingId: statusAction.booking.id,
+          data: {
+            status: statusAction.status,
+            payment_action: paymentAction || null,
+          },
+        },
+        {
+          onSuccess: () => {
+            setStatusAction(null);
+            setPaymentAction('');
+          },
+        }
       );
     }
   };
@@ -121,8 +160,42 @@ export default function MyStoreBookingsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>
           <p className="text-muted-foreground">Manage your service bookings</p>
         </div>
+        <div className="flex items-center gap-1 rounded-md border p-1">
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4 mr-1" /> List
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+          >
+            <CalendarDays className="h-4 w-4 mr-1" /> Calendar
+          </Button>
+        </div>
       </div>
 
+      {viewMode === 'calendar' && (
+        <Card>
+          <CardHeader className="border-b">
+            <CardTitle>Booking Calendar</CardTitle>
+            <CardDescription>Click a day to filter bookings by date</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <BookingsCalendarView
+              merchantId={merchantId}
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              onDayClick={handleDayClick}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {viewMode === 'list' && (
       <Card>
         <CardHeader className="border-b">
           <div className="flex flex-col gap-4">
@@ -164,6 +237,9 @@ export default function MyStoreBookingsPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">#{booking.id}</span>
                         <span className="text-muted-foreground">{booking.service?.name || `Service #${booking.service_id}`}</span>
+                        {isOrganization && booking.merchant && booking.merchant.id !== merchantId && (
+                          <Badge variant="outline" className="text-xs">{booking.merchant.name}</Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {booking.customer?.name || 'Unknown'} &middot; {booking.booking_date} &middot; {formatTime(booking.start_time)}-{formatTime(booking.end_time)}
@@ -180,13 +256,21 @@ export default function MyStoreBookingsPage() {
                       )}
                       {booking.notes && <p className="text-sm text-muted-foreground mt-1">{booking.notes}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                       <Badge className={bookingStatusColors[booking.status]}>{booking.status.replace('_', ' ')}</Badge>
+                      {booking.payment_status && (() => {
+                        const cfg = paymentStatusConfig[booking.payment_status] ?? { label: booking.payment_status, variant: 'outline' as const };
+                        return (
+                          <Badge variant={cfg.variant} className={cfg.className}>
+                            <CreditCard className="h-3 w-3 mr-1" />{cfg.label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
-                  {VALID_ACTIONS[booking.status] && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t">
-                      {VALID_ACTIONS[booking.status].map((action) => (
+                  {(VALID_ACTIONS[booking.status] || booking.payment?.id) && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t flex-wrap">
+                      {VALID_ACTIONS[booking.status]?.map((action) => (
                         <Button
                           key={action.status}
                           variant={action.variant || 'default'}
@@ -197,6 +281,26 @@ export default function MyStoreBookingsPage() {
                           {action.icon}{action.label}
                         </Button>
                       ))}
+                      {booking.payment?.id && (booking.payment_status === 'pending' || booking.payment_status === 'unpaid') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markAsPaidMutation.mutate({ id: booking.payment!.id })}
+                          disabled={markAsPaidMutation.isPending}
+                        >
+                          <CreditCard className="mr-1 h-3 w-3" /> Mark as Paid
+                        </Button>
+                      )}
+                      {booking.payment?.id && booking.payment_status === 'pending' && booking.payment.gateway !== 'cash' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => checkStatusMutation.mutate({ id: booking.payment!.id })}
+                          disabled={checkStatusMutation.isPending}
+                        >
+                          <RefreshCw className={`mr-1 h-3 w-3 ${checkStatusMutation.isPending ? 'animate-spin' : ''}`} /> Check Status
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -217,10 +321,11 @@ export default function MyStoreBookingsPage() {
           </div>
         )}
       </Card>
+      )}
 
       <CreateBookingDialog merchantId={merchantId} serviceMerchantId={user?.merchant?.parent_id ?? undefined} open={createOpen} onOpenChange={setCreateOpen} />
 
-      <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
+      <AlertDialog open={!!statusAction} onOpenChange={(open) => { if (!open) { setStatusAction(null); setPaymentAction(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Update Booking Status</AlertDialogTitle>
@@ -228,6 +333,21 @@ export default function MyStoreBookingsPage() {
               Are you sure you want to change booking #{statusAction?.booking.id} status to <span className="font-semibold">{statusAction?.status.replace('_', ' ')}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {statusAction?.status === 'confirmed' && (
+            <div className="py-2">
+              <p className="text-sm font-medium mb-2">Payment Action</p>
+              <Select value={paymentAction} onValueChange={(v) => setPaymentAction(v as typeof paymentAction)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No payment action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Payment Action</SelectItem>
+                  <SelectItem value="request_payment">Request Online Payment</SelectItem>
+                  <SelectItem value="mark_cash">Mark as Cash</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleStatusUpdate}>

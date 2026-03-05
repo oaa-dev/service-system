@@ -72,4 +72,20 @@ class Customer extends Model implements HasMedia
     {
         return $this->hasMany(CustomerDocument::class);
     }
+
+    public function favoriteMerchants(): BelongsToMany
+    {
+        return $this->belongsToMany(Merchant::class, 'customer_favorite_merchants')
+            ->withPivot('created_at');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function loyaltyCards(): HasMany
+    {
+        return $this->hasMany(LoyaltyCard::class);
+    }
 }

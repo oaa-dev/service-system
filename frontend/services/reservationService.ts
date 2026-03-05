@@ -3,6 +3,7 @@ import {
   ApiResponse,
   PaginatedResponse,
   Reservation,
+  ReservationCalendarDay,
   CreateReservationRequest,
   UpdateReservationStatusRequest,
   ReservationQueryParams,
@@ -27,5 +28,13 @@ export const reservationService = {
   updateStatus: async (merchantId: number, reservationId: number, data: UpdateReservationStatusRequest): Promise<ApiResponse<Reservation>> => {
     const response = await api.patch<ApiResponse<Reservation>>(`/merchants/${merchantId}/reservations/${reservationId}/status`, data);
     return response.data;
+  },
+
+  getCalendar: async (month: string): Promise<ReservationCalendarDay[]> => {
+    const response = await api.get<ApiResponse<ReservationCalendarDay[]>>(
+      '/auth/merchant/reservations/calendar',
+      { params: { month } }
+    );
+    return response.data.data;
   },
 };

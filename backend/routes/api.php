@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\GeographicController;
 use App\Http\Controllers\Api\V1\MerchantController;
 use App\Http\Controllers\Api\V1\MyMerchantController;
+use App\Http\Controllers\Api\V1\MerchantBookingSlotController;
 use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentMethodController;
@@ -24,6 +25,16 @@ use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ConversationController;
 use App\Http\Controllers\Api\V1\CustomerPortalController;
+use App\Http\Controllers\Api\V1\CustomerReviewController;
+use App\Http\Controllers\Api\V1\MerchantReviewController;
+use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\CustomerLoyaltyController;
+use App\Http\Controllers\Api\V1\LoyaltyController;
+use App\Http\Controllers\Api\V1\LoyaltyProgramController;
+use App\Http\Controllers\Api\V1\CustomerReferralController;
+use App\Http\Controllers\Api\V1\ReferralProgramController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PayMongoWebhookController;
 use App\Http\Controllers\Api\V1\SocialPlatformController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -64,7 +75,15 @@ Route::prefix('v1')->group(function () {
         Route::get('merchants/{slug}/services/{service}', [StorefrontController::class, 'serviceDetail']);
         Route::get('merchants/{slug}/services/{service}/booking-availability', [StorefrontController::class, 'bookingAvailability']);
         Route::get('merchants/{slug}/services/{service}/reservation-availability', [StorefrontController::class, 'reservationAvailability']);
+        Route::get('merchants/{slug}/branches', [StorefrontController::class, 'branches']);
+        Route::get('merchants/{slug}/reviews', [StorefrontController::class, 'merchantReviews']);
+
+        // Referral code validation (public)
+        Route::get('referral/{code}', [CustomerReferralController::class, 'validateCode']);
     });
+
+    // Webhook routes (public, signature-verified)
+    Route::post('webhooks/paymongo', [PayMongoWebhookController::class, 'handle']);
 
     // Protected routes
     Route::middleware('auth:api')->group(function () {
@@ -98,6 +117,17 @@ Route::prefix('v1')->group(function () {
                 Route::post('/documents', [MyMerchantController::class, 'uploadDocument']);
                 Route::delete('/documents/{document}', [MyMerchantController::class, 'deleteDocument']);
 
+                // Calendar views
+                Route::get('/bookings/calendar', [MyMerchantController::class, 'bookingsCalendar']);
+                Route::get('/reservations/calendar', [MyMerchantController::class, 'reservationsCalendar']);
+
+                // Booking slots (self-service)
+                Route::get('/booking-slots', [MerchantBookingSlotController::class, 'index']);
+                Route::post('/booking-slots', [MerchantBookingSlotController::class, 'store']);
+                Route::get('/booking-slots/{slot}', [MerchantBookingSlotController::class, 'show']);
+                Route::put('/booking-slots/{slot}', [MerchantBookingSlotController::class, 'update']);
+                Route::delete('/booking-slots/{slot}', [MerchantBookingSlotController::class, 'destroy']);
+
                 // Branch management (organization merchants only)
                 Route::get('/branches', [MyMerchantController::class, 'branches']);
                 Route::post('/branches', [MyMerchantController::class, 'storeBranch']);
@@ -105,12 +135,44 @@ Route::prefix('v1')->group(function () {
                 Route::put('/branches/{branch}', [MyMerchantController::class, 'updateBranch']);
                 Route::delete('/branches/{branch}', [MyMerchantController::class, 'destroyBranch']);
 
+                // Organization managing branch settings/gallery
+                Route::prefix('branches/{branch}')->group(function () {
+                    Route::get('/detail', [MyMerchantController::class, 'showBranchDetail']);
+                    Route::put('/detail', [MyMerchantController::class, 'updateBranchDetails']);
+                    Route::post('/logo', [MyMerchantController::class, 'uploadBranchLogo']);
+                    Route::delete('/logo', [MyMerchantController::class, 'deleteBranchLogo']);
+                    Route::get('/gallery', [MyMerchantController::class, 'getBranchGallery']);
+                    Route::post('/gallery/{collection}', [MyMerchantController::class, 'uploadBranchGalleryImage']);
+                    Route::delete('/gallery/{media}', [MyMerchantController::class, 'deleteBranchGalleryImage']);
+                    Route::put('/business-hours', [MyMerchantController::class, 'updateBranchBusinessHours']);
+                    Route::post('/payment-methods', [MyMerchantController::class, 'syncBranchPaymentMethods']);
+                    Route::post('/social-links', [MyMerchantController::class, 'syncBranchSocialLinks']);
+                });
+
                 // Requires active merchant
                 Route::middleware('merchant.active')->group(function () {
                     Route::get('/gallery', [MyMerchantController::class, 'getGallery']);
                     Route::post('/gallery/{collection}', [MyMerchantController::class, 'uploadGalleryImage']);
                     Route::delete('/gallery/{media}', [MyMerchantController::class, 'deleteGalleryImage']);
                 });
+
+                // Loyalty program management (self-service)
+                Route::get('/loyalty-program', [LoyaltyProgramController::class, 'show']);
+                Route::post('/loyalty-program', [LoyaltyProgramController::class, 'store']);
+                Route::delete('/loyalty-program', [LoyaltyProgramController::class, 'destroy']);
+
+                // Loyalty QR + cards (self-service)
+                Route::post('/loyalty/generate-qr', [LoyaltyController::class, 'generateQr']);
+                Route::get('/loyalty-cards', [LoyaltyController::class, 'index']);
+                Route::get('/loyalty-cards/{id}', [LoyaltyController::class, 'show']);
+                Route::post('/loyalty-cards/{id}/stamp', [LoyaltyController::class, 'awardStamp']);
+
+                // Referral program management (self-service)
+                Route::get('/referral-program', [ReferralProgramController::class, 'show']);
+                Route::post('/referral-program', [ReferralProgramController::class, 'store']);
+                Route::delete('/referral-program', [ReferralProgramController::class, 'destroy']);
+                Route::get('/referrals', [ReferralProgramController::class, 'referrals']);
+                Route::get('/referral-stats', [ReferralProgramController::class, 'stats']);
             });
 
             // User management routes with permission middleware
@@ -248,6 +310,14 @@ Route::prefix('v1')->group(function () {
                 Route::post('merchants', [MerchantController::class, 'store']);
                 Route::post('merchants/{merchant}/branches', [MerchantController::class, 'storeBranch']);
             });
+            // Merchant booking slot admin routes
+            Route::middleware('permission:merchants.update')->group(function () {
+                Route::get('merchants/{merchant}/booking-slots', [MerchantBookingSlotController::class, 'index']);
+                Route::post('merchants/{merchant}/booking-slots', [MerchantBookingSlotController::class, 'store']);
+                Route::put('merchants/{merchant}/booking-slots/{slot}', [MerchantBookingSlotController::class, 'update']);
+                Route::delete('merchants/{merchant}/booking-slots/{slot}', [MerchantBookingSlotController::class, 'destroy']);
+            });
+
             Route::middleware('permission:merchants.update')->group(function () {
                 Route::put('merchants/{merchant}', [MerchantController::class, 'update']);
                 Route::put('merchants/{merchant}/branches/{branch}', [MerchantController::class, 'updateBranch']);
@@ -262,6 +332,14 @@ Route::prefix('v1')->group(function () {
                 Route::post('merchants/{merchant}/gallery/{collection}', [MerchantController::class, 'uploadGalleryImage']);
                 Route::delete('merchants/{merchant}/gallery/{media}', [MerchantController::class, 'deleteGalleryImage']);
             });
+            // Admin loyalty program routes
+            Route::middleware('permission:loyalty_programs.view')->get('merchants/{merchant}/loyalty-program', [LoyaltyProgramController::class, 'adminShow']);
+            Route::middleware('permission:loyalty_programs.update')->put('merchants/{merchant}/loyalty-program', [LoyaltyProgramController::class, 'adminUpdate']);
+
+            // Admin referral program routes
+            Route::middleware('permission:referral_programs.view')->get('merchants/{merchant}/referral-program', [ReferralProgramController::class, 'adminShow']);
+            Route::middleware('permission:referral_programs.update')->put('merchants/{merchant}/referral-program', [ReferralProgramController::class, 'adminUpdate']);
+
             Route::middleware('permission:merchants.update_status')->patch('merchants/{merchant}/status', [MerchantController::class, 'updateStatus']);
             Route::middleware('permission:merchants.delete')->group(function () {
                 Route::delete('merchants/{merchant}', [MerchantController::class, 'destroy']);
@@ -342,15 +420,59 @@ Route::prefix('v1')->group(function () {
 
             // Messaging routes
             Route::get('conversations', [MessagingController::class, 'conversations']);
-            Route::post('conversations', [MessagingController::class, 'startConversation']);
-            Route::get('conversations/{conversationId}', [MessagingController::class, 'showConversation']);
-            Route::delete('conversations/{conversationId}', [MessagingController::class, 'deleteConversation']);
             Route::get('conversations/{conversationId}/messages', [MessagingController::class, 'messages']);
             Route::post('conversations/{conversationId}/messages', [MessagingController::class, 'sendMessage']);
             Route::post('conversations/{conversationId}/read', [MessagingController::class, 'markAsRead']);
             Route::get('messages/unread-count', [MessagingController::class, 'unreadCount']);
-            Route::get('messages/search', [MessagingController::class, 'searchMessages']);
-            Route::delete('messages/{messageId}', [MessagingController::class, 'deleteMessage']);
+
+            // Admin review moderation routes
+            Route::middleware('permission:reviews.view')->get('reviews', [ReviewController::class, 'index']);
+            Route::middleware('permission:reviews.moderate')->group(function () {
+                Route::patch('reviews/{review}/toggle-publish', [ReviewController::class, 'togglePublish']);
+                Route::put('reviews/{review}/notes', [ReviewController::class, 'updateNotes']);
+            });
+
+            // Merchant self-service review routes
+            Route::prefix('auth/merchant')->group(function () {
+                Route::get('/reviews', [MerchantReviewController::class, 'index']);
+                Route::post('/reviews/{review}/reply', [MerchantReviewController::class, 'reply']);
+                Route::put('/reviews/{review}/reply', [MerchantReviewController::class, 'updateReply']);
+                Route::delete('/reviews/{review}/reply', [MerchantReviewController::class, 'deleteReply']);
+            });
+
+            // Customer portal review routes
+            Route::group([], function () {
+                Route::post('customer/merchants/{merchantId}/reviews', [CustomerReviewController::class, 'store']);
+                Route::put('customer/reviews/{review}', [CustomerReviewController::class, 'update']);
+                Route::delete('customer/reviews/{review}', [CustomerReviewController::class, 'destroy']);
+                Route::get('customer/reviews', [CustomerReviewController::class, 'myReviews']);
+            });
+
+            // Customer Loyalty routes
+            Route::post('customer/loyalty/scan', [CustomerLoyaltyController::class, 'scan'])->middleware('permission:customer_portal.scan_loyalty');
+            Route::get('customer/loyalty-cards', [CustomerLoyaltyController::class, 'cards'])->middleware('permission:customer_portal.view_loyalty');
+            Route::get('customer/loyalty-cards/{id}', [CustomerLoyaltyController::class, 'cardDetail'])->middleware('permission:customer_portal.view_loyalty');
+            Route::get('customer/loyalty-rewards', [CustomerLoyaltyController::class, 'rewards'])->middleware('permission:customer_portal.view_loyalty');
+
+            // Customer Referral routes
+            Route::post('customer/referrals/generate/{merchant}', [CustomerReferralController::class, 'generateCode'])->middleware('permission:customer_portal.referral');
+            Route::get('customer/referral-codes', [CustomerReferralController::class, 'myCodes'])->middleware('permission:customer_portal.referral');
+            Route::get('customer/referrals', [CustomerReferralController::class, 'myReferrals'])->middleware('permission:customer_portal.referral');
+            Route::get('customer/referral-rewards', [CustomerReferralController::class, 'myRewards'])->middleware('permission:customer_portal.referral');
+            Route::post('customer/referrals/accept', [CustomerReferralController::class, 'accept'])->middleware('permission:customer_portal.referral');
+
+            // Payment routes
+            Route::prefix('payments')->middleware('permission:payments.view')->group(function () {
+                Route::get('{payment}', [PaymentController::class, 'show']);
+                Route::post('{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])
+                    ->middleware('permission:payments.manage');
+                Route::post('{payment}/request-refund', [PaymentController::class, 'requestRefund'])
+                    ->middleware('permission:payments.manage');
+                Route::post('{payment}/mark-refunded', [PaymentController::class, 'markRefunded'])
+                    ->middleware('permission:payments.manage');
+                Route::post('{payment}/check-status', [PaymentController::class, 'checkStatus'])
+                    ->middleware('permission:payments.manage');
+            });
 
             // Customer Portal - Booking/Ordering
             Route::prefix('customer/merchants/{slug}')->group(function () {
@@ -377,7 +499,12 @@ Route::prefix('v1')->group(function () {
 
                 Route::post('/identity-document', [CustomerPortalController::class, 'uploadIdentityDocument'])->middleware('permission:customer_portal.view_own');
 
-                // Chat conversations (scoped per booking/reservation/order)
+                Route::post('/favorite-merchants/{merchant}', [CustomerPortalController::class, 'toggleFavoriteMerchant'])->middleware('permission:customer_portal.view_own');
+                Route::get('/favorite-merchants', [CustomerPortalController::class, 'myFavoriteMerchants'])->middleware('permission:customer_portal.view_own');
+
+                // Chat conversations (scoped per booking/reservation/order/inquiry)
+                // {type} = bookings|reservations|orders|inquiries
+                // {id}   = numeric entity id for bookings/reservations/orders; merchant slug for inquiries
                 Route::prefix('conversations/{type}/{id}')->middleware('permission:customer_portal.view_own')->group(function () {
                     Route::get('messages', [ConversationController::class, 'messages']);
                     Route::post('messages', [ConversationController::class, 'send']);

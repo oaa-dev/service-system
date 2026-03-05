@@ -29,6 +29,7 @@ class ReservationFactory extends Factory
             'fee_rate' => 0,
             'fee_amount' => 0,
             'total_amount' => $nights * $pricePerNight,
+            'discount_amount' => 0,
             'status' => 'pending',
         ];
     }

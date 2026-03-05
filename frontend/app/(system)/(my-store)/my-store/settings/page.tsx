@@ -1,22 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import { useMyMerchant } from '@/hooks/useMyMerchant';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Store } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { MyStoreDetailsTab } from './my-store-details-tab';
-import { MyStoreBusinessHoursTab } from './my-store-business-hours-tab';
-import { MyStorePaymentMethodsTab } from './my-store-payment-methods-tab';
-import { MyStoreSocialLinksTab } from './my-store-social-links-tab';
-import { MyStoreDocumentsTab } from './my-store-documents-tab';
+import { StoreSettingsTabs } from './store-settings-tabs';
 
 export default function MyStoreSettingsPage() {
   const { data, isLoading } = useMyMerchant();
   const merchant = data;
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'details');
 
   if (isLoading) {
     return (
@@ -43,30 +36,7 @@ export default function MyStoreSettingsPage() {
         <p className="text-muted-foreground">Update your store details and settings</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="business-hours">Business Hours</TabsTrigger>
-          <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
-          <TabsTrigger value="social-links">Social Links</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
-        <TabsContent value="details">
-          <MyStoreDetailsTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="business-hours">
-          <MyStoreBusinessHoursTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="payment-methods">
-          <MyStorePaymentMethodsTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="social-links">
-          <MyStoreSocialLinksTab merchant={merchant} />
-        </TabsContent>
-        <TabsContent value="documents">
-          <MyStoreDocumentsTab merchant={merchant} />
-        </TabsContent>
-      </Tabs>
+      <StoreSettingsTabs merchant={merchant} defaultTab={searchParams.get('tab') || 'details'} />
     </div>
   );
 }

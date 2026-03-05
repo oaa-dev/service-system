@@ -1,0 +1,83 @@
+name: mobile
+description: "Customer Portal mobile app — Flutter Clean Architecture with BLoC."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_bloc: ^9.0.0
+  equatable: ^2.0.0
+
+  # Networking
+  dio: ^5.7.0
+
+  # Dependency injection
+  get_it: ^9.2.1
+  injectable: ^2.5.0
+
+  # Navigation
+  go_router: ^17.1.0
+
+  # Secure storage
+  flutter_secure_storage: ^10.0.0
+
+  # Code generation annotations
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+
+  # Functional programming (Either type)
+  fpdart: ^1.1.0
+
+  # Images
+  cached_network_image: ^3.4.0
+
+  # Fonts
+  google_fonts: ^8.0.2
+
+  # Utilities
+  intl: ^0.20.2
+
+  # Maps & Location
+  google_maps_flutter: ^2.9.0
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.1
+
+  # Image handling
+  image_picker: ^1.1.2
+
+  # Pagination
+  infinite_scroll_pagination: ^4.1.0
+
+  # Star ratings
+  flutter_rating_bar: ^4.0.1
+
+  # HTTP multipart (for avatar upload)
+  http: ^1.2.2
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.0
+  freezed: ^3.2.5
+  json_serializable: ^6.8.0
+  injectable_generator: ^2.6.0
+
+  # Testing
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.0
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

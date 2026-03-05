@@ -36,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
             'booking' => \App\Models\Booking::class,
             'reservation' => \App\Models\Reservation::class,
             'service_order' => \App\Models\ServiceOrder::class,
+            'inquiry' => \App\Models\Merchant::class,
+            'payment' => \App\Models\Payment::class,
         ]);
     }
 }

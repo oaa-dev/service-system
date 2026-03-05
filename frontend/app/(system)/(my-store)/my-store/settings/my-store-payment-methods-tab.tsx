@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSyncMyPaymentMethods } from '@/hooks/useMyMerchant';
+import { useSyncMyPaymentMethods, useSyncBranchPaymentMethods } from '@/hooks/useMyMerchant';
 import { useActivePaymentMethods } from '@/hooks/usePaymentMethods';
 import { Merchant } from '@/types/api';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,12 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 
-interface Props { merchant: Merchant; }
+interface Props { merchant: Merchant; branchId?: number; }
 
-export function MyStorePaymentMethodsTab({ merchant }: Props) {
-  const syncMutation = useSyncMyPaymentMethods();
+export function MyStorePaymentMethodsTab({ merchant, branchId }: Props) {
+  const selfSyncMutation = useSyncMyPaymentMethods();
+  const branchSyncMutation = useSyncBranchPaymentMethods();
+  const isPending = branchId ? branchSyncMutation.isPending : selfSyncMutation.isPending;
   const { data: paymentMethodsData, isLoading } = useActivePaymentMethods();
   const allMethods = paymentMethodsData?.data || [];
 
@@ -32,10 +34,14 @@ export function MyStorePaymentMethodsTab({ merchant }: Props) {
   };
 
   const handleSave = () => {
-    syncMutation.mutate({ payment_method_ids: selectedIds }, {
-      onSuccess: () => toast.success('Payment methods updated'),
-      onError: () => toast.error('Failed to update payment methods'),
-    });
+    const onSuccess = () => toast.success('Payment methods updated');
+    const onError = () => toast.error('Failed to update payment methods');
+
+    if (branchId) {
+      branchSyncMutation.mutate({ branchId, data: { payment_method_ids: selectedIds } }, { onSuccess, onError });
+    } else {
+      selfSyncMutation.mutate({ payment_method_ids: selectedIds }, { onSuccess, onError });
+    }
   };
 
   return (
@@ -66,8 +72,8 @@ export function MyStorePaymentMethodsTab({ merchant }: Props) {
           </div>
         )}
         <div className="flex justify-end pt-4">
-          <Button onClick={handleSave} disabled={syncMutation.isPending}>
-            {syncMutation.isPending && <Spinner className="mr-2 h-4 w-4" />}
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending && <Spinner className="mr-2 h-4 w-4" />}
             Save Payment Methods
           </Button>
         </div>

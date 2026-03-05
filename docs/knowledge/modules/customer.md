@@ -10,6 +10,8 @@
   - tags() -> BelongsToMany -> CustomerTag (pivot: customer_customer_tag, withTimestamps)
   - interactions() -> HasMany -> CustomerInteraction
   - documents() -> HasMany -> CustomerDocument
+  - favoriteMerchants() -> BelongsToMany -> Merchant (pivot: customer_favorite_merchants)
+  - reviews() -> HasMany -> Review
 - **Traits**: HasFactory, InteractsWithMedia (implements HasMedia)
 - **Scopes**: (none)
 - **Default Attributes**: customer_type=individual, customer_tier=regular, loyalty_points=0, communication_preference=both, status=active, identity_document_status=none
@@ -83,6 +85,7 @@ rejected -> pending (customer re-uploads; status reset to pending on upload)
 | Migration | database/migrations/2026_02_10_200002_create_customers_table.php |
 | Migration (pivot) | database/migrations/2026_02_10_200003_create_customer_customer_tag_table.php |
 | Migration (identity) | database/migrations/2026_02_28_220000_add_identity_verification_to_customers_table.php |
+| Migration (favorites pivot) | database/migrations/2026_03_01_220000_create_customer_favorite_merchants_table.php |
 | Factory | database/factories/CustomerFactory.php |
 | Seeder | (none -- created on register with customer role or via admin store) |
 

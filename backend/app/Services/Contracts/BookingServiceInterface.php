@@ -14,5 +14,7 @@ interface BookingServiceInterface
 
     public function createBooking(int $merchantId, BookingData $data): Booking;
 
-    public function updateBookingStatus(int $merchantId, int $bookingId, string $status): Booking;
+    public function updateBookingStatus(int $merchantId, int $bookingId, string $status, ?string $paymentAction = null): Booking;
+
+    public function getBookingCalendar(int $merchantId, string $month): array;
 }

@@ -31,23 +31,6 @@ class MessageRepository extends BaseRepository implements MessageRepositoryInter
             ->update(['read_at' => now()]);
     }
 
-    public function searchMessages(int $userId, string $query, int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->model->newQuery()
-            ->whereHas('conversation', function ($q) use ($userId) {
-                $q->where('user_one_id', $userId)
-                    ->orWhere('user_two_id', $userId);
-            })
-            ->whereHas('conversation.participants', function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                    ->whereNull('deleted_at');
-            })
-            ->where('body', 'like', "%{$query}%")
-            ->with(['sender.profile.media', 'conversation'])
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
-    }
-
     public function getUnreadMessagesCount(int $conversationId, int $userId): int
     {
         return $this->model->newQuery()

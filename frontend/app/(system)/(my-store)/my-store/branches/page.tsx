@@ -20,8 +20,10 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTableFilters, type FilterField, type FilterValues } from '@/components/ui/data-table-filters';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Pencil, Trash2, Building2, RefreshCw, Store } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Pencil, Trash2, Building2, RefreshCw, Store, Settings, ImageIcon, GitBranch, Layers } from 'lucide-react';
 import { AddressFormFields } from '@/components/address-form-fields';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 
@@ -315,6 +317,95 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: Merchant | n
   );
 }
 
+function BranchRow({ item, onEdit, onDelete }: { item: Merchant; onEdit: () => void; onDelete: () => void }) {
+  const router = useRouter();
+  const updateMutation = useUpdateMyBranch();
+  const isInherit = item.inherit_from_parent ?? true;
+
+  const handleModeChange = (value: string) => {
+    updateMutation.mutate(
+      {
+        branchId: item.id,
+        data: {
+          inherit_from_parent: value === 'inherit',
+          ...(value === 'inherit' ? { allow_branch_self_edit: false } : {}),
+        },
+      },
+      {
+        onSuccess: () => toast.success(`Branch mode set to ${value === 'inherit' ? 'Inherit' : 'Standalone'}`),
+        onError: () => toast.error('Failed to update mode'),
+      }
+    );
+  };
+
+  const handleSelfEditChange = (checked: boolean) => {
+    updateMutation.mutate(
+      { branchId: item.id, data: { allow_branch_self_edit: checked } },
+      {
+        onSuccess: () => toast.success(`Self-edit ${checked ? 'enabled' : 'disabled'}`),
+        onError: () => toast.error('Failed to update self-edit'),
+      }
+    );
+  };
+
+  return (
+    <TableRow className="group">
+      <TableCell className="font-medium">{item.name}</TableCell>
+      <TableCell>
+        <Select
+          value={isInherit ? 'inherit' : 'standalone'}
+          onValueChange={handleModeChange}
+          disabled={updateMutation.isPending}
+        >
+          <SelectTrigger className="h-8 w-32 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="inherit">
+              <span className="flex items-center gap-1.5"><GitBranch className="h-3 w-3" /> Inherit</span>
+            </SelectItem>
+            <SelectItem value="standalone">
+              <span className="flex items-center gap-1.5"><Layers className="h-3 w-3" /> Standalone</span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Switch
+          checked={item.allow_branch_self_edit ?? false}
+          onCheckedChange={handleSelfEditChange}
+          disabled={isInherit || updateMutation.isPending}
+        />
+      </TableCell>
+      <TableCell>
+        <Badge className={statusColors[item.status]}>
+          {merchantStatusLabels[item.status]}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{item.created_at ? formatDate(item.created_at) : '-'}</TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {!isInherit && item.allow_branch_self_edit && (
+              <>
+                <DropdownMenuItem onClick={() => router.push(`/my-store/branches/${item.id}/settings`)}><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push(`/my-store/branches/${item.id}/gallery`)}><ImageIcon className="mr-2 h-4 w-4" /> Gallery</DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem onClick={onEdit}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function MyStoreBranchesPage() {
   const { data: merchantData, isLoading: merchantLoading } = useMyMerchant();
   const merchant = merchantData;
@@ -413,8 +504,8 @@ export default function MyStoreBranchesPage() {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
+                <TableHead>Mode</TableHead>
+                <TableHead>Self-Edit</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-[70px] text-right">Actions</TableHead>
@@ -437,29 +528,12 @@ export default function MyStoreBranchesPage() {
                 </TableRow>
               ) : (
                 data?.data?.map((item) => (
-                  <TableRow key={item.id} className="group">
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{item.contact_email || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground">{item.contact_phone || '-'}</TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[item.status]}>
-                        {merchantStatusLabels[item.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{item.created_at ? formatDate(item.created_at) : '-'}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditItem(item)}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setDeleteItem(item)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                  <BranchRow
+                    key={item.id}
+                    item={item}
+                    onEdit={() => setEditItem(item)}
+                    onDelete={() => setDeleteItem(item)}
+                  />
                 ))
               )}
             </TableBody>

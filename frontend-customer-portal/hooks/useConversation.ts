@@ -7,14 +7,14 @@ import { conversationService } from '@/services/conversationService';
  * When laravel-echo + pusher-js are added, set refetchInterval to false and
  * use the Echo subscription in ChatPanel instead.
  *
- * type: 'bookings' | 'reservations' | 'orders'
- * id:   the booking/reservation/order ID
+ * type: 'bookings' | 'reservations' | 'orders' | 'inquiries'
+ * id:   the booking/reservation/order numeric ID, or a merchant slug for inquiries
  */
-export function useMessages(type: string | undefined, id: number | undefined) {
+export function useMessages(type: string | undefined, id: number | string | undefined) {
   return useQuery({
     queryKey: ['conversation', type, id],
     queryFn: () => conversationService.getMessages(type!, id!),
-    enabled: !!type && !!id,
+    enabled: !!type && (id !== undefined && id !== null && id !== ''),
     // Poll every 5 seconds as a real-time fallback until Echo is installed.
     refetchInterval: 5000,
   });
@@ -32,7 +32,7 @@ export function useSendMessage() {
       body,
     }: {
       type: string;
-      id: number;
+      id: number | string;
       body: string;
     }) => conversationService.sendMessage(type, id, body),
   });
@@ -41,7 +41,7 @@ export function useSendMessage() {
 /**
  * Mark all messages in the conversation as read.
  */
-export function useMarkAsRead(type: string | undefined, id: number | undefined) {
+export function useMarkAsRead(type: string | undefined, id: number | string | undefined) {
   return useMutation({
     mutationFn: () => conversationService.markAsRead(type!, id!),
   });

@@ -54,6 +54,42 @@ use App\Services\EmailVerificationService;
 use App\Services\StorefrontService;
 use App\Services\FieldService;
 use App\Services\PlatformFeeService;
+use App\Repositories\Contracts\LoyaltyCardRepositoryInterface;
+use App\Repositories\Contracts\LoyaltyProgramRepositoryInterface;
+use App\Repositories\Contracts\LoyaltyRewardRepositoryInterface;
+use App\Repositories\Contracts\MerchantBookingSlotRepositoryInterface;
+use App\Repositories\Contracts\ReviewRepositoryInterface;
+use App\Repositories\LoyaltyCardRepository;
+use App\Repositories\LoyaltyProgramRepository;
+use App\Repositories\LoyaltyRewardRepository;
+use App\Repositories\MerchantBookingSlotRepository;
+use App\Repositories\ReviewRepository;
+use App\Services\Contracts\LoyaltyProgramServiceInterface;
+use App\Services\Contracts\LoyaltyServiceInterface;
+use App\Services\Contracts\MerchantBookingSlotServiceInterface;
+use App\Services\Contracts\ReviewServiceInterface;
+use App\Services\LoyaltyProgramService;
+use App\Services\LoyaltyService;
+use App\Services\MerchantBookingSlotService;
+use App\Services\ReviewService;
+use App\Repositories\Contracts\ReferralProgramRepositoryInterface;
+use App\Repositories\Contracts\ReferralCodeRepositoryInterface;
+use App\Repositories\Contracts\ReferralRepositoryInterface;
+use App\Repositories\Contracts\ReferralRewardRepositoryInterface;
+use App\Repositories\ReferralProgramRepository;
+use App\Repositories\ReferralCodeRepository;
+use App\Repositories\ReferralRepository;
+use App\Repositories\ReferralRewardRepository;
+use App\Services\Contracts\ReferralProgramServiceInterface;
+use App\Services\Contracts\ReferralServiceInterface;
+use App\Repositories\Contracts\PaymentRepositoryInterface;
+use App\Repositories\PaymentRepository;
+use App\Services\Contracts\PaymentServiceInterface;
+use App\Services\Contracts\PayMongoServiceInterface;
+use App\Services\PaymentService;
+use App\Services\PayMongoService;
+use App\Services\ReferralProgramService;
+use App\Services\ReferralService;
 use App\Services\ReservationService;
 use App\Services\ServiceOrderService;
 use App\Services\Contracts\CustomerServiceInterface;
@@ -61,7 +97,6 @@ use App\Services\Contracts\CustomerTagServiceInterface;
 use App\Services\Contracts\DocumentTypeServiceInterface;
 use App\Services\Contracts\ServiceCategoryServiceInterface;
 use App\Services\Contracts\MerchantServiceInterface;
-use App\Services\Contracts\MessagingServiceInterface;
 use App\Services\Contracts\NotificationServiceInterface;
 use App\Services\Contracts\PaymentMethodServiceInterface;
 use App\Services\Contracts\ProfileServiceInterface;
@@ -73,7 +108,6 @@ use App\Services\CustomerTagService;
 use App\Services\DocumentTypeService;
 use App\Services\ServiceCategoryService;
 use App\Services\MerchantService;
-use App\Services\MessagingService;
 use App\Services\NotificationService;
 use App\Services\PaymentMethodService;
 use App\Services\ProfileService;
@@ -95,7 +129,6 @@ class RepositoryServiceProvider extends ServiceProvider
         ConversationRepositoryInterface::class => ConversationRepository::class,
         ConversationServiceInterface::class => ConversationService::class,
         MessageRepositoryInterface::class => MessageRepository::class,
-        MessagingServiceInterface::class => MessagingService::class,
         PaymentMethodRepositoryInterface::class => PaymentMethodRepository::class,
         PaymentMethodServiceInterface::class => PaymentMethodService::class,
         DocumentTypeRepositoryInterface::class => DocumentTypeRepository::class,
@@ -124,6 +157,24 @@ class RepositoryServiceProvider extends ServiceProvider
         EmailVerificationServiceInterface::class => EmailVerificationService::class,
         StorefrontServiceInterface::class => StorefrontService::class,
         CustomerPortalServiceInterface::class => CustomerPortalService::class,
+        ReviewRepositoryInterface::class => ReviewRepository::class,
+        ReviewServiceInterface::class => ReviewService::class,
+        MerchantBookingSlotRepositoryInterface::class => MerchantBookingSlotRepository::class,
+        MerchantBookingSlotServiceInterface::class => MerchantBookingSlotService::class,
+        LoyaltyProgramRepositoryInterface::class => LoyaltyProgramRepository::class,
+        LoyaltyProgramServiceInterface::class => LoyaltyProgramService::class,
+        LoyaltyCardRepositoryInterface::class => LoyaltyCardRepository::class,
+        LoyaltyRewardRepositoryInterface::class => LoyaltyRewardRepository::class,
+        LoyaltyServiceInterface::class => LoyaltyService::class,
+        ReferralProgramRepositoryInterface::class => ReferralProgramRepository::class,
+        ReferralCodeRepositoryInterface::class => ReferralCodeRepository::class,
+        ReferralRepositoryInterface::class => ReferralRepository::class,
+        ReferralRewardRepositoryInterface::class => ReferralRewardRepository::class,
+        ReferralProgramServiceInterface::class => ReferralProgramService::class,
+        ReferralServiceInterface::class => ReferralService::class,
+        PaymentRepositoryInterface::class => PaymentRepository::class,
+        PaymentServiceInterface::class => PaymentService::class,
+        PayMongoServiceInterface::class => PayMongoService::class,
     ];
 
     public function register(): void

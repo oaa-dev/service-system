@@ -3,6 +3,7 @@ import {
   ApiResponse,
   PaginatedResponse,
   Booking,
+  BookingCalendarDay,
   CreateBookingRequest,
   UpdateBookingStatusRequest,
   BookingQueryParams,
@@ -27,5 +28,13 @@ export const bookingService = {
   updateStatus: async (merchantId: number, bookingId: number, data: UpdateBookingStatusRequest): Promise<ApiResponse<Booking>> => {
     const response = await api.patch<ApiResponse<Booking>>(`/merchants/${merchantId}/bookings/${bookingId}/status`, data);
     return response.data;
+  },
+
+  getCalendar: async (month: string): Promise<BookingCalendarDay[]> => {
+    const response = await api.get<ApiResponse<BookingCalendarDay[]>>(
+      '/auth/merchant/bookings/calendar',
+      { params: { month } }
+    );
+    return response.data.data;
   },
 };

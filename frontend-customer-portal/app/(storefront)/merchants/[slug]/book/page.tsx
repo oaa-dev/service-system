@@ -1,14 +1,14 @@
 'use client';
 
-import { use, useState, useMemo } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, startOfMonth } from 'date-fns';
-import { useMerchantBySlug, useMerchantServices, useBookingAvailability } from '@/hooks/useStorefront';
+import { useMerchantBySlug, useMerchantServices, useBookingAvailability, useActivePlatformFees } from '@/hooks/useStorefront';
 import { useCreateBooking } from '@/hooks/useCustomerActions';
 import { AuthGate } from '@/components/booking/auth-gate';
 import { BookingSummary } from '@/components/booking/booking-summary';
 import { BookingCalendar } from './booking-calendar';
-import { TimeSlotPicker } from './time-slot-picker';
+import { MerchantSlotPicker } from './merchant-slot-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/storefront-utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
+import { RewardSelector } from '@/components/loyalty/reward-selector';
 
 function formatTime(time: string) {
   const [h, m] = time.split(':');
@@ -53,11 +54,16 @@ export default function BookingPage({
   );
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [startTime, setStartTime] = useState<string | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
+  const [selectedSlotStartTime, setSelectedSlotStartTime] = useState<string | null>(null);
+  const [selectedSlotEndTime, setSelectedSlotEndTime] = useState<string | null>(null);
+  const [selectedSlotMaxCapacity, setSelectedSlotMaxCapacity] = useState<number | null>(null);
   const [partySize, setPartySize] = useState(1);
   const [notes, setNotes] = useState('');
+  const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
+  const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
 
   const { data: merchantData, isLoading: merchantLoading } = useMerchantBySlug(slug);
   const { data: servicesData } = useMerchantServices(slug, { per_page: 100 });
@@ -66,31 +72,27 @@ export default function BookingPage({
     selectedServiceId,
     monthStr,
   );
+  const { data: feesData } = useActivePlatformFees();
   const createBooking = useCreateBooking(slug);
 
   const merchant = merchantData?.data;
   const services = (servicesData?.data ?? []).filter((s: Service) => s.service_type === 'bookable');
   const availability = availabilityData?.data;
 
-  const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
-  const bookedSlotsForDay = useMemo(() => {
-    if (!availability || !selectedDateStr) return [];
-    return availability.booked_slots[selectedDateStr] || [];
-  }, [availability, selectedDateStr]);
-
   const selectedServiceFromList = services.find((s: Service) => s.id === selectedServiceId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedServiceId || !selectedDateStr || !startTime) return;
+    if (!selectedServiceId || !selectedDateStr || !selectedSlotId) return;
 
     try {
       await createBooking.mutateAsync({
         service_id: selectedServiceId,
         booking_date: selectedDateStr,
-        start_time: startTime,
+        booking_slot_id: selectedSlotId,
         party_size: partySize,
         notes: notes || undefined,
+        loyalty_reward_id: selectedRewardId ?? undefined,
       });
       toast.success('Booking created successfully!');
       router.push(`/merchants/${slug}`);
@@ -206,21 +208,46 @@ export default function BookingPage({
             )}
 
             {/* Booking summary */}
-            {availability && startTime && selectedDate && (
-              <div className="animate-fade-in-up">
-                <BookingSummary
-                  title="Booking Summary"
-                  items={[
-                    { label: 'Service', value: availability.service.name },
-                    { label: 'Date', value: format(selectedDate, 'MMM d, yyyy') },
-                    { label: 'Time', value: formatTime(startTime) },
-                    { label: 'Duration', value: `${availability.service.duration} min` },
-                    { label: 'Party Size', value: partySize.toString() },
-                  ]}
-                  total={{ label: 'Price', value: formatCurrency(availability.service.price) }}
-                />
-              </div>
-            )}
+            {availability && selectedSlotStartTime && selectedDate && (() => {
+              const subtotal = Number(availability.service.price) * partySize;
+              const bookingFee = feesData?.data?.find(f => f.transaction_type === 'booking');
+              const feeRate = bookingFee ? Number(bookingFee.rate_percentage) : 0;
+              const feeAmount = Math.round(subtotal * (feeRate / 100) * 100) / 100;
+              const total = subtotal + feeAmount;
+
+              // Compute duration from slot times if available, fallback to service duration
+              let durationMin = availability.service.duration;
+              if (selectedSlotEndTime) {
+                const [sh, sm] = selectedSlotStartTime.split(':').map(Number);
+                const [eh, em] = selectedSlotEndTime.split(':').map(Number);
+                durationMin = (eh * 60 + em) - (sh * 60 + sm);
+              }
+
+              const timeLabel = selectedSlotEndTime
+                ? `${formatTime(selectedSlotStartTime)} – ${formatTime(selectedSlotEndTime)}`
+                : formatTime(selectedSlotStartTime);
+
+              const items = [
+                { label: 'Service', value: availability.service.name },
+                { label: 'Date', value: format(selectedDate, 'MMM d, yyyy') },
+                { label: 'Time', value: timeLabel },
+                ...(durationMin > 0 ? [{ label: 'Duration', value: `${durationMin} min` }] : []),
+                { label: 'Party Size', value: partySize.toString() },
+                ...(feeRate > 0 ? [
+                  { label: 'Subtotal', value: formatCurrency(subtotal) },
+                  { label: `Service Fee (${feeRate}%)`, value: formatCurrency(feeAmount) },
+                ] : []),
+              ];
+              return (
+                <div className="animate-fade-in-up">
+                  <BookingSummary
+                    title="Booking Summary"
+                    items={items}
+                    total={{ label: 'Total', value: formatCurrency(total) }}
+                  />
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right column — form with calendar */}
@@ -239,7 +266,10 @@ export default function BookingPage({
                       onValueChange={(v) => {
                         setSelectedServiceId(Number(v));
                         setSelectedDate(undefined);
-                        setStartTime(null);
+                        setSelectedSlotId(null);
+                        setSelectedSlotStartTime(null);
+                        setSelectedSlotEndTime(null);
+                        setSelectedSlotMaxCapacity(null);
                       }}
                     >
                       <SelectTrigger className="h-11 rounded-lg">
@@ -272,7 +302,10 @@ export default function BookingPage({
                           selectedDate={selectedDate}
                           onDateSelect={(date) => {
                             setSelectedDate(date);
-                            setStartTime(null);
+                            setSelectedSlotId(null);
+                            setSelectedSlotStartTime(null);
+                            setSelectedSlotEndTime(null);
+                            setSelectedSlotMaxCapacity(null);
                           }}
                           month={currentMonth}
                           onMonthChange={setCurrentMonth}
@@ -281,55 +314,80 @@ export default function BookingPage({
                     </div>
                   )}
 
-                  {/* Time slot picker */}
-                  {selectedDate && availability && (
+                  {/* Party size (before slot picker so capacity filtering works) */}
+                  {selectedDate && (
                     <div className="animate-fade-in">
-                      <Label className="mb-2 block">Select Time</Label>
-                      <TimeSlotPicker
-                        date={selectedDate}
-                        schedule={availability.schedule}
-                        bookedSlots={bookedSlotsForDay}
-                        serviceDuration={availability.service.duration}
-                        maxCapacity={availability.service.max_capacity}
-                        selectedTime={startTime}
-                        onTimeSelect={setStartTime}
+                      <Label>Party Size</Label>
+                      <Input
+                        type="number"
+                        className="h-11 rounded-lg"
+                        min={1}
+                        max={selectedSlotMaxCapacity ?? availability?.service.max_capacity ?? 100}
+                        value={partySize}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setPartySize(val > 0 ? val : 1);
+                          setSelectedSlotId(null);
+                          setSelectedSlotStartTime(null);
+                          setSelectedSlotEndTime(null);
+                          setSelectedSlotMaxCapacity(null);
+                        }}
                       />
                     </div>
                   )}
 
-                  {/* Party size & notes */}
-                  {startTime && (
-                    <div className="space-y-4 animate-fade-in">
-                      <div>
-                        <Label>Party Size</Label>
-                        <Input
-                          type="number"
-                          className="h-11 rounded-lg"
-                          min={1}
-                          max={availability?.service.max_capacity ?? 100}
-                          value={partySize}
-                          onChange={(e) => setPartySize(Number(e.target.value))}
-                        />
-                      </div>
+                  {/* Slot picker */}
+                  {selectedDate && selectedServiceId && (
+                    <div className="animate-fade-in">
+                      <Label className="mb-2 block">Select Time</Label>
+                      <MerchantSlotPicker
+                        slug={slug}
+                        serviceId={selectedServiceId}
+                        selectedDate={selectedDateStr}
+                        selectedSlotId={selectedSlotId}
+                        partySize={partySize}
+                        onSlotSelect={(slotId, slotStartTime, slotEndTime, slotMaxCapacity) => {
+                          setSelectedSlotId(slotId);
+                          setSelectedSlotStartTime(slotStartTime);
+                          setSelectedSlotEndTime(slotEndTime);
+                          setSelectedSlotMaxCapacity(slotMaxCapacity);
+                        }}
+                      />
+                    </div>
+                  )}
 
-                      <div>
-                        <Label>Notes (optional)</Label>
-                        <Textarea
-                          className="rounded-lg"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="Any special requests..."
-                        />
-                      </div>
+                  {/* Notes */}
+                  {selectedSlotStartTime && (
+                    <div className="animate-fade-in">
+                      <Label>Notes (optional)</Label>
+                      <Textarea
+                        className="rounded-lg"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Any special requests..."
+                      />
                     </div>
                   )}
                 </CardContent>
               </Card>
 
+              {merchant && (
+                <RewardSelector
+                  merchantId={merchant.id}
+                  selectedRewardId={selectedRewardId}
+                  onApply={setSelectedRewardId}
+                />
+              )}
+
               <Button
                 type="submit"
                 className="w-full h-11 rounded-full shadow-warm-lg"
-                disabled={!selectedServiceId || !selectedDate || !startTime || createBooking.isPending}
+                disabled={
+                  !selectedServiceId ||
+                  !selectedDate ||
+                  !selectedSlotStartTime ||
+                  createBooking.isPending
+                }
               >
                 {createBooking.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm Booking

@@ -18,9 +18,11 @@ class CreateCustomerBookingRequest extends FormRequest
         return [
             'service_id' => ['required', 'exists:services,id'],
             'booking_date' => ['required', 'date', 'after_or_equal:today'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'party_size' => ['sometimes', 'integer', 'min:1'],
+            'booking_slot_id' => ['nullable', 'integer', 'exists:merchant_booking_slots,id'],
+            'start_time' => ['required_without:booking_slot_id', 'nullable', 'date_format:H:i'],
+            'party_size' => ['required', 'integer', 'min:1'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'loyalty_reward_id' => ['nullable', 'integer', 'exists:loyalty_rewards,id'],
         ];
     }
 }

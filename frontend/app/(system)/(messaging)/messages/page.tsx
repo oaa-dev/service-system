@@ -1,56 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, MoreVertical, Trash2, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useMessagingStore } from '@/stores/messagingStore';
-import { useConversations, useDeleteConversation, useRealtimeMessaging } from '@/hooks/useMessaging';
+import { useConversations, useRealtimeMessaging } from '@/hooks/useMessaging';
 import { ConversationList } from '@/components/messaging/conversation-list';
 import { MessageList } from '@/components/messaging/message-list';
 import { MessageInput } from '@/components/messaging/message-input';
-import { MessageSearch } from '@/components/messaging/message-search';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { getInitials } from '@/lib/utils';
 
 export default function MessagesPage() {
-  const [showSearch, setShowSearch] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { conversations, activeConversationId, setActiveConversation } = useMessagingStore();
-  const deleteConversation = useDeleteConversation();
+  const { conversations, activeConversationId } = useMessagingStore();
 
-  // Setup real-time messaging
-  useRealtimeMessaging();
+  // Setup real-time messaging for the active conversation
+  useRealtimeMessaging(activeConversationId);
 
   // Fetch conversations
   useConversations();
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
-  const handleDeleteConversation = () => {
-    if (activeConversationId) {
-      deleteConversation.mutate(activeConversationId, {
-        onSuccess: () => {
-          setShowDeleteDialog(false);
-        },
-      });
-    }
-  };
+  const displayName = activeConversation?.other_user?.name ?? 'Unknown';
+  const avatarSrc = activeConversation?.other_user?.avatar?.thumb;
 
   return (
     <div className="h-[calc(100vh-4rem)] flex">
@@ -67,39 +38,19 @@ export default function MessagesPage() {
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={activeConversation.other_user.avatar?.thumb}
-                    alt={activeConversation.other_user.name}
-                  />
+                  <AvatarImage src={avatarSrc} alt={displayName} />
                   <AvatarFallback className="bg-primary/10 text-primary">
-                    {getInitials(activeConversation.other_user.name)}
+                    {getInitials(displayName)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="font-semibold">{activeConversation.other_user.name}</h2>
+                  <h2 className="font-semibold">{displayName}</h2>
+                  {activeConversation.conversable_label && (
+                    <p className="text-xs text-muted-foreground">
+                      {activeConversation.conversable_label}
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => setShowSearch(true)}>
-                  <Search className="h-5 w-5" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => setShowDeleteDialog(true)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete conversation
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </div>
 
@@ -118,31 +69,6 @@ export default function MessagesPage() {
           </div>
         )}
       </div>
-
-      {/* Search Dialog */}
-      <MessageSearch open={showSearch} onOpenChange={setShowSearch} />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the conversation from your list. The other person will still be able
-              to see the conversation history.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConversation}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

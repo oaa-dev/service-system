@@ -11,14 +11,12 @@ interface MessagingState {
   setConversations: (conversations: Conversation[]) => void;
   addConversation: (conversation: Conversation) => void;
   updateConversation: (conversationId: number, updates: Partial<Conversation>) => void;
-  removeConversation: (conversationId: number) => void;
   setActiveConversation: (conversationId: number | null) => void;
 
   // Message actions
   setMessages: (conversationId: number, messages: Message[]) => void;
   addMessage: (conversationId: number, message: Message) => void;
   prependMessages: (conversationId: number, messages: Message[]) => void;
-  removeMessage: (conversationId: number, messageId: number) => void;
 
   // Unread count actions
   setUnreadCount: (count: number) => void;
@@ -67,16 +65,6 @@ export const useMessagingStore = create<MessagingState>()((set) => ({
       ),
     })),
 
-  removeConversation: (conversationId) =>
-    set((state) => ({
-      conversations: state.conversations.filter((c) => c.id !== conversationId),
-      messages: Object.fromEntries(
-        Object.entries(state.messages).filter(([id]) => Number(id) !== conversationId)
-      ),
-      activeConversationId:
-        state.activeConversationId === conversationId ? null : state.activeConversationId,
-    })),
-
   setActiveConversation: (conversationId) => set({ activeConversationId: conversationId }),
 
   setMessages: (conversationId, messages) =>
@@ -114,16 +102,6 @@ export const useMessagingStore = create<MessagingState>()((set) => ({
         },
       };
     }),
-
-  removeMessage: (conversationId, messageId) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [conversationId]: (state.messages[conversationId] || []).filter(
-          (m) => m.id !== messageId
-        ),
-      },
-    })),
 
   setUnreadCount: (count) => set({ unreadCount: count }),
 

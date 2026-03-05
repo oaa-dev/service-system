@@ -16,6 +16,7 @@ class UpdateServiceOrderStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(['received', 'processing', 'ready', 'delivering', 'completed', 'cancelled'])],
+            'payment_action' => ['nullable', Rule::in(['request_payment', 'mark_cash'])],
         ];
     }
 }

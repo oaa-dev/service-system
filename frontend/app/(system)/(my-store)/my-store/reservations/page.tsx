@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useReservations, useUpdateReservationStatus } from '@/hooks/useReservations';
+import { useMarkAsPaid, useCheckPaymentStatus } from '@/hooks/usePayments';
 import { Reservation, ReservationStatus, ReservationQueryParams } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,9 +21,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ChevronLeft, ChevronRight, CalendarDays, RefreshCw, User, DoorOpen, DoorClosed, BedDouble, Ban, Plus,
+  ChevronLeft, ChevronRight, CalendarDays, RefreshCw, User, DoorOpen, DoorClosed, BedDouble, Ban, Plus, List, CreditCard,
 } from 'lucide-react';
 import { CreateReservationDialog } from '@/app/(system)/(merchants)/merchants/[id]/reservations/create-reservation-dialog';
+import { ReservationsCalendarView } from './reservations-calendar-view';
 
 const reservationStatusColors: Record<ReservationStatus, string> = {
   pending: 'bg-yellow-500',
@@ -30,6 +32,14 @@ const reservationStatusColors: Record<ReservationStatus, string> = {
   checked_in: 'bg-emerald-500',
   checked_out: 'bg-gray-500',
   cancelled: 'bg-red-500',
+};
+
+const paymentStatusConfig: Record<string, { label: string; variant: 'outline' | 'secondary' | 'default' | 'destructive'; className?: string }> = {
+  unpaid: { label: 'Unpaid', variant: 'outline' },
+  pending: { label: 'Pending', variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  paid: { label: 'Paid', variant: 'secondary', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  failed: { label: 'Failed', variant: 'destructive' },
+  refunded: { label: 'Refunded', variant: 'secondary', className: 'bg-purple-100 text-purple-800 border-purple-200' },
 };
 
 const filters: FilterField[] = [
@@ -62,30 +72,60 @@ const VALID_ACTIONS: Record<string, { label: string; status: ReservationStatus; 
 export default function MyStoreReservationsPage() {
   const { user } = useAuthStore();
   const merchantId = user?.merchant?.id;
+  const isOrganization = user?.merchant?.type === 'organization';
+
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [statusAction, setStatusAction] = useState<{ reservation: Reservation; status: ReservationStatus } | null>(null);
+  const [paymentAction, setPaymentAction] = useState<'request_payment' | 'mark_cash' | ''>('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const queryParams = useMemo<ReservationQueryParams>(() => {
     const params: ReservationQueryParams = { page, per_page: perPage };
     if (filterValues.status) params['filter[status]'] = filterValues.status;
+    if (filterValues.date_from) params['filter[date_from]'] = filterValues.date_from;
+    if (filterValues.date_to) params['filter[date_to]'] = filterValues.date_to;
     return params;
   }, [page, perPage, filterValues]);
 
   const { data, isLoading, refetch, isFetching } = useReservations(merchantId!, queryParams);
   const statusMutation = useUpdateReservationStatus();
+  const markAsPaidMutation = useMarkAsPaid();
+  const checkStatusMutation = useCheckPaymentStatus();
 
   const handleFilterChange = useCallback((values: FilterValues) => { setFilterValues(values); setPage(1); }, []);
   const handleFilterReset = useCallback(() => { setFilterValues({}); setPage(1); }, []);
 
+  const handleDayClick = useCallback((date: string) => {
+    setFilterValues((prev) => ({ ...prev, date_from: date, date_to: date }));
+    setPage(1);
+    setViewMode('list');
+  }, []);
+
   const handleStatusUpdate = () => {
     if (statusAction && merchantId) {
       statusMutation.mutate(
-        { merchantId, reservationId: statusAction.reservation.id, data: { status: statusAction.status } },
-        { onSuccess: () => setStatusAction(null) }
+        {
+          merchantId,
+          reservationId: statusAction.reservation.id,
+          data: {
+            status: statusAction.status,
+            payment_action: paymentAction || null,
+          },
+        },
+        {
+          onSuccess: () => {
+            setStatusAction(null);
+            setPaymentAction('');
+          },
+        }
       );
     }
   };
@@ -116,8 +156,41 @@ export default function MyStoreReservationsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Reservations</h1>
           <p className="text-muted-foreground">Manage your rental reservations</p>
         </div>
+        <div className="flex items-center gap-1 rounded-md border p-1">
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4 mr-1" /> List
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+          >
+            <CalendarDays className="h-4 w-4 mr-1" /> Calendar
+          </Button>
+        </div>
       </div>
 
+      {viewMode === 'calendar' && (
+        <Card>
+          <CardHeader className="border-b">
+            <CardTitle>Reservation Calendar</CardTitle>
+            <CardDescription>Click a day to filter reservations by date</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ReservationsCalendarView
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              onDayClick={handleDayClick}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {viewMode === 'list' && (
       <Card>
         <CardHeader className="border-b">
           <div className="flex flex-col gap-4">
@@ -159,6 +232,9 @@ export default function MyStoreReservationsPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">#{reservation.id}</span>
                         <span className="text-muted-foreground">{reservation.service?.name || `Service #${reservation.service_id}`}</span>
+                        {isOrganization && reservation.merchant && reservation.merchant.id !== merchantId && (
+                          <Badge variant="outline" className="text-xs">{reservation.merchant.name}</Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
                         <User className="h-3 w-3" />
@@ -185,13 +261,21 @@ export default function MyStoreReservationsPage() {
                       {reservation.notes && <p className="text-sm text-muted-foreground mt-1">{reservation.notes}</p>}
                       {reservation.special_requests && <p className="text-sm text-muted-foreground mt-1 italic">{reservation.special_requests}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                       <Badge className={reservationStatusColors[reservation.status]}>{reservation.status.replace(/_/g, ' ')}</Badge>
+                      {reservation.payment_status && (() => {
+                        const cfg = paymentStatusConfig[reservation.payment_status] ?? { label: reservation.payment_status, variant: 'outline' as const };
+                        return (
+                          <Badge variant={cfg.variant} className={cfg.className}>
+                            <CreditCard className="h-3 w-3 mr-1" />{cfg.label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
-                  {VALID_ACTIONS[reservation.status] && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t">
-                      {VALID_ACTIONS[reservation.status].map((action) => (
+                  {(VALID_ACTIONS[reservation.status] || reservation.payment?.id) && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t flex-wrap">
+                      {VALID_ACTIONS[reservation.status]?.map((action) => (
                         <Button
                           key={action.status}
                           variant={action.variant || 'default'}
@@ -202,6 +286,26 @@ export default function MyStoreReservationsPage() {
                           {action.icon}{action.label}
                         </Button>
                       ))}
+                      {reservation.payment?.id && (reservation.payment_status === 'pending' || reservation.payment_status === 'unpaid') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markAsPaidMutation.mutate({ id: reservation.payment!.id })}
+                          disabled={markAsPaidMutation.isPending}
+                        >
+                          <CreditCard className="mr-1 h-3 w-3" /> Mark as Paid
+                        </Button>
+                      )}
+                      {reservation.payment?.id && reservation.payment_status === 'pending' && reservation.payment.gateway !== 'cash' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => checkStatusMutation.mutate({ id: reservation.payment!.id })}
+                          disabled={checkStatusMutation.isPending}
+                        >
+                          <RefreshCw className={`mr-1 h-3 w-3 ${checkStatusMutation.isPending ? 'animate-spin' : ''}`} /> Check Status
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -222,10 +326,11 @@ export default function MyStoreReservationsPage() {
           </div>
         )}
       </Card>
+      )}
 
       <CreateReservationDialog merchantId={merchantId} serviceMerchantId={user?.merchant?.parent_id ?? undefined} open={createOpen} onOpenChange={setCreateOpen} />
 
-      <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
+      <AlertDialog open={!!statusAction} onOpenChange={(open) => { if (!open) { setStatusAction(null); setPaymentAction(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Update Reservation Status</AlertDialogTitle>
@@ -233,6 +338,21 @@ export default function MyStoreReservationsPage() {
               Are you sure you want to change reservation #{statusAction?.reservation.id} status to <span className="font-semibold">{statusAction?.status.replace(/_/g, ' ')}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {statusAction?.status === 'confirmed' && (
+            <div className="py-2">
+              <p className="text-sm font-medium mb-2">Payment Action</p>
+              <Select value={paymentAction} onValueChange={(v) => setPaymentAction(v as typeof paymentAction)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No payment action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Payment Action</SelectItem>
+                  <SelectItem value="request_payment">Request Online Payment</SelectItem>
+                  <SelectItem value="mark_cash">Mark as Cash</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleStatusUpdate}>

@@ -51,6 +51,16 @@ export default function BookingsPage() {
     return '';
   };
 
+  const getPaymentBadgeClassName = (status: string): string => {
+    switch (status) {
+      case 'paid': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
+      case 'refunded': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
   const canCancel = (status: string): boolean => {
     return status === 'pending' || status === 'confirmed';
   };
@@ -156,6 +166,11 @@ export default function BookingsPage() {
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Total Amount</p>
                       <p className="text-lg font-semibold font-[family-name:var(--font-display)]">{formatCurrency(booking.total_amount)}</p>
+                      {booking.payment_status && (
+                        <Badge className={`text-xs ${getPaymentBadgeClassName(booking.payment_status)}`}>
+                          {booking.payment_status.replace('_', ' ')}
+                        </Badge>
+                      )}
                     </div>
                     {canCancel(booking.status) && (
                       <Button

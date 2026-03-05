@@ -13,8 +13,9 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
   const { isAuthenticated } = useAuthStore();
   const { reset } = useMessagingStore();
 
-  // Setup real-time messaging
-  useRealtimeMessaging();
+  // Real-time messaging for the active conversation is set up in messages/page.tsx.
+  // Pass null here so the hook is satisfied without subscribing to any channel.
+  useRealtimeMessaging(null);
 
   // Fetch initial unread count
   useMessagesUnreadCount();

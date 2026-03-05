@@ -30,6 +30,7 @@ class BookingFactory extends Factory
             'fee_rate' => 0,
             'fee_amount' => 0,
             'total_amount' => 0,
+            'discount_amount' => 0,
             'status' => 'pending',
             'notes' => null,
         ];

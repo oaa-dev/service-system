@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class ServiceOrder extends Model
 {
@@ -22,6 +23,8 @@ class ServiceOrder extends Model
         'fee_rate',
         'fee_amount',
         'total_amount',
+        'discount_amount',
+        'payment_status',
         'status',
         'notes',
         'estimated_completion',
@@ -32,9 +35,11 @@ class ServiceOrder extends Model
 
     protected $attributes = [
         'status' => 'pending',
+        'payment_status' => 'unpaid',
         'fee_rate' => 0,
         'fee_amount' => 0,
         'total_amount' => 0,
+        'discount_amount' => 0,
     ];
 
     protected function casts(): array
@@ -46,6 +51,7 @@ class ServiceOrder extends Model
             'fee_rate' => 'decimal:2',
             'fee_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'estimated_completion' => 'datetime',
             'received_at' => 'datetime',
             'completed_at' => 'datetime',
@@ -66,5 +72,10 @@ class ServiceOrder extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function payment(): MorphOne
+    {
+        return $this->morphOne(\App\Models\Payment::class, 'payable');
     }
 }

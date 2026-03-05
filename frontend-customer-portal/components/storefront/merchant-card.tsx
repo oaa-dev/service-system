@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { getInitials } from '@/lib/utils';
 import { isOpenNow } from '@/lib/storefront-utils';
+import { FavoriteButton } from '@/components/storefront/favorite-button';
+import { StarRating } from '@/components/reviews/star-rating';
 import type { Merchant } from '@/types/api';
 
 interface MerchantCardProps {
@@ -13,7 +15,10 @@ interface MerchantCardProps {
 }
 
 export function MerchantCard({ merchant }: MerchantCardProps) {
-  const openStatus = merchant.business_hours ? isOpenNow(merchant.business_hours) : null;
+  const businessHours = merchant.business_hours?.length ? merchant.business_hours : merchant.parent?.business_hours;
+  const openStatus = businessHours ? isOpenNow(businessHours) : null;
+  const coverImage = merchant.gallery_feature?.preview ?? merchant.parent?.gallery_feature?.preview ?? merchant.logo?.preview ?? merchant.parent?.logo?.preview;
+  const logoThumb = merchant.logo?.thumb ?? merchant.parent?.logo?.thumb;
   const cityName = merchant.address?.city?.name;
   const provinceName = merchant.address?.province?.name;
   const location = [cityName, provinceName].filter(Boolean).join(', ');
@@ -23,9 +28,9 @@ export function MerchantCard({ merchant }: MerchantCardProps) {
       <Card className="group overflow-hidden hover-lift transition-all duration-300 border-warm-200/30 shadow-warm gap-0 py-0">
         {/* Cover Image Section */}
         <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/20 via-warm-100 to-accent/20">
-          {(merchant.gallery_feature?.preview || merchant.logo?.preview) ? (
+          {coverImage ? (
             <img
-              src={merchant.gallery_feature?.preview || merchant.logo?.preview}
+              src={coverImage}
               alt={merchant.name}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
@@ -36,15 +41,20 @@ export function MerchantCard({ merchant }: MerchantCardProps) {
           )}
 
           {/* Logo overlay - bottom left */}
-          {merchant.logo?.thumb && (
+          {logoThumb && (
             <div className="absolute bottom-2 left-2">
               <img
-                src={merchant.logo.thumb}
+                src={logoThumb}
                 alt=""
                 className="h-10 w-10 rounded-full border-2 border-white object-cover shadow-md"
               />
             </div>
           )}
+
+          {/* Favorite button - top left */}
+          <div className="absolute top-2 left-2 z-10">
+            <FavoriteButton merchantId={merchant.id} isFavorited={merchant.is_favorited} />
+          </div>
 
           {/* Open Now badge - top right */}
           {openStatus && (
@@ -65,9 +75,20 @@ export function MerchantCard({ merchant }: MerchantCardProps) {
 
         {/* Info Section */}
         <div className="p-4 space-y-2">
-          <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-            {merchant.name}
-          </h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+              {merchant.name}
+            </h3>
+          </div>
+
+          {merchant.review_count > 0 && (
+            <div className="flex items-center gap-1">
+              <StarRating rating={Math.round(parseFloat(merchant.average_rating ?? '0'))} size="sm" />
+              <span className="text-xs text-muted-foreground">
+                {parseFloat(merchant.average_rating ?? '0').toFixed(1)} ({merchant.review_count})
+              </span>
+            </div>
+          )}
 
           {merchant.business_type?.name && (
             <p className="text-sm text-muted-foreground">{merchant.business_type.name}</p>

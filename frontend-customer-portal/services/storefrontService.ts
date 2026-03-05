@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { ApiResponse, PaginatedResponse, Merchant, Service, BusinessType, PaymentMethod, BookingAvailabilityResponse, ReservationAvailabilityResponse } from '@/types/api';
+import { ApiResponse, PaginatedResponse, Merchant, Service, BusinessType, PaymentMethod, PlatformFee, BookingAvailabilityResponse, ReservationAvailabilityResponse, BookingDayAvailability } from '@/types/api';
 
 export interface StorefrontMerchantParams {
   page?: number;
@@ -29,6 +29,10 @@ export const storefrontService = {
   },
   getMerchantBySlug: async (slug: string): Promise<ApiResponse<Merchant>> => {
     const response = await api.get<ApiResponse<Merchant>>(`/storefront/merchants/${slug}`);
+    return response.data;
+  },
+  getMerchantBranches: async (slug: string): Promise<PaginatedResponse<Merchant>> => {
+    const response = await api.get<PaginatedResponse<Merchant>>(`/storefront/merchants/${slug}/branches`);
     return response.data;
   },
   getMerchantServices: async (slug: string, params?: StorefrontServiceParams): Promise<PaginatedResponse<Service>> => {
@@ -63,6 +67,17 @@ export const storefrontService = {
       `/storefront/merchants/${slug}/services/${serviceId}/reservation-availability`,
       { params: { month } },
     );
+    return response.data;
+  },
+  getBookingSlotAvailability: async (slug: string, serviceId: number, date: string): Promise<BookingDayAvailability> => {
+    const response = await api.get<ApiResponse<BookingDayAvailability>>(
+      `/storefront/merchants/${slug}/services/${serviceId}/booking-availability`,
+      { params: { date } },
+    );
+    return response.data.data;
+  },
+  getActivePlatformFees: async (): Promise<ApiResponse<PlatformFee[]>> => {
+    const response = await api.get<ApiResponse<PlatformFee[]>>('/platform-fees/active');
     return response.data;
   },
 };

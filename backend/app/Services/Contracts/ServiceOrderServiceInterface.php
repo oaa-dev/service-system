@@ -14,5 +14,5 @@ interface ServiceOrderServiceInterface
 
     public function createServiceOrder(int $merchantId, ServiceOrderData $data): ServiceOrder;
 
-    public function updateServiceOrderStatus(int $merchantId, int $serviceOrderId, string $status): ServiceOrder;
+    public function updateServiceOrderStatus(int $merchantId, int $serviceOrderId, string $status, ?string $paymentAction = null): ServiceOrder;
 }

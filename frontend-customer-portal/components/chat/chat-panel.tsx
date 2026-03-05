@@ -11,8 +11,8 @@ import { getEcho } from '@/lib/echo';
 import type { Message } from '@/types/api';
 
 export interface ChatPanelProps {
-  type: 'bookings' | 'reservations' | 'orders';
-  id: number;
+  type: 'bookings' | 'reservations' | 'orders' | 'inquiries';
+  id: number | string;
 }
 
 export function ChatPanel({ type, id }: ChatPanelProps) {

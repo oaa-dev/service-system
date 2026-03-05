@@ -1,345 +1,806 @@
 <?php
 
 use App\Models\Conversation;
+use App\Models\Customer;
+use App\Models\Merchant;
 use App\Models\Message;
 use App\Models\User;
 use Laravel\Passport\Passport;
 
-beforeEach(function () {
-    $this->user = User::factory()->create();
-    $this->otherUser = User::factory()->create();
-    Passport::actingAs($this->user);
-});
+/**
+ * Helpers to build the two actor types used throughout these tests.
+ *
+ * createMerchantActor() — a verified merchant user who owns a merchant record.
+ *    The onboarding middleware passes because the user has a Merchant profile.
+ *
+ * createCustomerActor() — a verified customer user.
+ *    The onboarding middleware passes because it only blocks merchant users.
+ */
+function createMerchantActor(): array
+{
+    $user = User::factory()->create();
+    $user->assignRole('merchant');
+    $merchant = Merchant::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+    ]);
 
-describe('Conversations', function () {
-    it('can list conversations', function () {
-        // Create a conversation between users
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
+    return ['user' => $user, 'merchant' => $merchant];
+}
 
-        $response = $this->getJson('/api/v1/conversations');
+function createCustomerActor(): array
+{
+    $user = User::factory()->create();
+    $user->assignRole('customer');
+    $customer = Customer::factory()->create(['user_id' => $user->id]);
 
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [
-                    '*' => ['id', 'other_user', 'unread_count', 'created_at', 'updated_at'],
-                ],
-                'meta',
-            ])
-            ->assertJson(['success' => true]);
-    });
+    return ['user' => $user, 'customer' => $customer];
+}
 
-    it('can start a new conversation', function () {
-        $response = $this->postJson('/api/v1/conversations', [
-            'recipient_id' => $this->otherUser->id,
-        ]);
+// ---------------------------------------------------------------------------
+// Test suite
+// ---------------------------------------------------------------------------
 
-        $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Conversation started successfully',
-            ])
-            ->assertJsonStructure([
-                'data' => ['id', 'other_user', 'unread_count'],
+describe('MessagingController', function () {
+
+    // -----------------------------------------------------------------------
+    // GET /conversations
+    // -----------------------------------------------------------------------
+
+    describe('GET /conversations', function () {
+
+        it('merchant sees their customer conversations', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            Passport::actingAs($merchantUser);
+
+            $customerUser = User::factory()->create();
+
+            Conversation::factory()->count(3)->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
             ]);
 
-        $this->assertDatabaseHas('conversations', [
-            'user_one_id' => min($this->user->id, $this->otherUser->id),
-            'user_two_id' => max($this->user->id, $this->otherUser->id),
-        ]);
-    });
+            $response = $this->getJson('/api/v1/conversations');
 
-    it('can start a conversation with initial message', function () {
-        $response = $this->postJson('/api/v1/conversations', [
-            'recipient_id' => $this->otherUser->id,
-            'message' => 'Hello!',
-        ]);
+            $response->assertStatus(200)
+                ->assertJson(['success' => true])
+                ->assertJsonStructure([
+                    'success',
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'conversable_type',
+                            'conversable_id',
+                            'last_message_at',
+                        ],
+                    ],
+                    'meta',
+                ]);
 
-        $response->assertStatus(201);
+            expect($response->json('meta.total'))->toBe(3);
+        });
 
-        $this->assertDatabaseHas('messages', [
-            'sender_id' => $this->user->id,
-            'body' => 'Hello!',
-        ]);
-    });
+        it('only returns conversations belonging to the authenticated merchant', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $otherMerchant = Merchant::factory()->create(['status' => 'active']);
+            $customerUser = User::factory()->create();
 
-    it('cannot start a conversation with yourself', function () {
-        $response = $this->postJson('/api/v1/conversations', [
-            'recipient_id' => $this->user->id,
-        ]);
-
-        $response->assertStatus(400);
-    });
-
-    it('returns existing conversation if already exists', function () {
-        // Create existing conversation
-        $existingConversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        $response = $this->postJson('/api/v1/conversations', [
-            'recipient_id' => $this->otherUser->id,
-        ]);
-
-        $response->assertStatus(201);
-        expect($response->json('data.id'))->toBe($existingConversation->id);
-    });
-
-    it('can show a specific conversation', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        $response = $this->getJson("/api/v1/conversations/{$conversation->id}");
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'data' => [
-                    'id' => $conversation->id,
-                ],
-            ]);
-    });
-
-    it('cannot access conversation you are not part of', function () {
-        $thirdUser = User::factory()->create();
-        $conversation = Conversation::create([
-            'user_one_id' => $this->otherUser->id,
-            'user_two_id' => $thirdUser->id,
-        ]);
-
-        $response = $this->getJson("/api/v1/conversations/{$conversation->id}");
-
-        $response->assertStatus(403);
-    });
-
-    it('can delete a conversation', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        $response = $this->deleteJson("/api/v1/conversations/{$conversation->id}");
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Conversation deleted successfully',
+            Conversation::factory()->count(2)->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
             ]);
 
-        // Verify participant is soft deleted
-        $this->assertSoftDeleted('conversation_participants', [
-            'conversation_id' => $conversation->id,
-            'user_id' => $this->user->id,
-        ]);
-    });
-});
-
-describe('Messages', function () {
-    it('can get messages for a conversation', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->user->id,
-            'body' => 'Test message',
-        ]);
-
-        $response = $this->getJson("/api/v1/conversations/{$conversation->id}/messages");
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'data' => [
-                    '*' => ['id', 'conversation_id', 'sender_id', 'body', 'created_at'],
-                ],
-                'meta',
-            ]);
-    });
-
-    it('can send a message', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
-            'body' => 'Hello, how are you?',
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Message sent successfully',
-            ])
-            ->assertJsonPath('data.body', 'Hello, how are you?');
-
-        $this->assertDatabaseHas('messages', [
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->user->id,
-            'body' => 'Hello, how are you?',
-        ]);
-    });
-
-    it('cannot send empty message', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
-            'body' => '',
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['body']);
-    });
-
-    it('can mark conversation as read', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        // Create an unread message from the other user
-        Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->otherUser->id,
-            'body' => 'Hello!',
-        ]);
-
-        // Update the participant unread count
-        $participant = $conversation->participants()->where('user_id', $this->user->id)->first();
-        $participant->update(['unread_count' => 1]);
-
-        $response = $this->postJson("/api/v1/conversations/{$conversation->id}/read");
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Conversation marked as read',
+            // Conversations belonging to another merchant — should not appear
+            Conversation::factory()->count(5)->create([
+                'merchant_id' => $otherMerchant->id,
+                'customer_id' => $customerUser->id,
             ]);
 
-        // Verify unread count is reset
-        $participant->refresh();
-        expect($participant->unread_count)->toBe(0);
-    });
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson('/api/v1/conversations');
 
-    it('can delete own message', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
+            $response->assertStatus(200);
+            expect($response->json('meta.total'))->toBe(2);
+        });
 
-        $message = Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->user->id,
-            'body' => 'Test message',
-        ]);
+        it('customer sees their own conversations', function () {
+            ['user' => $customerUser] = createCustomerActor();
+            $merchant = Merchant::factory()->create(['status' => 'active']);
 
-        $response = $this->deleteJson("/api/v1/messages/{$message->id}");
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Message deleted successfully',
+            Conversation::factory()->count(2)->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
             ]);
 
-        $this->assertSoftDeleted('messages', ['id' => $message->id]);
+            Passport::actingAs($customerUser);
+            $response = $this->getJson('/api/v1/conversations');
+
+            $response->assertStatus(200)
+                ->assertJson(['success' => true]);
+
+            expect($response->json('meta.total'))->toBe(2);
+        });
+
+        it('returns empty list when user has no conversations', function () {
+            ['user' => $merchantUser] = createMerchantActor();
+            Passport::actingAs($merchantUser);
+
+            $response = $this->getJson('/api/v1/conversations');
+
+            $response->assertStatus(200)
+                ->assertJson(['success' => true, 'data' => []]);
+        });
+
+        it('returns 401 when unauthenticated', function () {
+            app('auth')->forgetGuards();
+
+            $response = $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/conversations');
+
+            $response->assertStatus(401);
+        });
     });
 
-    it('cannot delete other users message', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
+    // -----------------------------------------------------------------------
+    // GET /conversations/{id}/messages
+    // -----------------------------------------------------------------------
 
-        $message = Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->otherUser->id,
-            'body' => 'Test message',
-        ]);
+    describe('GET /conversations/{id}/messages', function () {
 
-        $response = $this->deleteJson("/api/v1/messages/{$message->id}");
+        it('merchant can view messages in their conversation', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
 
-        $response->assertStatus(403);
-    });
-});
-
-describe('Unread Count', function () {
-    it('can get total unread message count', function () {
-        $response = $this->getJson('/api/v1/messages/unread-count');
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'data' => ['count'],
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
             ]);
-    });
-});
 
-describe('Message Search', function () {
-    it('can search messages', function () {
-        $conversation = Conversation::create([
-            'user_one_id' => $this->user->id,
-            'user_two_id' => $this->otherUser->id,
-        ]);
-
-        Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->user->id,
-            'body' => 'Hello world',
-        ]);
-
-        Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $this->user->id,
-            'body' => 'Goodbye world',
-        ]);
-
-        $response = $this->getJson('/api/v1/messages/search?q=Hello');
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'data',
-                'meta',
+            Message::factory()->count(4)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
             ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson("/api/v1/conversations/{$conversation->id}/messages");
+
+            $response->assertStatus(200)
+                ->assertJson(['success' => true])
+                ->assertJsonStructure([
+                    'success',
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'conversation_id',
+                            'sender_id',
+                            'body',
+                            'read_at',
+                            'is_mine',
+                            'created_at',
+                            'updated_at',
+                        ],
+                    ],
+                    'meta',
+                ]);
+
+            expect($response->json('meta.total'))->toBe(4);
+        });
+
+        it('customer can view messages in their conversation', function () {
+            ['user' => $customerUser] = createCustomerActor();
+            $merchant = Merchant::factory()->create(['status' => 'active']);
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Message::factory()->count(2)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($customerUser);
+            $response = $this->getJson("/api/v1/conversations/{$conversation->id}/messages");
+
+            $response->assertStatus(200)
+                ->assertJson(['success' => true]);
+
+            expect($response->json('meta.total'))->toBe(2);
+        });
+
+        it('messages are returned in ascending chronological order', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+                'body' => 'First message',
+                'created_at' => now()->subMinutes(10),
+            ]);
+
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+                'body' => 'Second message',
+                'created_at' => now()->subMinutes(5),
+            ]);
+
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+                'body' => 'Third message',
+                'created_at' => now(),
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson("/api/v1/conversations/{$conversation->id}/messages");
+
+            $response->assertStatus(200);
+
+            $messages = $response->json('data');
+            expect($messages[0]['body'])->toBe('First message');
+            expect($messages[1]['body'])->toBe('Second message');
+            expect($messages[2]['body'])->toBe('Third message');
+        });
+
+        it('is_mine is true for messages sent by the authenticated user', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // Message sent by the merchant user themselves
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $merchantUser->id,
+                'body' => 'My own message',
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson("/api/v1/conversations/{$conversation->id}/messages");
+
+            $response->assertStatus(200);
+            expect($response->json('data.0.is_mine'))->toBeTrue();
+        });
+
+        it('returns 403 when user is not a participant', function () {
+            ['user' => $outsider] = createCustomerActor();
+            $merchant = Merchant::factory()->create(['status' => 'active']);
+            $otherCustomer = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $otherCustomer->id,
+            ]);
+
+            Passport::actingAs($outsider);
+            $response = $this->getJson("/api/v1/conversations/{$conversation->id}/messages");
+
+            $response->assertStatus(403);
+        });
+
+        it('returns 404 when conversation does not exist', function () {
+            ['user' => $merchantUser] = createMerchantActor();
+            Passport::actingAs($merchantUser);
+
+            $response = $this->getJson('/api/v1/conversations/99999/messages');
+
+            $response->assertStatus(404);
+        });
+
+        it('returns 401 when unauthenticated', function () {
+            app('auth')->forgetGuards();
+
+            $response = $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/conversations/1/messages');
+
+            $response->assertStatus(401);
+        });
     });
 
-    it('requires minimum search query length', function () {
-        $response = $this->getJson('/api/v1/messages/search?q=H');
+    // -----------------------------------------------------------------------
+    // POST /conversations/{id}/messages
+    // -----------------------------------------------------------------------
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['q']);
+    describe('POST /conversations/{id}/messages', function () {
+
+        it('merchant can send a message', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
+                'body' => 'Hello from the merchant!',
+            ]);
+
+            $response->assertStatus(201)
+                ->assertJson([
+                    'success' => true,
+                    'message' => 'Message sent successfully',
+                    'data' => [
+                        'sender_id' => $merchantUser->id,
+                        'body' => 'Hello from the merchant!',
+                        'is_mine' => true,
+                    ],
+                ]);
+
+            $this->assertDatabaseHas('messages', [
+                'conversation_id' => $conversation->id,
+                'sender_id' => $merchantUser->id,
+                'body' => 'Hello from the merchant!',
+            ]);
+        });
+
+        it('customer can send a message', function () {
+            ['user' => $customerUser] = createCustomerActor();
+            $merchant = Merchant::factory()->create(['status' => 'active']);
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($customerUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
+                'body' => 'Hello from the customer!',
+            ]);
+
+            $response->assertStatus(201)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'sender_id' => $customerUser->id,
+                        'body' => 'Hello from the customer!',
+                    ],
+                ]);
+        });
+
+        it('message response includes sender information', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
+                'body' => 'Test message',
+            ]);
+
+            $response->assertStatus(201)
+                ->assertJsonStructure([
+                    'data' => [
+                        'id',
+                        'conversation_id',
+                        'sender_id',
+                        'sender',
+                        'body',
+                        'read_at',
+                        'is_mine',
+                        'created_at',
+                        'updated_at',
+                    ],
+                ]);
+        });
+
+        it('sending a message updates last_message_at on the conversation', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+            $originalTime = now()->subHour();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+                'last_message_at' => $originalTime,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
+                'body' => 'This should update last_message_at',
+            ]);
+
+            $conversation->refresh();
+            expect($conversation->last_message_at->gt($originalTime))->toBeTrue();
+        });
+
+        it('returns 403 when user is not a participant', function () {
+            ['user' => $outsider] = createCustomerActor();
+            $merchant = Merchant::factory()->create(['status' => 'active']);
+            $otherCustomer = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $otherCustomer->id,
+            ]);
+
+            Passport::actingAs($outsider);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
+                'body' => 'I should not be able to send this',
+            ]);
+
+            $response->assertStatus(403);
+        });
+
+        it('returns 404 when conversation does not exist', function () {
+            ['user' => $merchantUser] = createMerchantActor();
+            Passport::actingAs($merchantUser);
+
+            $response = $this->postJson('/api/v1/conversations/99999/messages', [
+                'body' => 'This conversation does not exist',
+            ]);
+
+            $response->assertStatus(404);
+        });
+
+        it('validates body is required', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", []);
+
+            $response->assertStatus(422)
+                ->assertJsonValidationErrors(['body']);
+        });
+
+        it('validates body cannot be empty string', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/messages", [
+                'body' => '',
+            ]);
+
+            $response->assertStatus(422)
+                ->assertJsonValidationErrors(['body']);
+        });
+
+        it('returns 401 when unauthenticated', function () {
+            app('auth')->forgetGuards();
+
+            $response = $this->withHeaders(['Authorization' => ''])->postJson('/api/v1/conversations/1/messages', [
+                'body' => 'Unauthenticated message attempt',
+            ]);
+
+            $response->assertStatus(401);
+        });
     });
-});
 
-describe('Authentication', function () {
-    it('requires authentication for conversations list', function () {
-        $this->app['auth']->forgetGuards();
+    // -----------------------------------------------------------------------
+    // POST /conversations/{id}/read
+    // -----------------------------------------------------------------------
 
-        $response = $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/conversations');
+    describe('POST /conversations/{id}/read', function () {
 
-        $response->assertStatus(401);
+        it('marks unread messages from the other party as read', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // Customer sends 3 unread messages — merchant marks them as read
+            Message::factory()->count(3)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+                'read_at' => null,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/read");
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'message' => 'Conversation marked as read',
+                ]);
+
+            $stillUnread = Message::where('conversation_id', $conversation->id)
+                ->where('sender_id', $customerUser->id)
+                ->whereNull('read_at')
+                ->count();
+
+            expect($stillUnread)->toBe(0);
+        });
+
+        it('does not mark the actor\'s own messages as read', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // Merchant sends their own messages (these should not be touched by markAsRead)
+            Message::factory()->count(2)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $merchantUser->id,
+                'read_at' => null,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $this->postJson("/api/v1/conversations/{$conversation->id}/read");
+
+            // Merchant's own messages should remain unread (read_at = null)
+            $ownUnread = Message::where('conversation_id', $conversation->id)
+                ->where('sender_id', $merchantUser->id)
+                ->whereNull('read_at')
+                ->count();
+
+            expect($ownUnread)->toBe(2);
+        });
+
+        it('does not overwrite a previously-set read_at timestamp', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            $originalReadAt = now()->subHour();
+
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+                'read_at' => $originalReadAt,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $this->postJson("/api/v1/conversations/{$conversation->id}/read");
+
+            $message = Message::first();
+            expect($message->fresh()->read_at->toDateTimeString())->toBe($originalReadAt->toDateTimeString());
+        });
+
+        it('customer can also mark a conversation as read', function () {
+            ['user' => $customerUser] = createCustomerActor();
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // Merchant sends unread messages
+            Message::factory()->count(2)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $merchantUser->id,
+                'read_at' => null,
+            ]);
+
+            Passport::actingAs($customerUser);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/read");
+
+            $response->assertStatus(200);
+
+            $stillUnread = Message::where('conversation_id', $conversation->id)
+                ->where('sender_id', $merchantUser->id)
+                ->whereNull('read_at')
+                ->count();
+
+            expect($stillUnread)->toBe(0);
+        });
+
+        it('returns 403 when user is not a participant', function () {
+            ['user' => $outsider] = createCustomerActor();
+            $merchant = Merchant::factory()->create(['status' => 'active']);
+            $otherCustomer = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $otherCustomer->id,
+            ]);
+
+            Passport::actingAs($outsider);
+            $response = $this->postJson("/api/v1/conversations/{$conversation->id}/read");
+
+            $response->assertStatus(403);
+        });
+
+        it('returns 404 when conversation does not exist', function () {
+            ['user' => $merchantUser] = createMerchantActor();
+            Passport::actingAs($merchantUser);
+
+            $response = $this->postJson('/api/v1/conversations/99999/read');
+
+            $response->assertStatus(404);
+        });
+
+        it('returns 401 when unauthenticated', function () {
+            app('auth')->forgetGuards();
+
+            $response = $this->withHeaders(['Authorization' => ''])->postJson('/api/v1/conversations/1/read');
+
+            $response->assertStatus(401);
+        });
     });
 
-    it('requires authentication for sending messages', function () {
-        $this->app['auth']->forgetGuards();
+    // -----------------------------------------------------------------------
+    // GET /messages/unread-count
+    // -----------------------------------------------------------------------
 
-        $response = $this->withHeaders(['Authorization' => ''])->postJson('/api/v1/conversations/1/messages', [
-            'body' => 'Test',
-        ]);
+    describe('GET /messages/unread-count', function () {
 
-        $response->assertStatus(401);
+        it('returns the correct unread count for a merchant', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // 3 unread messages FROM the customer (merchant has not read them)
+            Message::factory()->count(3)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+                'read_at' => null,
+            ]);
+
+            // 1 already-read message from the customer (should not count)
+            Message::factory()->read()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+            ]);
+
+            // 1 message sent BY the merchant (should not count towards unread)
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $merchantUser->id,
+                'read_at' => null,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson('/api/v1/messages/unread-count');
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => ['count' => 3],
+                ]);
+        });
+
+        it('returns the correct unread count for a customer', function () {
+            ['user' => $customerUser] = createCustomerActor();
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // 2 unread messages from the merchant (customer has not read them)
+            Message::factory()->count(2)->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $merchantUser->id,
+                'read_at' => null,
+            ]);
+
+            Passport::actingAs($customerUser);
+            $response = $this->getJson('/api/v1/messages/unread-count');
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => ['count' => 2],
+                ]);
+        });
+
+        it('returns zero when the user has no unread messages', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerUser = User::factory()->create();
+
+            $conversation = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerUser->id,
+            ]);
+
+            // All messages are already read
+            Message::factory()->count(3)->read()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $customerUser->id,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson('/api/v1/messages/unread-count');
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => ['count' => 0],
+                ]);
+        });
+
+        it('returns zero when the user has no conversations at all', function () {
+            ['user' => $merchantUser] = createMerchantActor();
+            Passport::actingAs($merchantUser);
+
+            $response = $this->getJson('/api/v1/messages/unread-count');
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => ['count' => 0],
+                ]);
+        });
+
+        it('counts unread messages across multiple conversations', function () {
+            ['user' => $merchantUser, 'merchant' => $merchant] = createMerchantActor();
+            $customerA = User::factory()->create();
+            $customerB = User::factory()->create();
+
+            $convA = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerA->id,
+            ]);
+
+            $convB = Conversation::factory()->create([
+                'merchant_id' => $merchant->id,
+                'customer_id' => $customerB->id,
+                'conversable_type' => 'reservation',
+            ]);
+
+            // 2 unread in conversation A
+            Message::factory()->count(2)->create([
+                'conversation_id' => $convA->id,
+                'sender_id' => $customerA->id,
+                'read_at' => null,
+            ]);
+
+            // 3 unread in conversation B
+            Message::factory()->count(3)->create([
+                'conversation_id' => $convB->id,
+                'sender_id' => $customerB->id,
+                'read_at' => null,
+            ]);
+
+            Passport::actingAs($merchantUser);
+            $response = $this->getJson('/api/v1/messages/unread-count');
+
+            $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => ['count' => 5],
+                ]);
+        });
+
+        it('returns 401 when unauthenticated', function () {
+            app('auth')->forgetGuards();
+
+            $response = $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/messages/unread-count');
+
+            $response->assertStatus(401);
+        });
     });
 });

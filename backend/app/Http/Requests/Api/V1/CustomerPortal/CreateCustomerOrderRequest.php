@@ -20,6 +20,7 @@ class CreateCustomerOrderRequest extends FormRequest
             'quantity' => ['required', 'numeric', 'min:0.01'],
             'unit_label' => ['required', 'string', 'max:50'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'loyalty_reward_id' => ['nullable', 'integer', 'exists:loyalty_rewards,id'],
         ];
     }
 }

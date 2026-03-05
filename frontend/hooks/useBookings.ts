@@ -52,3 +52,12 @@ export function useUpdateBookingStatus() {
     },
   });
 }
+
+export function useBookingCalendar(month: string) {
+  return useQuery({
+    queryKey: ['my-merchant', 'bookings', 'calendar', month],
+    queryFn: () => bookingService.getCalendar(month),
+    enabled: !!month,
+    staleTime: 60000,
+  });
+}

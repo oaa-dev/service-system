@@ -26,6 +26,7 @@ class ServiceOrderFactory extends Factory
             'fee_rate' => 0,
             'fee_amount' => 0,
             'total_amount' => round($quantity * $unitPrice, 2),
+            'discount_amount' => 0,
             'status' => 'pending',
         ];
     }

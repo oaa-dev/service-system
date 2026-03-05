@@ -6,6 +6,8 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Repositories\Contracts\ConversationRepositoryInterface;
 use App\Services\Contracts\ConversationServiceInterface;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ConversationService implements ConversationServiceInterface
@@ -77,5 +79,35 @@ class ConversationService implements ConversationServiceInterface
 
         // Otherwise treat as customer
         return $this->conversationRepository->getForCustomer($userId, $perPage);
+    }
+
+    public function getConversation(int $conversationId): Conversation
+    {
+        $conversation = $this->conversationRepository->getConversationWithRelations($conversationId);
+
+        if (!$conversation) {
+            throw (new ModelNotFoundException())->setModel(Conversation::class, $conversationId);
+        }
+
+        return $conversation;
+    }
+
+    public function getTotalUnreadCount(int $userId): int
+    {
+        return $this->conversationRepository->countUnreadForUser($userId);
+    }
+
+    public function authorizeAccess(int $conversationId, int $userId): Conversation
+    {
+        $conversation = $this->getConversation($conversationId);
+
+        $isCustomer = $conversation->customer_id === $userId;
+        $isMerchantOwner = $conversation->merchant->user_id === $userId;
+
+        if (!$isCustomer && !$isMerchantOwner) {
+            throw new AuthorizationException('You do not have access to this conversation.');
+        }
+
+        return $conversation;
     }
 }

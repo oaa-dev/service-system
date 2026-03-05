@@ -22,6 +22,7 @@ class ServiceOrderResource extends JsonResource
             'fee_rate' => $this->fee_rate,
             'fee_amount' => $this->fee_amount,
             'total_amount' => $this->total_amount,
+            'discount_amount' => $this->discount_amount,
             'status' => $this->status,
             'notes' => $this->notes,
             'estimated_completion' => $this->estimated_completion?->toISOString(),
@@ -43,6 +44,8 @@ class ServiceOrderResource extends JsonResource
                 'name' => $this->customer->name,
                 'email' => $this->customer->email,
             ]),
+            'payment_status' => $this->payment_status,
+            'payment' => $this->whenLoaded('payment', fn () => new \App\Http\Resources\Api\V1\PaymentResource($this->payment)),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

@@ -13,14 +13,16 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
-import { FileText, Trash2, Upload, Download } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, Trash2, Upload, Download, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Props { merchant: Merchant; }
+interface Props { merchant: Merchant; branchId?: number; }
 
-export function MyStoreDocumentsTab({ merchant }: Props) {
+export function MyStoreDocumentsTab({ merchant, branchId }: Props) {
   const uploadMutation = useUploadMyDocument();
   const deleteMutation = useDeleteMyDocument();
+  const isBranchMode = !!branchId;
   const { data: docTypesData, isLoading: typesLoading } = useActiveDocumentTypes();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,42 +68,50 @@ export function MyStoreDocumentsTab({ merchant }: Props) {
         <CardDescription>Upload and manage store documents</CardDescription>
       </CardHeader>
       <CardContent>
+        {isBranchMode && (
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>Document management is not available for branches. Documents are managed at the organization level.</AlertDescription>
+          </Alert>
+        )}
         {typesLoading ? (
           <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
         ) : (
           <>
-            <div className="flex gap-3 mb-6">
-              <Select
-                value={selectedTypeId ? String(selectedTypeId) : '__none__'}
-                onValueChange={(v) => setSelectedTypeId(v === '__none__' ? null : parseInt(v))}
-              >
-                <SelectTrigger className="w-[240px]">
-                  <SelectValue placeholder="Select document type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Select document type</SelectItem>
-                  {allTypes.map((type) => (
-                    <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                className="hidden"
-                onChange={(e) => handleUpload(e.target.files)}
-              />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!selectedTypeId || uploadMutation.isPending}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
-            </div>
+            {!isBranchMode && (
+              <div className="flex gap-3 mb-6">
+                <Select
+                  value={selectedTypeId ? String(selectedTypeId) : '__none__'}
+                  onValueChange={(v) => setSelectedTypeId(v === '__none__' ? null : parseInt(v))}
+                >
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue placeholder="Select document type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select document type</SelectItem>
+                    {allTypes.map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => handleUpload(e.target.files)}
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!selectedTypeId || uploadMutation.isPending}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Button>
+              </div>
+            )}
 
-            <Separator className="my-4" />
+            {!isBranchMode && <Separator className="my-4" />}
 
             {groupedDocs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">No document types available.</p>
@@ -128,14 +138,16 @@ export function MyStoreDocumentsTab({ merchant }: Props) {
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(doc.id)}
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              {!isBranchMode && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(doc.id)}
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}

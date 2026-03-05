@@ -140,23 +140,27 @@ Unify the two incompatible messaging systems (old user-to-user DM vs new merchan
   - `backend/app/Services/Contracts/MessagingServiceInterface.php` (delete)
   - `backend/app/Data/ConversationData.php` (delete)
   - `backend/app/Http/Requests/Api/V1/Messaging/StartConversationRequest.php` (delete)
+  - `backend/app/Http/Requests/Api/V1/Messaging/SendMessageRequest.php` (delete — separate from Conversation/SendMessageRequest which stays)
+  - `backend/app/Events/MessageSent.php` (delete — old user-channel event)
+  - `backend/app/Events/ConversationUpdated.php` (delete — old user-channel event)
   - `backend/app/Providers/RepositoryServiceProvider.php` (remove MessagingService binding)
   - `backend/routes/api.php` (slim down messaging routes)
 - **Details:**
   - Remove `MessagingServiceInterface => MessagingService` binding from RepositoryServiceProvider
   - Slim routes: keep `GET /conversations`, `GET /conversations/{id}/messages`, `POST /conversations/{id}/messages`, `POST /conversations/{id}/read`, `GET /messages/unread-count`
   - Remove: `POST /conversations` (start), `DELETE /conversations/{id}`, `GET /conversations/{id}` (show), `GET /messages/search`, `DELETE /messages/{id}`
-  - Keep `MessageRepository` (used by ConversationService indirectly, fix `searchMessages` method or remove)
-  - Fix `MessageRepository::searchMessages()` to use new schema (query by merchant_id/customer_id instead of user_one_id/user_two_id) or remove the method
+  - Keep `MessageRepository` — `getForConversation()` and `markConversationAsRead()` methods work fine on new schema
+  - Delete `MessageRepository::searchMessages()` — it queries `conversation.user_one_id`/`user_two_id` columns that no longer exist (lines 37-48)
 
-#### Step A8: Update broadcast events for unified system
+#### Step A8: Unify broadcast events
 - **Files:**
-  - `backend/app/Events/MessageSent.php` (update or remove)
-  - `backend/app/Events/ConversationUpdated.php` (update or remove)
+  - `backend/app/Events/ChatMessageSent.php` (keep — already uses `conversation.{conversationId}` channel)
+  - `backend/routes/channels.php` (already updated — authorizes by customer_id or merchant owner)
 - **Details:**
-  - Option A (recommended): Use only `ChatMessageSent` event for all messages. Both merchant and customer listen on `conversation.{conversationId}` channel.
-  - Remove `MessageSent` and `ConversationUpdated` events (old user-channel pattern)
-  - Or keep them as aliases that broadcast on `conversation.{conversationId}` instead of `App.Models.User.{id}`
+  - `ChatMessageSent` is the sole event. Broadcasts on `PrivateChannel("conversation.{conversationId}")` with `broadcastAs('ChatMessageSent')`
+  - Old events `MessageSent` (user-channel) and `ConversationUpdated` (user-channel) are deleted in Step A7
+  - Both merchant admin frontend and customer portal listen on same channel pattern
+  - `channels.php` already authorizes: user is `customer_id` OR owns the `merchant_id` merchant
 
 #### Step A9: Backend tests for unified messaging
 - **Files:**
@@ -300,8 +304,8 @@ Unify the two incompatible messaging systems (old user-to-user DM vs new merchan
 - A1: Rewrite MessagingController
 - A2: Rewrite ConversationResource
 - A3: Add methods to ConversationService/Repository
-- A7: Clean up deprecated files (can be parallel since it removes, not modifies)
-- A8: Update broadcast events
+- A7: Delete deprecated files (MessagingService, old events, old DTOs/requests, broken searchMessages)
+- A8: Verify broadcast events (ChatMessageSent already correct, just confirm channels.php)
 
 **Wave 2** (admin frontend + tests):
 - A4: Update frontend types/services

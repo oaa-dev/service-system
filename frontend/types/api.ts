@@ -336,17 +336,17 @@ export interface MessageSender {
 
 export interface Conversation {
   id: number;
-  other_user: MessageSender;
+  merchant: { id: number; name: string } | null;
+  customer: { id: number; name: string } | null;
+  conversable_type: string;
+  conversable_id: number;
+  conversable_label: string | null;
+  other_user: MessageSender | null;
   latest_message: Message | null;
   unread_count: number;
   last_message_at: string | null;
   created_at: string;
   updated_at: string;
-}
-
-export interface StartConversationRequest {
-  recipient_id: number;
-  message?: string;
 }
 
 export interface SendMessageRequest {
@@ -359,12 +359,6 @@ export interface ConversationQueryParams {
 }
 
 export interface MessageQueryParams {
-  page?: number;
-  per_page?: number;
-}
-
-export interface MessageSearchParams {
-  q: string;
   page?: number;
   per_page?: number;
 }
@@ -636,10 +630,33 @@ export interface Merchant {
   can_sell_products: boolean;
   can_take_bookings: boolean;
   can_rent_units: boolean;
+  enable_loyalty_program: boolean;
+  enable_referral_program: boolean;
+  allow_branch_self_edit?: boolean;
+  inherit_from_parent?: boolean;
+  average_rating: string | null; // decimal:2 cast returns string from API
+  review_count: number;
   user?: User;
   business_type?: BusinessType;
   address?: Address | null;
-  parent?: { id: number; name: string } | null;
+  parent?: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    logo?: { url: string; thumb: string; preview: string } | null;
+    gallery_feature?: { url: string; thumb: string; preview: string } | null;
+    gallery_photos?: Array<{ id: number; url: string; thumb: string; preview: string; name: string }>;
+    gallery_interiors?: Array<{ id: number; url: string; thumb: string; preview: string; name: string }>;
+    gallery_exteriors?: Array<{ id: number; url: string; thumb: string; preview: string; name: string }>;
+    address?: Address | null;
+    business_hours?: MerchantBusinessHour[];
+    allow_branch_self_edit?: boolean;
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    social_links?: MerchantSocialLink[] | null;
+    payment_methods?: PaymentMethod[] | null;
+  } | null;
   children?: Merchant[];
   children_count?: number;
   payment_methods?: PaymentMethod[];
@@ -714,6 +731,8 @@ export interface UpdateMerchantRequest {
   can_sell_products?: boolean;
   can_take_bookings?: boolean;
   can_rent_units?: boolean;
+  enable_loyalty_program?: boolean;
+  enable_referral_program?: boolean;
 }
 
 export interface UpdateMerchantAccountRequest {
@@ -764,6 +783,8 @@ export interface UpdateBranchRequest {
   can_sell_products?: boolean;
   can_take_bookings?: boolean;
   can_rent_units?: boolean;
+  inherit_from_parent?: boolean;
+  allow_branch_self_edit?: boolean;
 }
 
 export interface BranchQueryParams {
@@ -1005,6 +1026,7 @@ export interface Booking {
   merchant_id: number;
   service_id: number;
   customer_id: number;
+  booking_slot_id: number | null;
   booking_date: string;
   start_time: string;
   end_time: string;
@@ -1014,15 +1036,24 @@ export interface Booking {
   fee_amount: string;
   total_amount: string;
   status: BookingStatus;
+  payment_status: string;
   notes: string | null;
   confirmed_at: string | null;
   cancelled_at: string | null;
+  booking_slot?: {
+    id: number;
+    start_time: string;
+    end_time: string | null;
+    max_capacity: number | null;
+  };
   service?: Service;
+  merchant?: { id: number; name: string };
   customer?: {
     id: number;
     name: string;
     email: string;
   };
+  payment?: Payment;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -1037,6 +1068,7 @@ export interface CreateBookingRequest {
 
 export interface UpdateBookingStatusRequest {
   status: BookingStatus;
+  payment_action?: 'request_payment' | 'mark_cash' | null;
 }
 
 export interface BookingQueryParams {
@@ -1048,6 +1080,40 @@ export interface BookingQueryParams {
   'filter[date_from]'?: string;
   'filter[date_to]'?: string;
   'filter[search]'?: string;
+  'filter[booking_date]'?: string;
+  'filter[booking_slot_id]'?: string;
+}
+
+export interface BookingCalendarSlot {
+  slot_id: number;
+  start_time: string;
+  end_time: string | null;
+  booked: number;
+  max_capacity: number | null;
+  is_full: boolean;
+}
+
+export interface BookingCalendarDay {
+  date: string;
+  booking_count: number;
+  total_booked: number;
+  total_capacity: number | null;
+  is_closed: boolean;
+  has_slots?: boolean;
+  slots?: BookingCalendarSlot[];
+}
+
+export interface MerchantBookingSlot {
+  id: number;
+  merchant_id: number;
+  day_of_week: number; // 0=Sun, 6=Sat
+  start_time: string;  // 'HH:MM'
+  end_time: string | null;
+  max_capacity: number | null; // null = unlimited
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // Field Types
@@ -1308,6 +1374,7 @@ export interface Reservation {
   fee_amount: string;
   total_amount: string;
   status: ReservationStatus;
+  payment_status: string;
   notes: string | null;
   special_requests: string | null;
   confirmed_at: string | null;
@@ -1315,7 +1382,9 @@ export interface Reservation {
   checked_in_at: string | null;
   checked_out_at: string | null;
   service?: Service;
+  merchant?: { id: number; name: string };
   customer?: { id: number; name: string; email: string };
+  payment?: Payment;
   created_at: string;
   updated_at: string;
 }
@@ -1331,6 +1400,7 @@ export interface CreateReservationRequest {
 
 export interface UpdateReservationStatusRequest {
   status: ReservationStatus;
+  payment_action?: 'request_payment' | 'mark_cash' | null;
 }
 
 export interface ReservationQueryParams {
@@ -1341,6 +1411,14 @@ export interface ReservationQueryParams {
   'filter[date_from]'?: string;
   'filter[date_to]'?: string;
   sort?: string;
+}
+
+export interface ReservationCalendarDay {
+  date: string;
+  reservation_count: number;
+  total_units: number;
+  available_units: number;
+  is_closed: boolean;
 }
 
 // Service Order Types
@@ -1361,13 +1439,16 @@ export interface ServiceOrder {
   fee_amount: string;
   total_amount: string;
   status: ServiceOrderStatus;
+  payment_status: string;
   notes: string | null;
   estimated_completion: string | null;
   received_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
   service?: Service;
+  merchant?: { id: number; name: string };
   customer?: { id: number; name: string; email: string };
+  payment?: Payment;
   created_at: string;
   updated_at: string;
 }
@@ -1381,6 +1462,7 @@ export interface CreateServiceOrderRequest {
 
 export interface UpdateServiceOrderStatusRequest {
   status: ServiceOrderStatus;
+  payment_action?: 'request_payment' | 'mark_cash' | null;
 }
 
 export interface ServiceOrderQueryParams {
@@ -1437,4 +1519,302 @@ export interface PlatformFeeQueryParams {
   'filter[name]'?: string;
   'filter[is_active]'?: string;
   'filter[transaction_type]'?: string;
+}
+
+// Review Types
+
+export interface Review {
+  id: number;
+  merchant_id: number;
+  customer_id: number;
+  rating: number; // 1-5
+  title: string | null;
+  comment: string | null;
+  is_verified: boolean;
+  is_published: boolean;
+  merchant_reply: string | null;
+  merchant_replied_at: string | null;
+  admin_notes: string | null;
+  customer?: {
+    id: number;
+    name: string | null;
+    avatar: string | null;
+  };
+  merchant?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  merchant_id?: number;
+  rating?: number;
+  is_published?: boolean;
+}
+
+export interface MerchantReviewQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  is_published?: boolean;
+  rating?: number;
+}
+
+// Loyalty Program Types
+
+export type LoyaltyRewardType = 'free_product' | 'discount_percentage' | 'discount_fixed';
+export type LoyaltyStampSource = 'qr_scan' | 'bonus';
+export type LoyaltyRewardStatus = 'available' | 'redeemed' | 'expired';
+export type LoyaltyQrMode = 'single_use' | 'daily';
+
+export interface LoyaltyProgramTier {
+  id: number;
+  required_stamps: number;
+  reward_type: LoyaltyRewardType;
+  reward_value: string | null;
+  reward_product_id: number | null;
+  reward_description: string | null;
+  reward_product?: { id: number; name: string; price: string } | null;
+}
+
+export interface LoyaltyProgram {
+  id: number;
+  merchant_id: number;
+  name: string;
+  description: string | null;
+  required_stamps: number;
+  stamp_expiry_days: number | null;
+  reward_expiry_days: number | null;
+  is_active: boolean;
+  is_inherited?: boolean;
+  tiers?: LoyaltyProgramTier[];
+  cards_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoyaltyCard {
+  id: number;
+  customer_id: number;
+  merchant_id: number;
+  loyalty_program_id: number;
+  current_stamps: number;
+  total_stamps_earned: number;
+  total_rewards_earned: number;
+  total_rewards_redeemed: number;
+  last_stamp_at: string | null;
+  customer?: { id: number; name: string };
+  merchant?: { id: number; name: string; slug: string; logo: string | null };
+  loyalty_program?: LoyaltyProgram;
+  stamps?: LoyaltyStamp[];
+  rewards?: LoyaltyReward[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoyaltyStamp {
+  id: number;
+  loyalty_card_id: number;
+  qr_code_id: number | null;
+  source: LoyaltyStampSource;
+  notes: string | null;
+  awarded_by: number | null;
+  earned_at: string;
+  expires_at: string | null;
+  expired: boolean;
+  awarded_by_user?: { id: number; name: string };
+}
+
+export interface LoyaltyReward {
+  id: number;
+  loyalty_card_id: number;
+  loyalty_program_id: number;
+  reward_type: LoyaltyRewardType;
+  reward_value: string | null;
+  reward_product_id: number | null;
+  reward_description: string | null;
+  status: LoyaltyRewardStatus;
+  earned_at: string;
+  expires_at: string | null;
+  redeemed_at: string | null;
+  reward_product?: { id: number; name: string; price: string; is_active: boolean };
+  loyalty_card?: { id: number; merchant: { id: number; name: string; slug: string } | null };
+  created_at: string;
+}
+
+export interface LoyaltyStampQrCode {
+  id: number;
+  token: string;
+  mode: LoyaltyQrMode;
+  expires_at: string;
+  is_used: boolean;
+  scan_count: number;
+  is_expired: boolean;
+  created_at: string;
+}
+
+export interface CreateLoyaltyProgramTierRequest {
+  required_stamps: number;
+  reward_type: LoyaltyRewardType;
+  reward_value?: string | null;
+  reward_product_id?: number | null;
+  reward_description?: string | null;
+}
+
+export interface CreateLoyaltyProgramRequest {
+  name: string;
+  description?: string | null;
+  required_stamps: number;
+  stamp_expiry_days?: number | null;
+  reward_expiry_days?: number | null;
+  is_active?: boolean;
+  tiers: CreateLoyaltyProgramTierRequest[];
+}
+
+export interface GenerateLoyaltyQrRequest {
+  mode: LoyaltyQrMode;
+}
+
+export interface AwardBonusStampRequest {
+  notes?: string;
+}
+
+export interface LoyaltyCardQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[branch_id]'?: number;
+}
+
+// Referral Program Types
+
+export type ReferralRewardType = 'percentage' | 'fixed';
+export type ReferralStatus = 'pending' | 'completed' | 'expired' | 'cancelled';
+export type ReferralRewardStatus = 'pending' | 'available' | 'redeemed' | 'expired';
+export type ReferralRewardRole = 'referrer' | 'referee';
+
+export interface ReferralProgram {
+  id: number;
+  merchant_id: number;
+  name: string;
+  description: string | null;
+  referrer_reward_type: ReferralRewardType;
+  referrer_reward_value: string;
+  referee_reward_type: ReferralRewardType;
+  referee_reward_value: string;
+  max_referrals_per_customer: number | null;
+  code_expiry_days: number;
+  reward_expiry_days: number | null;
+  is_active: boolean;
+  is_inherited?: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  merchant?: Merchant;
+  referrals_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Referral {
+  id: number;
+  referral_code_id: number;
+  referral_program_id: number;
+  referrer_customer_id: number;
+  referee_customer_id: number;
+  status: ReferralStatus;
+  qualifying_type: string | null;
+  qualifying_id: number | null;
+  completed_at: string | null;
+  referrer_customer?: { id: number; user?: { id: number; name: string; email: string } };
+  referee_customer?: { id: number; user?: { id: number; name: string; email: string } };
+  rewards?: ReferralReward[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReferralReward {
+  id: number;
+  referral_id: number;
+  customer_id: number;
+  reward_type: ReferralRewardType;
+  reward_value: string;
+  role: ReferralRewardRole;
+  status: ReferralRewardStatus;
+  redeemed_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReferralStats {
+  total_referrals: number;
+  completed_referrals: number;
+  pending_referrals: number;
+  conversion_rate: number;
+  top_referrers: Array<{
+    customer: { id: number; name: string } | null;
+    count: number;
+  }>;
+}
+
+export interface CreateReferralProgramRequest {
+  name: string;
+  description?: string | null;
+  referrer_reward_type: ReferralRewardType;
+  referrer_reward_value: number;
+  referee_reward_type: ReferralRewardType;
+  referee_reward_value: number;
+  max_referrals_per_customer?: number | null;
+  code_expiry_days: number;
+  reward_expiry_days?: number | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+}
+
+export interface ReferralQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[status]'?: ReferralStatus | '';
+  'filter[date_from]'?: string;
+  'filter[date_to]'?: string;
+}
+
+// Payment Types
+
+export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
+
+export interface Payment {
+  id: number;
+  payable_type: string;
+  payable_id: number;
+  payment_method: string | null;
+  amount: string; // decimal from API
+  currency: string;
+  status: PaymentStatus;
+  refund_status: string;
+  gateway: string;
+  gateway_reference: string | null;
+  checkout_url: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+  expires_at: string | null;
+  is_expired: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MarkAsPaidRequest {
+  reference?: string;
+}
+
+export interface RequestRefundRequest {
+  reason?: string;
 }

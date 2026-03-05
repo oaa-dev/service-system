@@ -2,7 +2,14 @@
 'use client';
 
 import { useRef } from 'react';
-import { useMyMerchantGallery, useUploadMyGalleryImage, useDeleteMyGalleryImage } from '@/hooks/useMyMerchant';
+import {
+  useMyMerchantGallery,
+  useUploadMyGalleryImage,
+  useDeleteMyGalleryImage,
+  useBranchGallery,
+  useUploadBranchGalleryImage,
+  useDeleteBranchGalleryImage,
+} from '@/hooks/useMyMerchant';
 import { GalleryImage } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,10 +19,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Upload, Trash2, Images } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function MyStoreGalleryPage() {
-  const { data: gallery, isLoading } = useMyMerchantGallery();
-  const uploadMutation = useUploadMyGalleryImage();
-  const deleteMutation = useDeleteMyGalleryImage();
+interface GalleryContentProps {
+  branchId?: number;
+}
+
+export function GalleryContent({ branchId }: GalleryContentProps) {
+  // Call all hooks unconditionally (rules of hooks)
+  const selfGallery = useMyMerchantGallery();
+  const branchGalleryQuery = useBranchGallery(branchId ?? 0);
+
+  const selfUploadMutation = useUploadMyGalleryImage();
+  const branchUploadMutation = useUploadBranchGalleryImage();
+
+  const selfDeleteMutation = useDeleteMyGalleryImage();
+  const branchDeleteMutation = useDeleteBranchGalleryImage();
+
+  // Select which set of hooks to use based on branchId
+  const { data: gallery, isLoading } = branchId ? branchGalleryQuery : selfGallery;
+  const uploadIsPending = branchId ? branchUploadMutation.isPending : selfUploadMutation.isPending;
+  const deleteIsPending = branchId ? branchDeleteMutation.isPending : selfDeleteMutation.isPending;
 
   const photosInputRef = useRef<HTMLInputElement>(null);
   const interiorsInputRef = useRef<HTMLInputElement>(null);
@@ -25,25 +47,34 @@ export default function MyStoreGalleryPage() {
   const handleUpload = (collection: 'photos' | 'interiors' | 'exteriors' | 'feature', files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
-    uploadMutation.mutate({ collection, file }, {
-      onSuccess: () => {
-        toast.success(`Image uploaded to ${collection}`);
-      },
-      onError: () => {
-        toast.error('Failed to upload image');
-      },
-    });
+
+    const onSuccess = () => {
+      toast.success(`Image uploaded to ${collection}`);
+    };
+    const onError = () => {
+      toast.error('Failed to upload image');
+    };
+
+    if (branchId) {
+      branchUploadMutation.mutate({ branchId, collection, file }, { onSuccess, onError });
+    } else {
+      selfUploadMutation.mutate({ collection, file }, { onSuccess, onError });
+    }
   };
 
   const handleDelete = (mediaId: number) => {
-    deleteMutation.mutate(mediaId, {
-      onSuccess: () => {
-        toast.success('Image deleted');
-      },
-      onError: () => {
-        toast.error('Failed to delete image');
-      },
-    });
+    const onSuccess = () => {
+      toast.success('Image deleted');
+    };
+    const onError = () => {
+      toast.error('Failed to delete image');
+    };
+
+    if (branchId) {
+      branchDeleteMutation.mutate({ branchId, mediaId }, { onSuccess, onError });
+    } else {
+      selfDeleteMutation.mutate(mediaId, { onSuccess, onError });
+    }
   };
 
   if (isLoading) {
@@ -55,7 +86,7 @@ export default function MyStoreGalleryPage() {
     );
   }
 
-  const renderImageGrid = (images: GalleryImage[], label: string, collection: 'photos' | 'interiors' | 'exteriors') => (
+  const renderImageGrid = (images: GalleryImage[], label: string) => (
     images.length > 0 ? (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {images.map((image: GalleryImage) => (
@@ -70,7 +101,7 @@ export default function MyStoreGalleryPage() {
               size="icon"
               className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => handleDelete(image.id)}
-              disabled={deleteMutation.isPending}
+              disabled={deleteIsPending}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -86,10 +117,12 @@ export default function MyStoreGalleryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Gallery</h1>
-        <p className="text-muted-foreground">Manage your store images and photos</p>
-      </div>
+      {!branchId && (
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Gallery</h1>
+          <p className="text-muted-foreground">Manage your store images and photos</p>
+        </div>
+      )}
 
       {/* Feature Image */}
       <Card>
@@ -111,7 +144,7 @@ export default function MyStoreGalleryPage() {
                   size="icon"
                   className="absolute top-2 right-2"
                   onClick={() => handleDelete(gallery.gallery_feature!.id)}
-                  disabled={deleteMutation.isPending}
+                  disabled={deleteIsPending}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -134,7 +167,7 @@ export default function MyStoreGalleryPage() {
               />
               <Button
                 onClick={() => featureInputRef.current?.click()}
-                disabled={uploadMutation.isPending}
+                disabled={uploadIsPending}
               >
                 <Upload className="mr-2 h-4 w-4" />
                 {gallery?.gallery_feature ? 'Replace Feature Image' : 'Upload Feature Image'}
@@ -152,7 +185,7 @@ export default function MyStoreGalleryPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {renderImageGrid(gallery?.gallery_photos || [], 'Photos', 'photos')}
+            {renderImageGrid(gallery?.gallery_photos || [], 'Photos')}
             <div>
               <input
                 ref={photosInputRef}
@@ -163,7 +196,7 @@ export default function MyStoreGalleryPage() {
               />
               <Button
                 onClick={() => photosInputRef.current?.click()}
-                disabled={uploadMutation.isPending}
+                disabled={uploadIsPending}
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Photo
@@ -181,7 +214,7 @@ export default function MyStoreGalleryPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {renderImageGrid(gallery?.gallery_interiors || [], 'Interior photos', 'interiors')}
+            {renderImageGrid(gallery?.gallery_interiors || [], 'Interior photos')}
             <div>
               <input
                 ref={interiorsInputRef}
@@ -192,7 +225,7 @@ export default function MyStoreGalleryPage() {
               />
               <Button
                 onClick={() => interiorsInputRef.current?.click()}
-                disabled={uploadMutation.isPending}
+                disabled={uploadIsPending}
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Interior Photo
@@ -210,7 +243,7 @@ export default function MyStoreGalleryPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {renderImageGrid(gallery?.gallery_exteriors || [], 'Exterior photos', 'exteriors')}
+            {renderImageGrid(gallery?.gallery_exteriors || [], 'Exterior photos')}
             <div>
               <input
                 ref={exteriorsInputRef}
@@ -221,7 +254,7 @@ export default function MyStoreGalleryPage() {
               />
               <Button
                 onClick={() => exteriorsInputRef.current?.click()}
-                disabled={uploadMutation.isPending}
+                disabled={uploadIsPending}
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Exterior Photo
@@ -232,4 +265,8 @@ export default function MyStoreGalleryPage() {
       </Card>
     </div>
   );
+}
+
+export default function MyStoreGalleryPage() {
+  return <GalleryContent />;
 }

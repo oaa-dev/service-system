@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerBookingRequest;
 use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerOrderRequest;
 use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerReservationRequest;
 use App\Http\Resources\Api\V1\BookingResource;
+use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\PaymentMethodResource;
 use App\Http\Resources\Api\V1\ReservationResource;
 use App\Http\Resources\Api\V1\ServiceOrderResource;
@@ -186,6 +187,23 @@ class CustomerPortalController extends Controller
         $stats = $this->customerPortalService->getMyStats();
 
         return $this->successResponse($stats, 'Dashboard stats retrieved successfully');
+    }
+
+    public function toggleFavoriteMerchant(int $merchant): JsonResponse
+    {
+        $isFavorited = $this->customerPortalService->toggleFavoriteMerchant($merchant);
+
+        return $this->successResponse(
+            ['is_favorited' => $isFavorited],
+            $isFavorited ? 'Merchant added to favorites' : 'Merchant removed from favorites'
+        );
+    }
+
+    public function myFavoriteMerchants(Request $request): JsonResponse
+    {
+        $merchants = $this->customerPortalService->getMyFavoriteMerchants($request);
+
+        return $this->paginatedResponse($merchants, MerchantResource::class);
     }
 
     public function uploadIdentityDocument(Request $request): JsonResponse

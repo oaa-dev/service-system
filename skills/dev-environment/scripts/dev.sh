@@ -6,9 +6,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-BACKEND_DIR="$PROJECT_ROOT/backend"
-FRONTEND_DIR="$PROJECT_ROOT/frontend"
-CUSTOMER_PORTAL_DIR="$PROJECT_ROOT/frontend-customer-portal"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -24,7 +21,7 @@ wait_for_mysql() {
     local max_attempts=30
     local attempt=0
     while [ $attempt -lt $max_attempts ]; do
-        if docker compose -f "$BACKEND_DIR/docker-compose.yml" exec -T mysql mysqladmin ping -h localhost -u laravel -psecret --silent 2>/dev/null; then
+        if docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T mysql mysqladmin ping -h localhost -u laravel -psecret --silent 2>/dev/null; then
             log "MySQL is ready."
             return 0
         fi
@@ -89,20 +86,14 @@ cmd_up() {
         [ "$arg" = "--skip-migrate" ] && skip_migrate=true
     done
 
-    log "Starting backend services..."
-    docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d
-
-    log "Starting frontend services..."
-    docker compose -f "$FRONTEND_DIR/docker-compose.yml" up -d
-
-    log "Starting customer portal services..."
-    docker compose -f "$CUSTOMER_PORTAL_DIR/docker-compose.yml" up -d
+    log "Starting all services..."
+    docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d
 
     wait_for_mysql
 
     if [ "$skip_migrate" = false ]; then
         log "Running migrations..."
-        docker compose -f "$BACKEND_DIR/docker-compose.yml" exec -T app php artisan migrate --force
+        docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T app php artisan migrate --force
     else
         warn "Skipping migrations (--skip-migrate)."
     fi
@@ -122,27 +113,13 @@ cmd_up() {
 }
 
 cmd_down() {
-    log "Stopping customer portal services..."
-    docker compose -f "$CUSTOMER_PORTAL_DIR/docker-compose.yml" down
-
-    log "Stopping frontend services..."
-    docker compose -f "$FRONTEND_DIR/docker-compose.yml" down
-
-    log "Stopping backend services..."
-    docker compose -f "$BACKEND_DIR/docker-compose.yml" down
-
+    log "Stopping all services..."
+    docker compose -f "$PROJECT_ROOT/docker-compose.yml" down
     log "All services stopped."
 }
 
 cmd_status() {
-    echo "=== Backend ==="
-    docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
-    echo ""
-    echo "=== Frontend ==="
-    docker compose -f "$FRONTEND_DIR/docker-compose.yml" ps
-    echo ""
-    echo "=== Customer Portal ==="
-    docker compose -f "$CUSTOMER_PORTAL_DIR/docker-compose.yml" ps
+    docker compose -f "$PROJECT_ROOT/docker-compose.yml" ps
 }
 
 case "${1:-}" in

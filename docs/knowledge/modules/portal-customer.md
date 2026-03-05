@@ -8,6 +8,8 @@
 | `frontend-customer-portal/app/(customer)/bookings/page.tsx` | Page | My bookings list with status badges, cancel action, chat button |
 | `frontend-customer-portal/app/(customer)/reservations/page.tsx` | Page | My reservations list with status badges, cancel action, chat button |
 | `frontend-customer-portal/app/(customer)/orders/page.tsx` | Page | My orders list with status badges, cancel action, chat button |
+| `frontend-customer-portal/app/(customer)/favorites/page.tsx` | Page | My favorite merchants list with card grid and unfavorite action |
+| `frontend-customer-portal/app/(customer)/reviews/page.tsx` | Page | My reviews list with edit/delete controls |
 | `frontend-customer-portal/app/(customer)/profile/page.tsx` | Page | Tabbed profile page: Personal Info / Account / Payment |
 | `frontend-customer-portal/app/(customer)/profile/personal-info-tab.tsx` | Component | Edit profile (name, phone, DOB, gender, bio, address), avatar upload/crop/delete |
 | `frontend-customer-portal/app/(customer)/profile/account-tab.tsx` | Component | Account status badge, identity verification upload, email display, change password form |
@@ -16,15 +18,20 @@
 ## Connected Files
 | Category | File | Notes |
 |----------|------|-------|
-| Service | `services/customerDashboardService.ts` | getMyStats, getMyBookings, getMyReservations, getMyOrders, cancelBooking, cancelReservation, cancelOrder |
-| Service | `services/customerProfileService.ts` | getMyProfile, updateMyProfile, uploadAvatar, deleteAvatar, changePassword, getMyCustomerRecord, updateMyPreferences, getMyPaymentMethods, updateMyPaymentPreference, uploadIdentityDocument |
-| Service | `services/conversationService.ts` | getMessages, sendMessage, markAsRead (scoped to transaction type + id) |
-| Hook | `hooks/useCustomerDashboard.ts` | useMyStats, useMyBookings, useMyReservations, useMyOrders, useCancelBooking, useCancelReservation, useCancelOrder |
-| Hook | `hooks/useCustomerProfile.ts` | useMyProfile, useMyCustomerRecord, useUpdateMyProfile, useUploadAvatar, useDeleteAvatar, useChangePassword, useUpdateMyPreferences, useMyPaymentMethods, useUpdateMyPaymentPreference, useUploadIdentityDocument |
-| Hook | `hooks/useConversation.ts` | useMessages, useSendMessage, useMarkAsRead |
-| Component | `components/chat/chat-panel.tsx` | Chat UI embedded in booking/reservation/order detail sheets |
-| Type | `types/api.ts` | CustomerProfileData, CustomerRecord (includes identity_document_status, identity_verified_at, identity_document), PaymentMethod, Message, Conversation |
-| Store | `stores/authStore.ts` | isAuthenticated, user (auth guard + profile display) |
+| Service | `frontend-customer-portal/services/customerDashboardService.ts` | getMyStats, getMyBookings, getMyReservations, getMyOrders, cancelBooking, cancelReservation, cancelOrder |
+| Service | `frontend-customer-portal/services/customerProfileService.ts` | getMyProfile, updateMyProfile, uploadAvatar, deleteAvatar, changePassword, getMyCustomerRecord, updateMyPreferences, getMyPaymentMethods, updateMyPaymentPreference, uploadIdentityDocument |
+| Service | `frontend-customer-portal/services/conversationService.ts` | getMessages, sendMessage, markAsRead (scoped to transaction type + id) |
+| Service | `frontend-customer-portal/services/customerFavoriteService.ts` | getMyFavorites(params), toggleFavorite(merchantId) |
+| Service | `frontend-customer-portal/services/reviewService.ts` | getPublicReviews(slug), getMyReviews(), createReview(merchantId, data), updateReview(id, data), deleteReview(id) |
+| Hook | `frontend-customer-portal/hooks/useCustomerDashboard.ts` | useMyStats, useMyBookings, useMyReservations, useMyOrders, useCancelBooking, useCancelReservation, useCancelOrder |
+| Hook | `frontend-customer-portal/hooks/useCustomerProfile.ts` | useMyProfile, useMyCustomerRecord, useUpdateMyProfile, useUploadAvatar, useDeleteAvatar, useChangePassword, useUpdateMyPreferences, useMyPaymentMethods, useUpdateMyPaymentPreference, useUploadIdentityDocument |
+| Hook | `frontend-customer-portal/hooks/useConversation.ts` | useMessages, useSendMessage, useMarkAsRead |
+| Hook | `frontend-customer-portal/hooks/useFavorites.ts` | useMyFavorites(params), useToggleFavorite() |
+| Hook | `frontend-customer-portal/hooks/useReviews.ts` | usePublicReviews, useMyReviews, useCreateReview, useUpdateReview, useDeleteReview |
+| Component | `frontend-customer-portal/components/chat/chat-panel.tsx` | Chat UI embedded in booking/reservation/order detail sheets |
+| Component | `frontend-customer-portal/components/storefront/favorite-button.tsx` | Heart toggle on merchant cards |
+| Type | `frontend-customer-portal/types/api.ts` | CustomerProfileData, CustomerRecord (includes identity_document_status, identity_verified_at, identity_document), PaymentMethod, Message, Conversation |
+| Store | `frontend-customer-portal/stores/authStore.ts` | isAuthenticated, user (auth guard + profile display) |
 
 ## Backend API Endpoints (Customer Portal)
 All under `auth:api + ensure.verified + onboarding` middleware at prefix `/api/v1/customer/my/`:
@@ -47,6 +54,16 @@ All under `auth:api + ensure.verified + onboarding` middleware at prefix `/api/v
 | GET | /customer/my/conversations/{type}/{id}/messages | ConversationController@messages |
 | POST | /customer/my/conversations/{type}/{id}/messages | ConversationController@send |
 | PATCH | /customer/my/conversations/{type}/{id}/read | ConversationController@markRead |
+| POST | /customer/my/favorite-merchants/{merchant} | CustomerPortalController@toggleFavoriteMerchant |
+| GET | /customer/my/favorite-merchants | CustomerPortalController@myFavoriteMerchants |
+
+### Customer Review Endpoints (auth + customer_portal.review)
+| Method | URI | Handler |
+|--------|-----|---------|
+| POST | /customer/merchants/{merchantId}/reviews | CustomerReviewController@store |
+| PUT | /customer/reviews/{review} | CustomerReviewController@update |
+| DELETE | /customer/reviews/{review} | CustomerReviewController@destroy |
+| GET | /customer/reviews | CustomerReviewController@myReviews |
 
 ## Backend Service: CustomerPortalService
 | Method | Description |
@@ -67,6 +84,8 @@ All under `auth:api + ensure.verified + onboarding` middleware at prefix `/api/v
 | getAvailablePaymentMethods(customerId) | Returns all active payment methods + customer's preferred_payment_method |
 | updatePaymentPreferences(customerId, preferred) | Updates preferred_payment_method on Customer record |
 | uploadIdentityDocument(userId, file) | Finds Customer by user_id, uploads to 'identity_document' media collection (singleFile), sets identity_document_status=pending |
+| toggleFavoriteMerchant(userId, merchantId) | Finds customer by user_id; if merchant in favorites → detach; else attach to `customer_favorite_merchants` pivot |
+| getMyFavoriteMerchants(userId) | Returns merchants in the customer's favorites via the pivot table |
 
 ## Profile Page Tabs
 ### Personal Info Tab

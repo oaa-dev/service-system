@@ -17,6 +17,14 @@ export function useMerchantBySlug(slug: string) {
   });
 }
 
+export function useMerchantBranches(slug: string) {
+  return useQuery({
+    queryKey: ['storefront', 'merchants', slug, 'branches'],
+    queryFn: () => storefrontService.getMerchantBranches(slug),
+    enabled: !!slug,
+  });
+}
+
 export function useMerchantServices(slug: string, params?: StorefrontServiceParams) {
   return useQuery({
     queryKey: ['storefront', 'merchants', slug, 'services', params],
@@ -82,5 +90,25 @@ export function useReservationAvailability(slug: string, serviceId: number | nul
     enabled: !!slug && !!serviceId && !!month,
     staleTime: 30000,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useBookingSlotAvailability(
+  slug: string | null,
+  serviceId: number | null,
+  date: string | null,
+) {
+  return useQuery({
+    queryKey: ['storefront', slug, 'services', serviceId, 'slot-availability', date],
+    queryFn: () => storefrontService.getBookingSlotAvailability(slug!, serviceId!, date!),
+    enabled: !!slug && !!serviceId && !!date,
+  });
+}
+
+export function useActivePlatformFees() {
+  return useQuery({
+    queryKey: ['storefront', 'platformFees'],
+    queryFn: () => storefrontService.getActivePlatformFees(),
+    staleTime: Infinity,
   });
 }

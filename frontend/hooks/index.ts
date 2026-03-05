@@ -27,15 +27,10 @@ export {
 // Messaging hooks
 export {
   useConversations,
-  useConversation,
-  useStartConversation,
-  useDeleteConversation,
   useMessages,
   useSendMessage,
   useMarkConversationAsRead,
   useMessagesUnreadCount,
-  useSearchMessages,
-  useDeleteMessage,
   useRealtimeMessaging,
 } from './useMessaging';
 
@@ -82,6 +77,58 @@ export {
   useUpdateSocialPlatform,
   useDeleteSocialPlatform,
 } from './useSocialPlatforms';
+
+// Review hooks
+export {
+  useReviews,
+  useToggleReviewPublish,
+  useUpdateReviewNotes,
+  useMyMerchantReviews,
+  useReplyToReview,
+  useUpdateReply,
+  useDeleteReply,
+} from './useReviews';
+
+// Booking Slot hooks
+export {
+  useBookingSlots,
+  useCreateBookingSlot,
+  useUpdateBookingSlot,
+  useDeleteBookingSlot,
+} from './useBookingSlots';
+
+// Loyalty hooks
+export {
+  useMyLoyaltyProgram,
+  useUpsertLoyaltyProgram,
+  useDeactivateLoyaltyProgram,
+  useGenerateLoyaltyQr,
+  useLoyaltyCards,
+  useLoyaltyCard,
+  useAwardBonusStamp,
+  loyaltyKeys,
+} from './useLoyalty';
+
+// Referral hooks
+export {
+  useMyReferralProgram,
+  useCreateOrUpdateReferralProgram,
+  useDeactivateReferralProgram,
+  useMerchantReferrals,
+  useReferralStats,
+  useAdminReferralProgram,
+  useUpdateAdminReferralProgram,
+  referralKeys,
+} from './useReferrals';
+
+// Payment hooks
+export {
+  usePayment,
+  useMarkAsPaid,
+  useRequestRefund,
+  useMarkRefunded,
+  useCheckPaymentStatus,
+} from './usePayments';
 
 // Merchant hooks
 export {

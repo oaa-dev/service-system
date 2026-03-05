@@ -14,5 +14,7 @@ interface ReservationServiceInterface
 
     public function createReservation(int $merchantId, ReservationData $data): Reservation;
 
-    public function updateReservationStatus(int $merchantId, int $reservationId, string $status): Reservation;
+    public function updateReservationStatus(int $merchantId, int $reservationId, string $status, ?string $paymentAction = null): Reservation;
+
+    public function getReservationCalendar(int $merchantId, string $month): array;
 }

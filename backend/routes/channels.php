@@ -23,3 +23,12 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
 
     return $merchant && (int) $merchant->id === (int) $conversation->merchant_id;
 });
+
+Broadcast::channel('presence-merchant.{merchantId}', function ($user, $merchantId) {
+    // Any authenticated user can join to observe merchant presence
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'is_merchant_owner' => optional($user->merchant)->id === (int) $merchantId,
+    ];
+});

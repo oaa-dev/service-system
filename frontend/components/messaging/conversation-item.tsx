@@ -12,7 +12,10 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({ conversation, isActive, onClick }: ConversationItemProps) {
-  const { other_user, latest_message, unread_count, last_message_at } = conversation;
+  const { other_user, latest_message, unread_count, last_message_at, conversable_label } = conversation;
+
+  const displayName = other_user?.name ?? 'Unknown';
+  const avatarSrc = other_user?.avatar?.thumb;
 
   return (
     <button
@@ -26,16 +29,16 @@ export function ConversationItem({ conversation, isActive, onClick }: Conversati
       )}
     >
       <Avatar className="h-12 w-12 shrink-0">
-        <AvatarImage src={other_user.avatar?.thumb} alt={other_user.name} />
+        <AvatarImage src={avatarSrc} alt={displayName} />
         <AvatarFallback className="bg-primary/10 text-primary">
-          {getInitials(other_user.name)}
+          {getInitials(displayName)}
         </AvatarFallback>
       </Avatar>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className={cn('font-medium truncate', unread_count > 0 && 'font-semibold')}>
-            {other_user.name}
+            {displayName}
           </span>
           {last_message_at && (
             <span className="text-xs text-muted-foreground shrink-0">
@@ -43,6 +46,11 @@ export function ConversationItem({ conversation, isActive, onClick }: Conversati
             </span>
           )}
         </div>
+        {conversable_label && (
+          <span className="text-xs text-muted-foreground truncate block">
+            {conversable_label}
+          </span>
+        )}
         {latest_message && (
           <div className="flex items-center justify-between gap-2 mt-0.5">
             <p

@@ -6,7 +6,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\MerchantResource;
+use App\Http\Resources\Api\V1\ReviewResource;
 use App\Http\Resources\Api\V1\ServiceResource;
+use App\Models\Merchant;
+use App\Services\Contracts\ReviewServiceInterface;
 use App\Services\Contracts\StorefrontServiceInterface;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +20,8 @@ class StorefrontController extends Controller
     use ApiResponse;
 
     public function __construct(
-        protected StorefrontServiceInterface $storefrontService
+        protected StorefrontServiceInterface $storefrontService,
+        protected ReviewServiceInterface $reviewService
     ) {}
 
     public function merchants(Request $request): JsonResponse
@@ -68,13 +72,13 @@ class StorefrontController extends Controller
         );
     }
 
-    public function bookingAvailability(string $slug, int $service, Request $request): JsonResponse
+    public function bookingAvailability(Request $request, string $slug, int $service): JsonResponse
     {
-        $request->validate([
-            'month' => 'required|date_format:Y-m',
-        ]);
-
-        $data = $this->storefrontService->getBookingAvailability($slug, $service, $request->month);
+        if ($request->has('date')) {
+            $data = $this->storefrontService->getBookingSlotAvailability($slug, $service, $request->date);
+        } else {
+            $data = $this->storefrontService->getBookingAvailability($slug, $service, $request->month ?? now()->format('Y-m'));
+        }
 
         return $this->successResponse($data, 'Booking availability retrieved successfully');
     }
@@ -88,6 +92,21 @@ class StorefrontController extends Controller
         $data = $this->storefrontService->getReservationAvailability($slug, $service, $request->month);
 
         return $this->successResponse($data, 'Reservation availability retrieved successfully');
+    }
+
+    public function branches(Request $request, string $slug): JsonResponse
+    {
+        $branches = $this->storefrontService->getMerchantBranches($slug);
+
+        return $this->paginatedResponse($branches, MerchantResource::class);
+    }
+
+    public function merchantReviews(Request $request, string $slug): JsonResponse
+    {
+        $merchant = Merchant::where('slug', $slug)->where('status', 'active')->firstOrFail();
+        $reviews = $this->reviewService->getPublicReviews($merchant->id, $request);
+
+        return $this->paginatedResponse($reviews, ReviewResource::class);
     }
 
     public function mapMerchants(Request $request): JsonResponse

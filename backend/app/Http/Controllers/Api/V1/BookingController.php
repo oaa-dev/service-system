@@ -55,7 +55,8 @@ class BookingController extends Controller
         $booking = $this->bookingService->updateBookingStatus(
             $merchantId,
             $bookingId,
-            $request->validated('status')
+            $request->validated('status'),
+            $request->validated('payment_action')
         );
 
         return $this->successResponse(

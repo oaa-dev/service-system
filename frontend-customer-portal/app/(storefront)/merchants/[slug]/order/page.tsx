@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMerchantBySlug, useMerchantServices, useServiceDetail } from '@/hooks/useStorefront';
+import { useMerchantBySlug, useMerchantServices, useServiceDetail, useActivePlatformFees } from '@/hooks/useStorefront';
 import { useCreateOrder } from '@/hooks/useCustomerActions';
 import { AuthGate } from '@/components/booking/auth-gate';
 import { BookingSummary } from '@/components/booking/booking-summary';
@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/storefront-utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
+import { RewardSelector } from '@/components/loyalty/reward-selector';
 
 function formatCurrency(amount: string | number) {
   return `\u20B1${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -43,10 +44,12 @@ export default function OrderPage({
   const [quantity, setQuantity] = useState(1);
   const [unitLabel, setUnitLabel] = useState('pcs');
   const [notes, setNotes] = useState('');
+  const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
 
   const { data: merchantData, isLoading: merchantLoading } = useMerchantBySlug(slug);
   const { data: servicesData } = useMerchantServices(slug, { per_page: 100 });
   const { data: serviceDetailData } = useServiceDetail(slug, selectedServiceId ?? 0);
+  const { data: feesData } = useActivePlatformFees();
   const createOrder = useCreateOrder(slug);
 
   const merchant = merchantData?.data;
@@ -66,6 +69,7 @@ export default function OrderPage({
         quantity,
         unit_label: unitLabel,
         notes: notes || undefined,
+        loyalty_reward_id: selectedRewardId ?? undefined,
       });
       toast.success('Order placed successfully!');
       router.push(`/merchants/${slug}`);
@@ -177,19 +181,30 @@ export default function OrderPage({
             )}
 
             {/* Order summary in left column */}
-            {selectedProduct && quantity > 0 && (
-              <div className="animate-fade-in-up">
-                <BookingSummary
-                  title="Order Summary"
-                  items={[
-                    { label: 'Product', value: selectedProduct.name },
-                    { label: 'Unit Price', value: formatCurrency(selectedProduct.price) },
-                    { label: 'Quantity', value: `${quantity} ${unitLabel}` },
-                  ]}
-                  total={{ label: 'Estimated Total', value: formatCurrency(estimatedTotal) }}
-                />
-              </div>
-            )}
+            {selectedProduct && quantity > 0 && (() => {
+              const orderFee = feesData?.data?.find(f => f.transaction_type === 'sell_product');
+              const feeRate = orderFee ? Number(orderFee.rate_percentage) : 0;
+              const feeAmount = Math.round(estimatedTotal * (feeRate / 100) * 100) / 100;
+              const total = estimatedTotal + feeAmount;
+              const items = [
+                { label: 'Product', value: selectedProduct.name },
+                { label: 'Unit Price', value: formatCurrency(selectedProduct.price) },
+                { label: 'Quantity', value: `${quantity} ${unitLabel}` },
+                ...(feeRate > 0 ? [
+                  { label: 'Subtotal', value: formatCurrency(estimatedTotal) },
+                  { label: `Service Fee (${feeRate}%)`, value: formatCurrency(feeAmount) },
+                ] : []),
+              ];
+              return (
+                <div className="animate-fade-in-up">
+                  <BookingSummary
+                    title="Order Summary"
+                    items={items}
+                    total={{ label: 'Estimated Total', value: formatCurrency(total) }}
+                  />
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right column — form */}
@@ -254,6 +269,14 @@ export default function OrderPage({
                   </div>
                 </CardContent>
               </Card>
+
+              {merchant && (
+                <RewardSelector
+                  merchantId={merchant.id}
+                  selectedRewardId={selectedRewardId}
+                  onApply={setSelectedRewardId}
+                />
+              )}
 
               <Button
                 type="submit"

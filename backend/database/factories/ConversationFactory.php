@@ -19,7 +19,7 @@ class ConversationFactory extends Factory
             'merchant_id' => Merchant::factory(),
             'customer_id' => User::factory(),
             'conversable_type' => 'booking',
-            'conversable_id' => 1,
+            'conversable_id' => fake()->unique()->numberBetween(1, 9999999),
             'last_message_at' => null,
         ];
     }

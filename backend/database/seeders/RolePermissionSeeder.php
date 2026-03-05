@@ -121,6 +121,36 @@ class RolePermissionSeeder extends Seeder
                 'customer_portal.order',
                 'customer_portal.view_own',
                 'customer_portal.cancel_own',
+                'customer_portal.review',
+                'customer_portal.view_loyalty',
+                'customer_portal.scan_loyalty',
+                'customer_portal.referral',
+            ],
+            'reviews' => [
+                'reviews.view',
+                'reviews.moderate',
+            ],
+            'loyalty_programs' => [
+                'loyalty_programs.view',
+                'loyalty_programs.create',
+                'loyalty_programs.update',
+                'loyalty_programs.delete',
+            ],
+            'loyalty_cards' => [
+                'loyalty_cards.view',
+            ],
+            'loyalty_stamps' => [
+                'loyalty_stamps.create',
+            ],
+            'referral_programs' => [
+                'referral_programs.view',
+                'referral_programs.create',
+                'referral_programs.update',
+                'referral_programs.delete',
+            ],
+            'payments' => [
+                'payments.view',
+                'payments.manage',
             ],
         ];
 
@@ -152,11 +182,19 @@ class RolePermissionSeeder extends Seeder
                 'service_orders.view', 'service_orders.create', 'service_orders.update_status',
                 'platform_fees.view', 'platform_fees.create', 'platform_fees.update', 'platform_fees.delete',
                 'fields.view', 'fields.create', 'fields.update', 'fields.delete',
+                'reviews.view', 'reviews.moderate',
+                'loyalty_programs.view', 'loyalty_programs.create', 'loyalty_programs.update', 'loyalty_programs.delete',
+                'loyalty_cards.view',
+                'loyalty_stamps.create',
+                'referral_programs.view', 'referral_programs.create', 'referral_programs.update', 'referral_programs.delete',
+                'payments.view', 'payments.manage',
             ],
             'manager' => [
                 'users.view', 'users.create', 'users.update',
                 'profile.view', 'profile.update',
                 'customers.view',
+                'loyalty_programs.view',
+                'loyalty_cards.view',
             ],
             'user' => [
                 'users.view',
@@ -170,6 +208,11 @@ class RolePermissionSeeder extends Seeder
                 'bookings.view', 'bookings.create', 'bookings.update_status',
                 'reservations.view', 'reservations.create', 'reservations.update_status',
                 'service_orders.view', 'service_orders.create', 'service_orders.update_status',
+                'loyalty_programs.view', 'loyalty_programs.create', 'loyalty_programs.update', 'loyalty_programs.delete',
+                'loyalty_cards.view',
+                'loyalty_stamps.create',
+                'referral_programs.view', 'referral_programs.create', 'referral_programs.update', 'referral_programs.delete',
+                'payments.view', 'payments.manage',
             ],
             'branch-merchant' => [
                 'profile.view', 'profile.update',
@@ -177,11 +220,19 @@ class RolePermissionSeeder extends Seeder
                 'bookings.view', 'bookings.create', 'bookings.update_status',
                 'reservations.view', 'reservations.create', 'reservations.update_status',
                 'service_orders.view', 'service_orders.create', 'service_orders.update_status',
+                'loyalty_programs.view',
+                'loyalty_cards.view',
+                'loyalty_stamps.create',
+                'referral_programs.view',
+                'payments.view',
             ],
             'customer' => [
                 'profile.view', 'profile.update',
                 'customer_portal.browse', 'customer_portal.book', 'customer_portal.reserve',
                 'customer_portal.order', 'customer_portal.view_own', 'customer_portal.cancel_own',
+                'customer_portal.review',
+                'customer_portal.view_loyalty', 'customer_portal.scan_loyalty',
+                'customer_portal.referral',
             ],
         ];
 

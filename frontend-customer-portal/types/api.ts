@@ -634,10 +634,33 @@ export interface Merchant {
   can_sell_products: boolean;
   can_take_bookings: boolean;
   can_rent_units: boolean;
+  enable_loyalty_program: boolean;
+  enable_referral_program: boolean;
+  allow_branch_self_edit?: boolean;
+  inherit_from_parent?: boolean;
   user?: User;
   business_type?: BusinessType;
   address?: Address | null;
-  parent?: { id: number; name: string } | null;
+  parent?: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    logo?: { url: string; thumb: string; preview: string } | null;
+    gallery_feature?: { url: string; thumb: string; preview: string } | null;
+    gallery_photos?: Array<{ id: number; url: string; thumb: string; preview: string; name: string }>;
+    gallery_interiors?: Array<{ id: number; url: string; thumb: string; preview: string; name: string }>;
+    gallery_exteriors?: Array<{ id: number; url: string; thumb: string; preview: string; name: string }>;
+    address?: Address | null;
+    business_hours?: MerchantBusinessHour[];
+    allow_branch_self_edit?: boolean;
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    social_links?: MerchantSocialLink[] | null;
+    payment_methods?: PaymentMethod[] | null;
+    loyalty_program?: LoyaltyProgram | null;
+    referral_program?: { id: number; name: string; description?: string | null } | null;
+  } | null;
   children?: Merchant[];
   children_count?: number;
   payment_methods?: PaymentMethod[];
@@ -672,7 +695,12 @@ export interface Merchant {
     name: string;
   }>;
   logo: MediaLogo | null;
+  is_favorited?: boolean;
   distance?: number;
+  average_rating: string | null;
+  review_count: number;
+  loyalty_program?: LoyaltyProgram | null;
+  referral_program?: { id: number; name: string; description?: string | null } | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -1037,6 +1065,26 @@ export interface MerchantSummary {
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
 
+export interface Payment {
+  id: number;
+  payable_type: string;
+  payable_id: number;
+  payment_method: string | null;
+  amount: string;
+  currency: string;
+  status: string;
+  refund_status: string;
+  gateway: string;
+  gateway_reference: string | null;
+  checkout_url: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+  expires_at: string | null;
+  is_expired: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Booking {
   id: number;
   merchant_id: number;
@@ -1050,7 +1098,10 @@ export interface Booking {
   fee_rate: string;
   fee_amount: string;
   total_amount: string;
+  discount_amount: string;
   status: BookingStatus;
+  payment_status: string;
+  payment?: Payment;
   notes: string | null;
   confirmed_at: string | null;
   cancelled_at: string | null;
@@ -1068,7 +1119,8 @@ export interface Booking {
 export interface CreateBookingRequest {
   service_id: number;
   booking_date: string;
-  start_time: string;
+  start_time?: string;
+  booking_slot_id?: number;
   party_size?: number;
   notes?: string | null;
 }
@@ -1383,7 +1435,10 @@ export interface Reservation {
   fee_rate: string;
   fee_amount: string;
   total_amount: string;
+  discount_amount: string;
   status: ReservationStatus;
+  payment_status: string;
+  payment?: Payment;
   notes: string | null;
   special_requests: string | null;
   confirmed_at: string | null;
@@ -1438,7 +1493,10 @@ export interface ServiceOrder {
   fee_rate: string;
   fee_amount: string;
   total_amount: string;
+  discount_amount: string;
   status: ServiceOrderStatus;
+  payment_status: string;
+  payment?: Payment;
   notes: string | null;
   estimated_completion: string | null;
   received_at: string | null;
@@ -1587,4 +1645,208 @@ export interface PlatformFeeQueryParams {
   'filter[name]'?: string;
   'filter[is_active]'?: string;
   'filter[transaction_type]'?: string;
+}
+
+// Booking Slot Availability Types
+
+export interface BookingSlotAvailability {
+  slot_id: number;
+  start_time: string;
+  end_time: string | null;
+  booked: number;
+  available: number | null;
+  max_capacity: number | null;
+  is_full: boolean;
+}
+
+export interface BookingDayAvailability {
+  date: string;
+  has_slots: boolean;
+  slots: BookingSlotAvailability[];
+}
+
+// Review Types
+
+export interface Review {
+  id: number;
+  merchant_id: number;
+  customer_id: number;
+  rating: number; // 1-5
+  title: string | null;
+  comment: string | null;
+  is_verified: boolean;
+  is_published: boolean;
+  merchant_reply: string | null;
+  merchant_replied_at: string | null;
+  admin_notes: string | null;
+  customer?: {
+    id: number;
+    name: string | null;
+    avatar: string | null;
+  };
+  merchant?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewQueryParams {
+  page?: number;
+  per_page?: number;
+}
+
+// Loyalty Program Types
+
+export interface LoyaltyProgramTier {
+  id: number;
+  required_stamps: number;
+  reward_type: 'free_product' | 'discount_percentage' | 'discount_fixed';
+  reward_value: string | null;
+  reward_product_id: number | null;
+  reward_description: string | null;
+  reward_product?: { id: number; name: string; price: string } | null;
+}
+
+export interface LoyaltyProgram {
+  id: number;
+  merchant_id: number;
+  name: string;
+  description: string | null;
+  required_stamps: number;
+  stamp_expiry_days: number | null;
+  reward_expiry_days: number | null;
+  is_active: boolean;
+  tiers?: LoyaltyProgramTier[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoyaltyCard {
+  id: number;
+  customer_id: number;
+  merchant_id: number;
+  loyalty_program_id: number;
+  current_stamps: number;
+  total_stamps_earned: number;
+  total_rewards_earned: number;
+  total_rewards_redeemed: number;
+  last_stamp_at: string | null;
+  merchant?: { id: number; name: string; slug: string; logo: string | null };
+  loyalty_program?: LoyaltyProgram;
+  stamps?: LoyaltyStamp[];
+  rewards?: LoyaltyReward[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoyaltyStamp {
+  id: number;
+  source: 'qr_scan' | 'bonus';
+  notes: string | null;
+  earned_at: string;
+  expires_at: string | null;
+  expired: boolean;
+}
+
+export interface LoyaltyReward {
+  id: number;
+  reward_type: 'free_product' | 'discount_percentage' | 'discount_fixed';
+  reward_value: string | null;
+  reward_product_id: number | null;
+  reward_description: string | null;
+  status: 'available' | 'redeemed' | 'expired';
+  earned_at: string;
+  expires_at: string | null;
+  redeemed_at: string | null;
+  reward_product?: { id: number; name: string; price: string; is_active: boolean };
+  loyalty_card?: { id: number; merchant: { id: number; name: string; slug: string } | null };
+  created_at: string;
+}
+
+export interface ScanResult {
+  stamp: LoyaltyStamp;
+  card: LoyaltyCard;
+  reward_unlocked: LoyaltyReward | null;
+  rewards_unlocked: LoyaltyReward[];
+}
+
+export interface LoyaltyCardQueryParams {
+  page?: number;
+  per_page?: number;
+}
+
+export interface LoyaltyRewardQueryParams {
+  page?: number;
+  per_page?: number;
+  merchant_id?: number;
+}
+
+// Referral Types
+
+export interface ReferralCode {
+  id: number;
+  referral_program_id: number;
+  customer_id: number;
+  code: string;
+  uses_count: number;
+  max_uses: number | null;
+  is_active: boolean;
+  expires_at: string | null;
+  referral_program?: {
+    id: number;
+    name: string;
+    merchant?: { id: number; name: string; slug: string };
+  };
+  created_at: string;
+}
+
+export interface Referral {
+  id: number;
+  status: 'pending' | 'completed' | 'expired' | 'cancelled';
+  referee_customer?: { id: number; user?: { id: number; name: string } };
+  referrer_customer?: { id: number; user?: { id: number; name: string } };
+  referral_program?: { id: number; name: string; merchant?: { id: number; name: string; slug: string } };
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface ReferralReward {
+  id: number;
+  reward_type: 'percentage' | 'fixed';
+  reward_value: string;
+  role: 'referrer' | 'referee';
+  status: 'pending' | 'available' | 'redeemed' | 'expired';
+  redeemed_at: string | null;
+  expires_at: string | null;
+  referral?: {
+    id: number;
+    referral_program?: { id: number; name: string; merchant?: { id: number; name: string } };
+  };
+  created_at: string;
+}
+
+export interface ReferralValidation {
+  code: string;
+  referrer: string | null;
+  program: {
+    name: string;
+    description: string | null;
+    referee_reward_type: 'percentage' | 'fixed';
+    referee_reward_value: string;
+  };
+  merchant: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+}
+
+export interface ReferralRewardQueryParams {
+  page?: number;
+  per_page?: number;
+  status?: 'pending' | 'available' | 'redeemed' | 'expired';
+  role?: 'referrer' | 'referee';
 }

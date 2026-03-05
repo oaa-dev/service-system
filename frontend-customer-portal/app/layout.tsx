@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { DM_Sans, Bricolage_Grotesque } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -27,6 +28,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+            data-options={JSON.stringify(
+              { activationMode: "toggle", allowActivationInsideInput: true, maxContextLines: 3 }
+            )}
+          />
+        )}
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
+            strategy="afterInteractive"
+          />
+        )}
+      </head>
       <body
         className={`${dmSans.variable} ${bricolage.variable} antialiased`}
       >

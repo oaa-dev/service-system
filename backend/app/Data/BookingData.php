@@ -8,10 +8,12 @@ use Spatie\LaravelData\Optional;
 class BookingData extends Data
 {
     public function __construct(
-        public int|Optional $service_id = new Optional(),
-        public string|Optional $booking_date = new Optional(),
-        public string|Optional $start_time = new Optional(),
-        public int|Optional $party_size = new Optional(),
-        public string|null|Optional $notes = new Optional(),
+        public int|Optional $service_id = new Optional,
+        public string|Optional $booking_date = new Optional,
+        public string|Optional $start_time = new Optional,
+        public int|null|Optional $booking_slot_id = new Optional,
+        public int|Optional $party_size = new Optional,
+        public string|null|Optional $notes = new Optional,
+        public int|null|Optional $loyalty_reward_id = new Optional,
     ) {}
 }

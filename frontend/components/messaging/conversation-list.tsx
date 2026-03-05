@@ -1,25 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare } from 'lucide-react';
 import { useMessagingStore } from '@/stores/messagingStore';
 import { useConversations } from '@/hooks/useMessaging';
 import { ConversationItem } from './conversation-item';
-import { NewConversationDialog } from './new-conversation-dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function ConversationList() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showNewDialog, setShowNewDialog] = useState(false);
   const { isLoading } = useConversations();
   const { conversations, activeConversationId, setActiveConversation } = useMessagingStore();
 
-  const filteredConversations = conversations.filter((conv) =>
-    conv.other_user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredConversations = conversations.filter((conv) => {
+    const name = conv.other_user?.name ?? '';
+    const label = conv.conversable_label ?? '';
+    const q = searchQuery.toLowerCase();
+    return name.toLowerCase().includes(q) || label.toLowerCase().includes(q);
+  });
 
   return (
     <div className="flex flex-col h-full border-r">
@@ -27,9 +27,6 @@ export function ConversationList() {
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Messages</h2>
-          <Button size="icon" variant="ghost" onClick={() => setShowNewDialog(true)}>
-            <Plus className="h-5 w-5" />
-          </Button>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -62,16 +59,6 @@ export function ConversationList() {
               <p className="text-sm">
                 {searchQuery ? 'No conversations found' : 'No conversations yet'}
               </p>
-              {!searchQuery && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="mt-1"
-                  onClick={() => setShowNewDialog(true)}
-                >
-                  Start a new conversation
-                </Button>
-              )}
             </div>
           ) : (
             filteredConversations.map((conversation) => (
@@ -85,8 +72,6 @@ export function ConversationList() {
           )}
         </div>
       </ScrollArea>
-
-      <NewConversationDialog open={showNewDialog} onOpenChange={setShowNewDialog} />
     </div>
   );
 }

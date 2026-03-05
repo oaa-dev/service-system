@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useServiceSchedules, useUpdateServiceSchedules } from '@/hooks/useMerchants';
-import { Service } from '@/types/api';
+import { useBookingSlots } from '@/hooks';
+import { Service, MerchantBookingSlot } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -36,17 +37,31 @@ interface Props {
   service: Service | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isAdmin?: boolean;
 }
 
-export function ServiceScheduleDialog({ merchantId, service, open, onOpenChange }: Props) {
+export function ServiceScheduleDialog({ merchantId, service, open, onOpenChange, isAdmin = false }: Props) {
   const { data: schedulesData, isLoading } = useServiceSchedules(
     merchantId,
     service?.id ?? 0,
   );
+  const { data: slotsData } = useBookingSlots(isAdmin ? merchantId : undefined);
   const mutation = useUpdateServiceSchedules();
 
   const [schedules, setSchedules] = useState<ScheduleRow[]>(DEFAULT_SCHEDULES);
   const [error, setError] = useState<string | null>(null);
+
+  const slotsByDay = useMemo<Record<number, MerchantBookingSlot[]>>(() => {
+    return (slotsData ?? [])
+      .filter((s) => s.is_active)
+      .reduce<Record<number, MerchantBookingSlot[]>>((acc, slot) => {
+        if (!acc[slot.day_of_week]) acc[slot.day_of_week] = [];
+        acc[slot.day_of_week].push(slot);
+        return acc;
+      }, {});
+  }, [slotsData]);
+
+  const hasAnySlots = Object.keys(slotsByDay).length > 0;
 
   useEffect(() => {
     if (open && schedulesData?.data && schedulesData.data.length > 0) {
@@ -114,39 +129,65 @@ export function ServiceScheduleDialog({ merchantId, service, open, onOpenChange 
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
-          <div className="space-y-3 py-2">
-            {schedules.map((row) => (
-              <div key={row.day_of_week} className="flex items-center gap-3">
-                <Label className="w-20 text-sm font-medium shrink-0">
-                  {DAY_NAMES[row.day_of_week].substring(0, 3)}
-                </Label>
-                <Input
-                  type="time"
-                  value={row.start_time}
-                  onChange={(e) => updateRow(row.day_of_week, 'start_time', e.target.value)}
-                  disabled={!row.is_available || mutation.isPending}
-                  className="w-28"
-                />
-                <span className="text-muted-foreground">-</span>
-                <Input
-                  type="time"
-                  value={row.end_time}
-                  onChange={(e) => updateRow(row.day_of_week, 'end_time', e.target.value)}
-                  disabled={!row.is_available || mutation.isPending}
-                  className="w-28"
-                />
-                <div className="flex items-center gap-2 ml-auto">
-                  <Switch
-                    checked={row.is_available}
-                    onCheckedChange={(v) => updateRow(row.day_of_week, 'is_available', v)}
-                    disabled={mutation.isPending}
-                  />
-                  <span className="text-xs text-muted-foreground w-12">
-                    {row.is_available ? 'Open' : 'Closed'}
-                  </span>
+          <div className="space-y-1 py-2">
+            {schedules.map((row) => {
+              const daySlots = slotsByDay[row.day_of_week] ?? [];
+              return (
+                <div key={row.day_of_week} className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <Label className="w-20 text-sm font-medium shrink-0">
+                      {DAY_NAMES[row.day_of_week].substring(0, 3)}
+                    </Label>
+                    <Input
+                      type="time"
+                      value={row.start_time}
+                      onChange={(e) => updateRow(row.day_of_week, 'start_time', e.target.value)}
+                      disabled={!row.is_available || mutation.isPending}
+                      className="w-28"
+                    />
+                    <span className="text-muted-foreground">-</span>
+                    <Input
+                      type="time"
+                      value={row.end_time}
+                      onChange={(e) => updateRow(row.day_of_week, 'end_time', e.target.value)}
+                      disabled={!row.is_available || mutation.isPending}
+                      className="w-28"
+                    />
+                    <div className="flex items-center gap-2 ml-auto">
+                      <Switch
+                        checked={row.is_available}
+                        onCheckedChange={(v) => updateRow(row.day_of_week, 'is_available', v)}
+                        disabled={mutation.isPending}
+                      />
+                      <span className="text-xs text-muted-foreground w-12">
+                        {row.is_available ? 'Open' : 'Closed'}
+                      </span>
+                    </div>
+                  </div>
+                  {daySlots.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pl-[5.5rem] pb-1">
+                      {daySlots.map((slot) => (
+                        <span
+                          key={slot.id}
+                          className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
+                        >
+                          {slot.start_time.substring(0, 5)}
+                          {slot.end_time ? `–${slot.end_time.substring(0, 5)}` : ''}
+                          {' · '}
+                          {slot.max_capacity ? `${slot.max_capacity} seats` : 'Unlimited'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
+            {hasAnySlots && (
+              <p className="text-xs text-muted-foreground pt-1">
+                Slots are managed in{' '}
+                <span className="font-medium">Settings → Booking Slots</span>
+              </p>
+            )}
           </div>
         )}
 

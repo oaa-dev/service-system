@@ -10,7 +10,5 @@ interface MessageRepositoryInterface extends BaseRepositoryInterface
 
     public function markConversationAsRead(int $conversationId, int $userId): int;
 
-    public function searchMessages(int $userId, string $query, int $perPage = 15): LengthAwarePaginator;
-
     public function getUnreadMessagesCount(int $conversationId, int $userId): int;
 }

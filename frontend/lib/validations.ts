@@ -358,6 +358,8 @@ export const updateMerchantSchema = z.object({
   can_sell_products: z.boolean().optional(),
   can_take_bookings: z.boolean().optional(),
   can_rent_units: z.boolean().optional(),
+  enable_loyalty_program: z.boolean().optional(),
+  enable_referral_program: z.boolean().optional(),
 });
 
 export type UpdateMerchantFormData = z.infer<typeof updateMerchantSchema>;
@@ -561,6 +563,24 @@ export const createBookingSchema = z.object({
 export type CreateBookingFormData = z.infer<typeof createBookingSchema>;
 
 /**
+ * Booking Slot schemas
+ */
+export const createBookingSlotSchema = z.object({
+  day_of_week: z.number().int().min(0).max(6),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:MM format'),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:MM format').optional().nullable(),
+  max_capacity: z.number().int().min(1).optional().nullable(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export type CreateBookingSlotFormData = z.infer<typeof createBookingSlotSchema>;
+
+export const updateBookingSlotSchema = createBookingSlotSchema.partial();
+
+export type UpdateBookingSlotFormData = z.infer<typeof updateBookingSlotSchema>;
+
+/**
  * Reservation schemas
  */
 export const createReservationSchema = z.object({
@@ -674,6 +694,8 @@ export const updateBranchSchema = z.object({
   can_sell_products: z.boolean().optional(),
   can_take_bookings: z.boolean().optional(),
   can_rent_units: z.boolean().optional(),
+  inherit_from_parent: z.boolean().optional(),
+  allow_branch_self_edit: z.boolean().optional(),
 });
 
 export type UpdateBranchFormData = z.infer<typeof updateBranchSchema>;
@@ -689,3 +711,112 @@ export const selectMerchantTypeSchema = z.object({
 });
 
 export type SelectMerchantTypeFormData = z.infer<typeof selectMerchantTypeSchema>;
+
+/**
+ * Loyalty Program schemas
+ */
+export const loyaltyProgramTierSchema = z
+  .object({
+    required_stamps: z
+      .number({ message: 'Required stamps must be a number' })
+      .int()
+      .min(1, 'Must require at least 1 stamp')
+      .max(100, 'Cannot exceed 100 stamps'),
+    reward_type: z.enum(['free_product', 'discount_percentage', 'discount_fixed'], {
+      message: 'Reward type is required',
+    }),
+    reward_value: z.string().optional().nullable(),
+    reward_description: z.string().max(1000).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      (data.reward_type === 'discount_percentage' || data.reward_type === 'discount_fixed') &&
+      !data.reward_value
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Reward value is required for this reward type',
+        path: ['reward_value'],
+      });
+    }
+    if (data.reward_type === 'discount_percentage' && data.reward_value) {
+      const val = parseFloat(data.reward_value);
+      if (isNaN(val) || val <= 0 || val > 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Discount percentage must be between 0 and 100',
+          path: ['reward_value'],
+        });
+      }
+    }
+  });
+
+export type LoyaltyProgramTierFormData = z.infer<typeof loyaltyProgramTierSchema>;
+
+export const loyaltyProgramSchema = z.object({
+  name: z.string().min(1, 'Program name is required').max(255),
+  description: z.string().max(1000).optional().nullable(),
+  required_stamps: z
+    .number({ message: 'Required stamps must be a number' })
+    .int()
+    .min(1, 'Must require at least 1 stamp')
+    .max(100, 'Cannot exceed 100 stamps'),
+  stamp_expiry_days: z
+    .number({ message: 'Must be a number' })
+    .int()
+    .min(1)
+    .max(3650)
+    .optional()
+    .nullable(),
+  reward_expiry_days: z
+    .number({ message: 'Must be a number' })
+    .int()
+    .min(1)
+    .max(3650)
+    .optional()
+    .nullable(),
+  is_active: z.boolean().optional(),
+  tiers: z.array(loyaltyProgramTierSchema).min(1, 'At least one reward tier is required'),
+});
+
+export type LoyaltyProgramFormData = z.infer<typeof loyaltyProgramSchema>;
+
+export const awardBonusStampSchema = z.object({
+  notes: z.string().max(1000).optional(),
+});
+
+export type AwardBonusStampFormData = z.infer<typeof awardBonusStampSchema>;
+
+/**
+ * Referral Program schema
+ */
+export const referralProgramSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  description: z.string().max(1000).optional().nullable(),
+  referrer_reward_type: z.enum(['percentage', 'fixed']),
+  referrer_reward_value: z.number({ message: 'Must be a number' }).min(0, 'Must be 0 or more'),
+  referee_reward_type: z.enum(['percentage', 'fixed']),
+  referee_reward_value: z.number({ message: 'Must be a number' }).min(0, 'Must be 0 or more'),
+  max_referrals_per_customer: z
+    .number({ message: 'Must be a number' })
+    .int()
+    .min(1, 'Must be at least 1')
+    .optional()
+    .nullable(),
+  code_expiry_days: z
+    .number({ message: 'Must be a number' })
+    .int()
+    .min(1, 'Must be at least 1')
+    .max(365, 'Cannot exceed 365 days'),
+  reward_expiry_days: z
+    .number({ message: 'Must be a number' })
+    .int()
+    .min(1, 'Must be at least 1')
+    .max(365, 'Cannot exceed 365 days')
+    .optional()
+    .nullable(),
+  starts_at: z.string().optional().nullable(),
+  ends_at: z.string().optional().nullable(),
+});
+
+export type ReferralProgramFormData = z.infer<typeof referralProgramSchema>;

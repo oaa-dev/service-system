@@ -16,6 +16,7 @@ class UpdateReservationStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(['confirmed', 'cancelled', 'checked_in', 'checked_out'])],
+            'payment_action' => ['nullable', Rule::in(['request_payment', 'mark_cash'])],
         ];
     }
 }

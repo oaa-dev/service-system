@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Data\ReservationData;
+use App\Models\MerchantBusinessHour;
 use App\Models\Reservation;
 use App\Models\Service;
 use App\Repositories\Contracts\MerchantRepositoryInterface;
+use App\Services\Contracts\LoyaltyServiceInterface;
+use App\Services\Contracts\PaymentServiceInterface;
 use App\Services\Contracts\PlatformFeeServiceInterface;
+use App\Services\Contracts\ReferralServiceInterface;
 use App\Services\Contracts\ReservationServiceInterface;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -25,16 +29,20 @@ class ReservationService implements ReservationServiceInterface
 
     public function __construct(
         protected MerchantRepositoryInterface $merchantRepository,
-        protected PlatformFeeServiceInterface $platformFeeService
+        protected PlatformFeeServiceInterface $platformFeeService,
+        protected LoyaltyServiceInterface $loyaltyService,
+        protected ReferralServiceInterface $referralService,
+        protected PaymentServiceInterface $paymentService
     ) {}
 
     public function getMerchantReservations(int $merchantId, array $filters = []): LengthAwarePaginator
     {
-        $this->merchantRepository->findOrFail($merchantId);
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+        $merchantIds = $merchant->getAccessibleMerchantIds();
 
         $perPage = $filters['per_page'] ?? 15;
 
-        return QueryBuilder::for(Reservation::where('merchant_id', $merchantId))
+        return QueryBuilder::for(Reservation::whereIn('merchant_id', $merchantIds))
             ->allowedFilters([
                 AllowedFilter::exact('status'),
                 AllowedFilter::exact('service_id'),
@@ -45,16 +53,17 @@ class ReservationService implements ReservationServiceInterface
             ])
             ->allowedSorts(['id', 'check_in', 'check_out', 'status', 'total_price', 'created_at'])
             ->defaultSort('-check_in')
-            ->with(['service.serviceCategory', 'customer'])
+            ->with(['service.serviceCategory', 'customer', 'merchant:id,name'])
             ->paginate($perPage)
             ->appends(request()->query());
     }
 
     public function getMerchantReservationById(int $merchantId, int $reservationId): Reservation
     {
-        $this->merchantRepository->findOrFail($merchantId);
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+        $merchantIds = $merchant->getAccessibleMerchantIds();
 
-        return Reservation::where('merchant_id', $merchantId)
+        return Reservation::whereIn('merchant_id', $merchantIds)
             ->with(['service.serviceCategory', 'customer'])
             ->findOrFail($reservationId);
     }
@@ -113,8 +122,17 @@ class ReservationService implements ReservationServiceInterface
         $pricePerNight = $service->price_per_night ?? $service->price;
         $totalPrice = $nights * $pricePerNight;
 
-        // Calculate platform fee
-        $feeData = $this->platformFeeService->calculateFee('reservation', $totalPrice);
+        // Validate loyalty reward and calculate discount if provided
+        $loyaltyRewardId = ($data->loyalty_reward_id instanceof Optional) ? null : $data->loyalty_reward_id;
+        $discountAmount = 0;
+        if ($loyaltyRewardId !== null) {
+            $reward = $this->loyaltyService->redeemReward($loyaltyRewardId, auth()->id());
+            $discountAmount = $this->loyaltyService->calculateRewardDiscount($reward, $totalPrice);
+        }
+        $discountedTotal = max(0, $totalPrice - $discountAmount);
+
+        // Calculate platform fee on discounted total
+        $feeData = $this->platformFeeService->calculateFee('reservation', $discountedTotal);
 
         $reservation = Reservation::create([
             'merchant_id' => $merchantId,
@@ -126,6 +144,7 @@ class ReservationService implements ReservationServiceInterface
             'nights' => $nights,
             'price_per_night' => $pricePerNight,
             'total_price' => $totalPrice,
+            'discount_amount' => $discountAmount,
             'fee_rate' => $feeData['fee_rate'],
             'fee_amount' => $feeData['fee_amount'],
             'total_amount' => $feeData['total_amount'],
@@ -134,14 +153,20 @@ class ReservationService implements ReservationServiceInterface
             'special_requests' => $data->special_requests instanceof Optional ? null : $data->special_requests,
         ]);
 
+        // Mark loyalty reward as redeemed against this reservation
+        if ($loyaltyRewardId !== null) {
+            $this->loyaltyService->markRewardRedeemed($loyaltyRewardId, 'reservation', $reservation->id);
+        }
+
         return $reservation->load(['service.serviceCategory', 'customer']);
     }
 
-    public function updateReservationStatus(int $merchantId, int $reservationId, string $status): Reservation
+    public function updateReservationStatus(int $merchantId, int $reservationId, string $status, ?string $paymentAction = null): Reservation
     {
-        $this->merchantRepository->findOrFail($merchantId);
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+        $merchantIds = $merchant->getAccessibleMerchantIds();
 
-        $reservation = Reservation::where('merchant_id', $merchantId)->findOrFail($reservationId);
+        $reservation = Reservation::whereIn('merchant_id', $merchantIds)->findOrFail($reservationId);
 
         $allowedTransitions = self::VALID_TRANSITIONS[$reservation->status] ?? [];
 
@@ -168,6 +193,88 @@ class ReservationService implements ReservationServiceInterface
 
         $reservation->update($updateData);
 
+        // Handle payment action on confirmation
+        if ($status === 'confirmed' && $paymentAction !== null) {
+            $payment = $this->paymentService->createPaymentForTransaction($reservation, $paymentAction === 'request_payment' ? 'online' : 'cash');
+
+            if ($paymentAction === 'request_payment') {
+                $this->paymentService->requestOnlinePayment($payment);
+            } else {
+                $this->paymentService->markAsCash($payment);
+            }
+        }
+
+        // Check and complete referral when reservation is checked out
+        if ($status === 'checked_out') {
+            $this->referralService->checkAndCompleteReferral(
+                $reservation->customer_id,
+                $reservation->merchant_id,
+                'reservation',
+                $reservation->id
+            );
+        }
+
         return $reservation->load(['service.serviceCategory', 'customer']);
+    }
+
+    public function getReservationCalendar(int $merchantId, string $month): array
+    {
+        $merchant = $this->merchantRepository->findOrFail($merchantId);
+        $merchantIds = $merchant->getAccessibleMerchantIds();
+
+        $start = Carbon::parse($month.'-01')->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        // Total rentable units (active reservation-type services) across accessible merchants
+        $totalUnits = Service::whereIn('merchant_id', $merchantIds)
+            ->where('service_type', 'reservation')
+            ->where('is_active', true)
+            ->count();
+
+        // Get all reservations overlapping the month with active statuses
+        $reservations = Reservation::whereIn('merchant_id', $merchantIds)
+            ->where('check_in', '<=', $end->toDateString())
+            ->where('check_out', '>', $start->toDateString())
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+            ->select('check_in', 'check_out')
+            ->get();
+
+        // Get business hours: day_of_week → is_closed (use org merchant's hours)
+        $hours = MerchantBusinessHour::where('merchant_id', $merchantId)
+            ->get()
+            ->keyBy('day_of_week');
+
+        $result = [];
+        $current = $start->copy();
+
+        while ($current->lte($end)) {
+            $dateStr = $current->toDateString();
+            $dow = $current->dayOfWeek;
+            $businessHour = $hours->get($dow);
+
+            // Count reservations overlapping this day: check_in <= date AND check_out > date
+            $count = $reservations->filter(function ($r) use ($dateStr) {
+                $checkIn = $r->check_in instanceof Carbon
+                    ? $r->check_in->toDateString()
+                    : (string) $r->check_in;
+                $checkOut = $r->check_out instanceof Carbon
+                    ? $r->check_out->toDateString()
+                    : (string) $r->check_out;
+
+                return $checkIn <= $dateStr && $checkOut > $dateStr;
+            })->count();
+
+            $result[] = [
+                'date' => $dateStr,
+                'reservation_count' => $count,
+                'total_units' => $totalUnits,
+                'available_units' => max(0, $totalUnits - $count),
+                'is_closed' => $businessHour ? (bool) $businessHour->is_closed : true,
+            ];
+
+            $current->addDay();
+        }
+
+        return $result;
     }
 }

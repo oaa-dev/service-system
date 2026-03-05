@@ -22,10 +22,18 @@ class BookingResource extends JsonResource
             'fee_rate' => $this->fee_rate,
             'fee_amount' => $this->fee_amount,
             'total_amount' => $this->total_amount,
+            'discount_amount' => $this->discount_amount,
             'status' => $this->status,
             'notes' => $this->notes,
             'confirmed_at' => $this->confirmed_at?->toISOString(),
             'cancelled_at' => $this->cancelled_at?->toISOString(),
+            'booking_slot_id' => $this->booking_slot_id,
+            'booking_slot' => $this->whenLoaded('bookingSlot', fn () => [
+                'id' => $this->bookingSlot->id,
+                'start_time' => substr($this->bookingSlot->start_time, 0, 5),
+                'end_time' => $this->bookingSlot->end_time ? substr($this->bookingSlot->end_time, 0, 5) : null,
+                'max_capacity' => $this->bookingSlot->max_capacity,
+            ]),
             'service' => $this->whenLoaded('service', fn () => new ServiceResource($this->service)),
             'merchant' => $this->whenLoaded('merchant', fn () => [
                 'id' => $this->merchant->id,
@@ -41,6 +49,8 @@ class BookingResource extends JsonResource
                 'name' => $this->customer->name,
                 'email' => $this->customer->email,
             ]),
+            'payment_status' => $this->payment_status,
+            'payment' => $this->whenLoaded('payment', fn () => new \App\Http\Resources\Api\V1\PaymentResource($this->payment)),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

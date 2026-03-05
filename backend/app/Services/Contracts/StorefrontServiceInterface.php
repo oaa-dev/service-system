@@ -27,4 +27,8 @@ interface StorefrontServiceInterface
     public function getBookingAvailability(string $slug, int $serviceId, string $month): array;
 
     public function getReservationAvailability(string $slug, int $serviceId, string $month): array;
+
+    public function getMerchantBranches(string $slug): \Illuminate\Pagination\LengthAwarePaginator;
+
+    public function getBookingSlotAvailability(string $slug, int $serviceId, string $date): array;
 }

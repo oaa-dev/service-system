@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -22,6 +23,10 @@ class Merchant extends Model implements HasMedia
     protected $attributes = [
         'type' => 'individual',
         'status' => 'pending',
+        'allow_branch_self_edit' => true,
+        'inherit_from_parent' => true,
+        'enable_loyalty_program' => false,
+        'enable_referral_program' => false,
     ];
 
     protected $fillable = [
@@ -45,6 +50,12 @@ class Merchant extends Model implements HasMedia
         'can_sell_products',
         'can_take_bookings',
         'can_rent_units',
+        'allow_branch_self_edit',
+        'inherit_from_parent',
+        'enable_loyalty_program',
+        'enable_referral_program',
+        'average_rating',
+        'review_count',
     ];
 
     protected function casts(): array
@@ -57,6 +68,11 @@ class Merchant extends Model implements HasMedia
             'can_sell_products' => 'boolean',
             'can_take_bookings' => 'boolean',
             'can_rent_units' => 'boolean',
+            'allow_branch_self_edit' => 'boolean',
+            'inherit_from_parent' => 'boolean',
+            'enable_loyalty_program' => 'boolean',
+            'enable_referral_program' => 'boolean',
+            'average_rating' => 'decimal:2',
         ];
     }
 
@@ -201,5 +217,55 @@ class Merchant extends Model implements HasMedia
     public function statusLogs(): HasMany
     {
         return $this->hasMany(MerchantStatusLog::class)->orderBy('created_at', 'desc');
+    }
+
+    public function favoritedByCustomers(): BelongsToMany
+    {
+        return $this->belongsToMany(Customer::class, 'customer_favorite_merchants')
+            ->withPivot('created_at');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function publishedReviews(): HasMany
+    {
+        return $this->hasMany(Review::class)->where('is_published', true);
+    }
+
+    public function bookingSlots(): HasMany
+    {
+        return $this->hasMany(MerchantBookingSlot::class);
+    }
+
+    public function loyaltyProgram(): HasOne
+    {
+        return $this->hasOne(LoyaltyProgram::class)->where('is_active', true);
+    }
+
+    public function referralProgram(): HasOne
+    {
+        return $this->hasOne(ReferralProgram::class)->where('is_active', true);
+    }
+
+    public function loyaltyCards(): HasMany
+    {
+        return $this->hasMany(LoyaltyCard::class);
+    }
+
+    /**
+     * Get all merchant IDs this merchant should have access to.
+     * Organizations see their own + all branch data.
+     * Individual/branch merchants see only their own.
+     */
+    public function getAccessibleMerchantIds(): array
+    {
+        if ($this->type === 'organization') {
+            return [$this->id, ...$this->children()->pluck('id')->toArray()];
+        }
+
+        return [$this->id];
     }
 }

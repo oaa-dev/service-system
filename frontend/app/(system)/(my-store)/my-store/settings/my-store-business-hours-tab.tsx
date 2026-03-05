@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUpdateMyBusinessHours } from '@/hooks/useMyMerchant';
+import { useUpdateMyBusinessHours, useUpdateBranchBusinessHours } from '@/hooks/useMyMerchant';
 import { Merchant } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,10 +21,12 @@ interface BusinessHourEntry {
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-interface Props { merchant: Merchant; }
+interface Props { merchant: Merchant; branchId?: number; }
 
-export function MyStoreBusinessHoursTab({ merchant }: Props) {
-  const updateMutation = useUpdateMyBusinessHours();
+export function MyStoreBusinessHoursTab({ merchant, branchId }: Props) {
+  const selfUpdateMutation = useUpdateMyBusinessHours();
+  const branchUpdateMutation = useUpdateBranchBusinessHours();
+  const isPending = branchId ? branchUpdateMutation.isPending : selfUpdateMutation.isPending;
   const [hours, setHours] = useState<BusinessHourEntry[]>([]);
 
   useEffect(() => {
@@ -59,10 +61,14 @@ export function MyStoreBusinessHoursTab({ merchant }: Props) {
   };
 
   const handleSave = () => {
-    updateMutation.mutate({ hours }, {
-      onSuccess: () => toast.success('Business hours updated'),
-      onError: () => toast.error('Failed to update business hours'),
-    });
+    const onSuccess = () => toast.success('Business hours updated');
+    const onError = () => toast.error('Failed to update business hours');
+
+    if (branchId) {
+      branchUpdateMutation.mutate({ branchId, data: { hours } }, { onSuccess, onError });
+    } else {
+      selfUpdateMutation.mutate({ hours }, { onSuccess, onError });
+    }
   };
 
   return (
@@ -105,8 +111,8 @@ export function MyStoreBusinessHoursTab({ merchant }: Props) {
           ))}
         </div>
         <div className="flex justify-end pt-4">
-          <Button onClick={handleSave} disabled={updateMutation.isPending}>
-            {updateMutation.isPending && <Spinner className="mr-2 h-4 w-4" />}
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending && <Spinner className="mr-2 h-4 w-4" />}
             Save Business Hours
           </Button>
         </div>

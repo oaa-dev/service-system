@@ -55,7 +55,8 @@ class ServiceOrderController extends Controller
         $serviceOrder = $this->serviceOrderService->updateServiceOrderStatus(
             $merchantId,
             $serviceOrderId,
-            $request->validated('status')
+            $request->validated('status'),
+            $request->validated('payment_action')
         );
 
         return $this->successResponse(

@@ -46,6 +46,10 @@ class UpdateMyMerchantRequest extends FormRequest
             'can_sell_products' => ['sometimes', 'boolean'],
             'can_take_bookings' => ['sometimes', 'boolean'],
             'can_rent_units' => ['sometimes', 'boolean'],
+            'allow_branch_self_edit' => ['sometimes', 'boolean'],
+            'inherit_from_parent' => ['sometimes', 'boolean'],
+            'enable_loyalty_program' => ['sometimes', 'boolean'],
+            'enable_referral_program' => ['sometimes', 'boolean'],
         ];
     }
 }

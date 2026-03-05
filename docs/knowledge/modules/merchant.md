@@ -1,10 +1,10 @@
 # Merchant Module
 
 ## Model
-- **Path**: `app/Models/Merchant.php`
+- **Path**: `backend/app/Models/Merchant.php`
 - **Table**: `merchants`
-- **Fillable**: `user_id`, `parent_id`, `business_type_id`, `type`, `name`, `slug`, `description`, `contact_email`, `contact_phone`, `website`, `status`, `status_changed_at`, `status_reason`, `approved_at`, `submitted_at`, `accepted_terms_at`, `terms_version`, `can_sell_products`, `can_take_bookings`, `can_rent_units`
-- **Defaults** (`$attributes`): type = 'individual', status = 'pending'
+- **Fillable**: `user_id`, `parent_id`, `business_type_id`, `type`, `name`, `slug`, `description`, `contact_email`, `contact_phone`, `website`, `status`, `status_changed_at`, `status_reason`, `approved_at`, `submitted_at`, `accepted_terms_at`, `terms_version`, `can_sell_products`, `can_take_bookings`, `can_rent_units`, `allow_branch_self_edit`, `average_rating`, `review_count`
+- **Defaults** (`$attributes`): type = 'individual', status = 'pending', allow_branch_self_edit = true
 - **Casts**:
   - `status_changed_at` -> datetime
   - `approved_at` -> datetime
@@ -28,6 +28,7 @@
   - `reservations()` -> HasMany -> `Reservation`
   - `serviceOrders()` -> HasMany -> `ServiceOrder`
   - `statusLogs()` -> HasMany -> `MerchantStatusLog` (ordered by created_at desc)
+  - `bookingSlots()` -> HasMany -> `MerchantBookingSlot`
 - **Traits**:
   - `HasAddress` (polymorphic address with updateOrCreateAddress())
   - `HasFactory`
@@ -49,32 +50,42 @@
 
 | Category | File | Notes |
 |----------|------|-------|
-| Controller (admin) | `app/Http/Controllers/Api/V1/MerchantController.php` | Full CRUD, logo/gallery/document/business-hours/payment-methods/social-links/account/status/branches |
-| Controller (self-service) | `app/Http/Controllers/Api/V1/MyMerchantController.php` | Merchant resolves from `$request->user()->merchant`; mirrors MerchantController actions plus onboarding-specific endpoints |
-| Service Interface | `app/Services/Contracts/MerchantServiceInterface.php` | Contract for all MerchantService methods |
-| Service | `app/Services/MerchantService.php` | All business logic: CRUD, status workflow (VALID_TRANSITIONS), onboarding checklist, stats, branches, business hours, payment methods sync, social links sync, documents, service CRUD, service schedules |
-| Repository Interface | `app/Repositories/Contracts/MerchantRepositoryInterface.php` | Extends BaseRepositoryInterface |
-| Repository | `app/Repositories/MerchantRepository.php` | Extends BaseRepository; adds findBySlug, findByUserId, getActive |
-| DTO | `app/Data/MerchantData.php` | Spatie Laravel Data; all fields Optional; includes nested AddressData, capability booleans |
-| Resource | `app/Http/Resources/Api/V1/MerchantResource.php` | Full serializer with whenLoaded for all relations (user, businessType, address, parent, paymentMethods, socialLinks, documents, businessHours, children, statusLogs), logo URL generation, children_count |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/StoreMerchantRequest.php` | Admin create: user_first_name, user_last_name, user_email, user_password + merchant fields |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UpdateMerchantRequest.php` | Admin update |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UpdateMyMerchantRequest.php` | Self-service update (subset of fields) |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UpdateMerchantStatusRequest.php` | Status transition: status, status_reason |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UpdateMerchantAccountRequest.php` | Update merchant's linked user email/password |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UploadMerchantLogoRequest.php` | Logo file upload |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UploadMerchantGalleryImageRequest.php` | Gallery image upload |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UploadMerchantDocumentRequest.php` | Document file upload |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UpdateBusinessHoursRequest.php` | Bulk business hours upsert |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/SyncPaymentMethodsRequest.php` | Payment method ID array sync |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/SyncSocialLinksRequest.php` | Social links delete-and-recreate sync |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/StoreBranchRequest.php` | Create branch: user_name, user_email, user_password + merchant fields |
-| FormRequest | `app/Http/Requests/Api/V1/Merchant/UpdateBranchRequest.php` | Update branch |
-| Middleware | `app/Http/Middleware/EnsureActiveMerchant.php` | Blocks merchant/branch-merchant roles if status not active or approved; admin/super-admin bypass |
-| Notification | `app/Notifications/MerchantStatusChangedNotification.php` | DB + mail notification to merchant user on status change |
-| Notification | `app/Notifications/MerchantApplicationSubmittedNotification.php` | DB + mail notification to all admins on application submission |
-| Trait | `app/Traits/HasAddress.php` | Polymorphic address relationship; provides updateOrCreateAddress() |
-| Provider Binding | `app/Providers/RepositoryServiceProvider.php` | MerchantRepositoryInterface -> MerchantRepository; MerchantServiceInterface -> MerchantService |
+| Controller (admin) | `backend/app/Http/Controllers/Api/V1/MerchantController.php` | Full CRUD, logo/gallery/document/business-hours/payment-methods/social-links/account/status/branches |
+| Controller (self-service) | `backend/app/Http/Controllers/Api/V1/MyMerchantController.php` | Merchant resolves from `$request->user()->merchant`; mirrors MerchantController actions plus onboarding-specific endpoints |
+| Controller (booking slots) | `backend/app/Http/Controllers/Api/V1/MerchantBookingSlotController.php` | Dual-mode: self-service (no merchant param) + admin (with merchant param); index, store, show, update, destroy |
+| Service Interface | `backend/app/Services/Contracts/MerchantServiceInterface.php` | Contract for all MerchantService methods |
+| Service | `backend/app/Services/MerchantService.php` | All business logic: CRUD, status workflow (VALID_TRANSITIONS), onboarding checklist, stats, branches, business hours, payment methods sync, social links sync, documents, service CRUD, service schedules |
+| Service (booking slots) | `backend/app/Services/MerchantBookingSlotService.php` | getMerchantSlots, getMerchantSlotById, createSlot (with unique constraint check), updateSlot, deleteSlot, getMerchantActiveSlotsByDow, merchantHasActiveSlots |
+| Service Interface (booking slots) | `backend/app/Services/Contracts/MerchantBookingSlotServiceInterface.php` | — |
+| Repository Interface | `backend/app/Repositories/Contracts/MerchantRepositoryInterface.php` | Extends BaseRepositoryInterface |
+| Repository | `backend/app/Repositories/MerchantRepository.php` | Extends BaseRepository; adds findBySlug, findByUserId, getActive |
+| Repository (booking slots) | `backend/app/Repositories/MerchantBookingSlotRepository.php` | getAllForMerchant (ordered day_of_week→sort_order→start_time), findOrFailForMerchant, getActiveByDow, hasActiveSlots |
+| Repository Interface (booking slots) | `backend/app/Repositories/Contracts/MerchantBookingSlotRepositoryInterface.php` | — |
+| DTO | `backend/app/Data/MerchantData.php` | Spatie Laravel Data; all fields Optional; includes nested AddressData, capability booleans |
+| DTO (booking slots) | `backend/app/Data/MerchantBookingSlotData.php` | day_of_week, start_time, end_time (nullable), max_capacity (nullable), is_active, sort_order |
+| Resource | `backend/app/Http/Resources/Api/V1/MerchantResource.php` | Full serializer with whenLoaded for all relations (user, businessType, address, parent, paymentMethods, socialLinks, documents, businessHours, children, statusLogs), logo URL generation, children_count, average_rating, review_count |
+| Resource (booking slots) | `backend/app/Http/Resources/Api/V1/MerchantBookingSlotResource.php` | id, merchant_id, day_of_week, start_time, end_time, max_capacity, is_active, sort_order, timestamps |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/StoreMerchantRequest.php` | Admin create: user_first_name, user_last_name, user_email, user_password + merchant fields |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UpdateMerchantRequest.php` | Admin update |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UpdateMyMerchantRequest.php` | Self-service update (subset of fields) |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UpdateMerchantStatusRequest.php` | Status transition: status, status_reason |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UpdateMerchantAccountRequest.php` | Update merchant's linked user email/password |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UploadMerchantLogoRequest.php` | Logo file upload |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UploadMerchantGalleryImageRequest.php` | Gallery image upload |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UploadMerchantDocumentRequest.php` | Document file upload |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UpdateBusinessHoursRequest.php` | Bulk business hours upsert |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/SyncPaymentMethodsRequest.php` | Payment method ID array sync |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/SyncSocialLinksRequest.php` | Social links delete-and-recreate sync |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/StoreBranchRequest.php` | Create branch: user_name, user_email, user_password + merchant fields |
+| FormRequest | `backend/app/Http/Requests/Api/V1/Merchant/UpdateBranchRequest.php` | Update branch |
+| FormRequest (booking slots) | `backend/app/Http/Requests/Api/V1/BookingSlot/StoreMerchantBookingSlotRequest.php` | Create slot validation |
+| FormRequest (booking slots) | `backend/app/Http/Requests/Api/V1/BookingSlot/UpdateMerchantBookingSlotRequest.php` | Update slot validation |
+| Model (booking slots) | `backend/app/Models/MerchantBookingSlot.php` | merchant_id, day_of_week, start_time, end_time (nullable), max_capacity (nullable), is_active, sort_order; unique([merchant_id, day_of_week, start_time]); index([merchant_id, day_of_week, is_active]) |
+| Middleware | `backend/app/Http/Middleware/EnsureActiveMerchant.php` | Blocks merchant/branch-merchant roles if status not active or approved; admin/super-admin bypass |
+| Notification | `backend/app/Notifications/MerchantStatusChangedNotification.php` | DB + mail notification to merchant user on status change |
+| Notification | `backend/app/Notifications/MerchantApplicationSubmittedNotification.php` | DB + mail notification to all admins on application submission |
+| Trait | `backend/app/Traits/HasAddress.php` | Polymorphic address relationship; provides updateOrCreateAddress() |
+| Provider Binding | `backend/app/Providers/RepositoryServiceProvider.php` | MerchantRepositoryInterface -> MerchantRepository; MerchantServiceInterface -> MerchantService; MerchantBookingSlotRepositoryInterface -> MerchantBookingSlotRepository; MerchantBookingSlotServiceInterface -> MerchantBookingSlotService |
 
 ## Routes
 
@@ -106,6 +117,10 @@
 | PATCH | `merchants/{merchant}/status` | MerchantController@updateStatus | merchants.update_status |
 | DELETE | `merchants/{merchant}` | MerchantController@destroy | merchants.delete |
 | DELETE | `merchants/{merchant}/branches/{branch}` | MerchantController@destroyBranch | merchants.delete |
+| GET | `merchants/{merchant}/booking-slots` | MerchantBookingSlotController@index | merchants.update |
+| POST | `merchants/{merchant}/booking-slots` | MerchantBookingSlotController@store | merchants.update |
+| PUT | `merchants/{merchant}/booking-slots/{slot}` | MerchantBookingSlotController@update | merchants.update |
+| DELETE | `merchants/{merchant}/booking-slots/{slot}` | MerchantBookingSlotController@destroy | merchants.update |
 
 ### Self-service routes (prefix: `/api/v1/auth/merchant`, auth + verified + onboarded)
 
@@ -132,6 +147,11 @@
 | GET | `auth/merchant/gallery` | MyMerchantController@getGallery (requires merchant.active) |
 | POST | `auth/merchant/gallery/{collection}` | MyMerchantController@uploadGalleryImage (requires merchant.active) |
 | DELETE | `auth/merchant/gallery/{media}` | MyMerchantController@deleteGalleryImage (requires merchant.active) |
+| GET | `auth/merchant/booking-slots` | MerchantBookingSlotController@index |
+| POST | `auth/merchant/booking-slots` | MerchantBookingSlotController@store |
+| GET | `auth/merchant/booking-slots/{slot}` | MerchantBookingSlotController@show |
+| PUT | `auth/merchant/booking-slots/{slot}` | MerchantBookingSlotController@update |
+| DELETE | `auth/merchant/booking-slots/{slot}` | MerchantBookingSlotController@destroy |
 
 ### Public routes (Storefront)
 
@@ -141,6 +161,8 @@
 | GET | `storefront/merchants/{slug}` | StorefrontController@merchantDetail |
 | GET | `storefront/merchants/{slug}/services` | StorefrontController@merchantServices |
 | GET | `storefront/merchants/{slug}/services/{service}` | StorefrontController@serviceDetail |
+| GET | `storefront/merchants/{slug}/services/{service}/booking-availability?month=YYYY-MM` | StorefrontController@bookingAvailability (month-based) |
+| GET | `storefront/merchants/{slug}/services/{service}/booking-availability?date=YYYY-MM-DD` | StorefrontController@bookingAvailability (date-based slot picker) |
 
 ## Status Workflow
 
@@ -157,10 +179,20 @@ Valid transitions defined in `MerchantService::VALID_TRANSITIONS`:
 | Flag | Description |
 |------|-------------|
 | can_sell_products | Enables ServiceOrder (orders) sub-module |
-| can_take_bookings | Enables Booking sub-module |
+| can_take_bookings | Enables Booking sub-module + Booking Slots tab in settings |
 | can_rent_units | Enables Unit/Reservation sub-module |
 
 Capabilities are copied from BusinessType on merchant creation or when business_type_id changes; they can be edited independently afterward.
+
+## Booking Slots Sub-Module
+
+`MerchantBookingSlot` model (table: `merchant_booking_slots`):
+- **Purpose**: Named time slots merchants define per day-of-week (e.g., "Monday 9:00 AM slot"). Customers select a slot when booking instead of picking arbitrary times.
+- **Unique constraint**: `[merchant_id, day_of_week, start_time]` — enforced at DB level and service level (ValidationException on duplicate)
+- **Ordering**: getAllForMerchant orders by day_of_week → sort_order → start_time
+- **Dual-mode controller**: `MerchantBookingSlotController::resolveMerchantId()` returns `$merchant->id` if admin route, else `$request->user()->merchant->id` for self-service
+- **Calendar integration**: `BookingService::getBookingCalendar()` reads active slots, grouping by day_of_week; each calendar day shows `has_slots`, `slots[]` with per-slot booking counts
+- **Customer booking**: `CreateBookingRequest` accepts optional `booking_slot_id`; `BookingService::createBooking()` validates slot belongs to merchant, is active, checks capacity, and overrides start/end time from slot
 
 ## Onboarding Checklist
 
@@ -179,14 +211,16 @@ Capabilities are copied from BusinessType on merchant creation or when business_
 
 | Type | File |
 |------|------|
-| Migration (create) | `database/migrations/2026_02_08_100001_create_merchants_table.php` |
-| Migration (payment method pivot) | `database/migrations/2026_02_08_100003_create_merchant_payment_method_table.php` |
-| Migration (capabilities) | `database/migrations/2026_02_10_200007_add_capabilities_to_merchants_table.php` |
-| Migration (submitted_at) | `database/migrations/2026_02_15_000002_add_submitted_at_to_merchants_table.php` |
-| Migration (submitted status) | `database/migrations/2026_02_15_000003_add_submitted_status_to_merchants_table.php` |
-| Migration (user_id nullable) | `database/migrations/2026_02_15_100001_make_merchant_user_id_nullable.php` |
-| Migration (drop can_take_orders) | `database/migrations/2026_02_12_100001_drop_can_take_orders_from_business_types_and_merchants.php` |
-| Factory | `database/factories/MerchantFactory.php` |
+| Migration (create) | `backend/database/migrations/2026_02_08_100001_create_merchants_table.php` |
+| Migration (payment method pivot) | `backend/database/migrations/2026_02_08_100003_create_merchant_payment_method_table.php` |
+| Migration (capabilities) | `backend/database/migrations/2026_02_10_200007_add_capabilities_to_merchants_table.php` |
+| Migration (submitted_at) | `backend/database/migrations/2026_02_15_000002_add_submitted_at_to_merchants_table.php` |
+| Migration (submitted status) | `backend/database/migrations/2026_02_15_000003_add_submitted_status_to_merchants_table.php` |
+| Migration (user_id nullable) | `backend/database/migrations/2026_02_15_100001_make_merchant_user_id_nullable.php` |
+| Migration (drop can_take_orders) | `backend/database/migrations/2026_02_12_100001_drop_can_take_orders_from_business_types_and_merchants.php` |
+| Migration (booking slots table) | `backend/database/migrations/2026_03_02_200000_create_merchant_booking_slots_table.php` |
+| Factory | `backend/database/factories/MerchantFactory.php` |
+| Factory (booking slots) | `backend/database/factories/MerchantBookingSlotFactory.php` |
 | Seeder | -- (no dedicated merchant seeder; UserSeeder creates demo users that can be associated) |
 
 ### Factory States
@@ -204,15 +238,16 @@ Capabilities are copied from BusinessType on merchant creation or when business_
 
 | Type | File |
 |------|------|
-| Feature -- Admin CRUD + sub-entities | `tests/Feature/Api/V1/MerchantControllerTest.php` |
-| Feature -- Self-service | `tests/Feature/Api/V1/MyMerchantControllerTest.php` |
-| Feature -- Branch management | `tests/Feature/Api/V1/MyMerchantBranchTest.php` |
-| Feature -- Gallery | `tests/Feature/Api/V1/MerchantGalleryTest.php` |
-| Feature -- Status logs | `tests/Feature/Api/V1/MerchantStatusLogTest.php` |
-| Feature -- Merchant type selection | `tests/Feature/Api/V1/SelectMerchantTypeTest.php` |
-| Feature -- Submit application | `tests/Feature/Api/V1/SubmitApplicationTest.php` |
-| Feature -- Onboarding checklist | `tests/Feature/Api/V1/OnboardingChecklistTest.php` |
-| Feature -- Storefront | `tests/Feature/Api/V1/StorefrontControllerTest.php` |
+| Feature -- Admin CRUD + sub-entities | `backend/tests/Feature/Api/V1/MerchantControllerTest.php` |
+| Feature -- Self-service | `backend/tests/Feature/Api/V1/MyMerchantControllerTest.php` |
+| Feature -- Branch management | `backend/tests/Feature/Api/V1/MyMerchantBranchTest.php` |
+| Feature -- Gallery | `backend/tests/Feature/Api/V1/MerchantGalleryTest.php` |
+| Feature -- Status logs | `backend/tests/Feature/Api/V1/MerchantStatusLogTest.php` |
+| Feature -- Merchant type selection | `backend/tests/Feature/Api/V1/SelectMerchantTypeTest.php` |
+| Feature -- Submit application | `backend/tests/Feature/Api/V1/SubmitApplicationTest.php` |
+| Feature -- Onboarding checklist | `backend/tests/Feature/Api/V1/OnboardingChecklistTest.php` |
+| Feature -- Storefront | `backend/tests/Feature/Api/V1/StorefrontControllerTest.php` |
+| Feature -- Booking slots | `backend/tests/Feature/Api/V1/MerchantBookingSlotTest.php` |
 
 ## Notes
 - Dual controller pattern: `MerchantController` (admin CRUD at `merchants/{merchant}/`) and `MyMerchantController` (self-service at `auth/merchant/`). Self-service auto-resolves merchant from `$request->user()->merchant`. Both share the same `MerchantService`.
@@ -223,3 +258,4 @@ Capabilities are copied from BusinessType on merchant creation or when business_
 - `destroy()` uses try-catch wrapping with 422 response on error (not 404).
 - `deleteBranch` also cleans up the associated user account (deletes tokens and user).
 - Storefront routes provide public read-only access to active merchants by slug.
+- `MerchantBookingSlotController` is dual-mode: resolves merchant from route param (admin) or from `auth()->user()->merchant` (self-service); no separate controller needed.

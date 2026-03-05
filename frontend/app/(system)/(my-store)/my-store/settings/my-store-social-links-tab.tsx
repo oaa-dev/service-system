@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSyncMySocialLinks } from '@/hooks/useMyMerchant';
+import { useSyncMySocialLinks, useSyncBranchSocialLinks } from '@/hooks/useMyMerchant';
 import { useActiveSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { Merchant } from '@/types/api';
 import { Button } from '@/components/ui/button';
@@ -21,10 +21,12 @@ interface SocialLinkEntry {
   url: string;
 }
 
-interface Props { merchant: Merchant; }
+interface Props { merchant: Merchant; branchId?: number; }
 
-export function MyStoreSocialLinksTab({ merchant }: Props) {
-  const syncMutation = useSyncMySocialLinks();
+export function MyStoreSocialLinksTab({ merchant, branchId }: Props) {
+  const selfSyncMutation = useSyncMySocialLinks();
+  const branchSyncMutation = useSyncBranchSocialLinks();
+  const isPending = branchId ? branchSyncMutation.isPending : selfSyncMutation.isPending;
   const { data: platformsData, isLoading } = useActiveSocialPlatforms();
   const platforms = platformsData?.data || [];
 
@@ -54,10 +56,14 @@ export function MyStoreSocialLinksTab({ merchant }: Props) {
 
   const handleSave = () => {
     const validLinks = links.filter((l) => l.url.trim());
-    syncMutation.mutate({ social_links: validLinks }, {
-      onSuccess: () => toast.success('Social links updated'),
-      onError: () => toast.error('Failed to update social links'),
-    });
+    const onSuccess = () => toast.success('Social links updated');
+    const onError = () => toast.error('Failed to update social links');
+
+    if (branchId) {
+      branchSyncMutation.mutate({ branchId, data: { social_links: validLinks } }, { onSuccess, onError });
+    } else {
+      selfSyncMutation.mutate({ social_links: validLinks }, { onSuccess, onError });
+    }
   };
 
   return (
@@ -105,8 +111,8 @@ export function MyStoreSocialLinksTab({ merchant }: Props) {
           </div>
         )}
         <div className="flex justify-end pt-4">
-          <Button onClick={handleSave} disabled={syncMutation.isPending}>
-            {syncMutation.isPending && <Spinner className="mr-2 h-4 w-4" />}
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending && <Spinner className="mr-2 h-4 w-4" />}
             Save Social Links
           </Button>
         </div>

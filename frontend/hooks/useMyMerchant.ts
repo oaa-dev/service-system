@@ -229,3 +229,114 @@ export function useDeleteMyBranch() {
     },
   });
 }
+
+// Branch detail management hooks (org managing a specific branch's settings/gallery)
+export function useBranchDetail(branchId: number) {
+  return useQuery({
+    queryKey: ['my-merchant', 'branch-detail', branchId],
+    queryFn: async () => {
+      const response = await myMerchantService.getBranchDetail(branchId);
+      return response.data;
+    },
+    enabled: branchId > 0,
+  });
+}
+
+export function useUpdateBranchDetails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, data }: { branchId: number; data: UpdateMerchantRequest }) =>
+      myMerchantService.updateBranchDetails(branchId, data),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId] });
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branches'] });
+    },
+  });
+}
+
+export function useUploadBranchLogo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, file }: { branchId: number; file: File }) =>
+      myMerchantService.uploadBranchLogo(branchId, file),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId] });
+    },
+  });
+}
+
+export function useDeleteBranchLogo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (branchId: number) => myMerchantService.deleteBranchLogo(branchId),
+    onSuccess: (_, branchId) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId] });
+    },
+  });
+}
+
+export function useBranchGallery(branchId: number) {
+  return useQuery({
+    queryKey: ['my-merchant', 'branch-detail', branchId, 'gallery'],
+    queryFn: async () => {
+      const response = await myMerchantService.getBranchGallery(branchId);
+      return response.data;
+    },
+    enabled: branchId > 0,
+  });
+}
+
+export function useUploadBranchGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, collection, file }: { branchId: number; collection: string; file: File }) =>
+      myMerchantService.uploadBranchGalleryImage(branchId, collection, file),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId, 'gallery'] });
+    },
+  });
+}
+
+export function useDeleteBranchGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, mediaId }: { branchId: number; mediaId: number }) =>
+      myMerchantService.deleteBranchGalleryImage(branchId, mediaId),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId, 'gallery'] });
+    },
+  });
+}
+
+export function useUpdateBranchBusinessHours() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, data }: { branchId: number; data: UpdateBusinessHoursRequest }) =>
+      myMerchantService.updateBranchBusinessHours(branchId, data),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId] });
+    },
+  });
+}
+
+export function useSyncBranchPaymentMethods() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, data }: { branchId: number; data: SyncPaymentMethodsRequest }) =>
+      myMerchantService.syncBranchPaymentMethods(branchId, data),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId] });
+    },
+  });
+}
+
+export function useSyncBranchSocialLinks() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, data }: { branchId: number; data: SyncSocialLinksRequest }) =>
+      myMerchantService.syncBranchSocialLinks(branchId, data),
+    onSuccess: (_, { branchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-merchant', 'branch-detail', branchId] });
+    },
+  });
+}

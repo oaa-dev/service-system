@@ -55,7 +55,8 @@ class ReservationController extends Controller
         $reservation = $this->reservationService->updateReservationStatus(
             $merchantId,
             $reservationId,
-            $request->validated('status')
+            $request->validated('status'),
+            $request->validated('payment_action')
         );
 
         return $this->successResponse(

@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, startOfMonth, differenceInCalendarDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
-import { useMerchantBySlug, useMerchantServices, useReservationAvailability } from '@/hooks/useStorefront';
+import { useMerchantBySlug, useMerchantServices, useReservationAvailability, useActivePlatformFees } from '@/hooks/useStorefront';
 import { useCreateReservation } from '@/hooks/useCustomerActions';
 import { AuthGate } from '@/components/booking/auth-gate';
 import { BookingSummary } from '@/components/booking/booking-summary';
@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/storefront-utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
+import { RewardSelector } from '@/components/loyalty/reward-selector';
 
 function formatCurrency(amount: string | number) {
   return `\u20B1${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -48,6 +49,7 @@ export default function ReservationPage({
   const [guestCount, setGuestCount] = useState(1);
   const [notes, setNotes] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
+  const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
 
@@ -58,6 +60,7 @@ export default function ReservationPage({
     selectedServiceId,
     monthStr,
   );
+  const { data: feesData } = useActivePlatformFees();
   const createReservation = useCreateReservation(slug);
 
   const merchant = merchantData?.data;
@@ -89,6 +92,7 @@ export default function ReservationPage({
         guest_count: guestCount,
         notes: notes || undefined,
         special_requests: specialRequests || undefined,
+        loyalty_reward_id: selectedRewardId ?? undefined,
       });
       toast.success('Reservation created successfully!');
       router.push(`/merchants/${slug}`);
@@ -202,22 +206,33 @@ export default function ReservationPage({
             )}
 
             {/* Reservation summary */}
-            {availability && nights > 0 && (
-              <div className="animate-fade-in-up">
-                <BookingSummary
-                  title="Reservation Summary"
-                  items={[
-                    { label: 'Unit', value: availability.service.name },
-                    { label: 'Check-in', value: selectedRange?.from ? format(selectedRange.from, 'MMM d, yyyy') : '' },
-                    { label: 'Check-out', value: selectedRange?.to ? format(selectedRange.to, 'MMM d, yyyy') : '' },
-                    { label: 'Nights', value: nights.toString() },
-                    { label: 'Guests', value: guestCount.toString() },
-                    { label: 'Rate', value: `${formatCurrency(pricePerNight)}/night` },
-                  ]}
-                  total={{ label: 'Estimated Total', value: formatCurrency(estimatedTotal) }}
-                />
-              </div>
-            )}
+            {availability && nights > 0 && (() => {
+              const reservationFee = feesData?.data?.find(f => f.transaction_type === 'reservation');
+              const feeRate = reservationFee ? Number(reservationFee.rate_percentage) : 0;
+              const feeAmount = Math.round(estimatedTotal * (feeRate / 100) * 100) / 100;
+              const total = estimatedTotal + feeAmount;
+              const items = [
+                { label: 'Unit', value: availability.service.name },
+                { label: 'Check-in', value: selectedRange?.from ? format(selectedRange.from, 'MMM d, yyyy') : '' },
+                { label: 'Check-out', value: selectedRange?.to ? format(selectedRange.to, 'MMM d, yyyy') : '' },
+                { label: 'Nights', value: nights.toString() },
+                { label: 'Guests', value: guestCount.toString() },
+                { label: 'Rate', value: `${formatCurrency(pricePerNight)}/night` },
+                ...(feeRate > 0 ? [
+                  { label: 'Subtotal', value: formatCurrency(estimatedTotal) },
+                  { label: `Service Fee (${feeRate}%)`, value: formatCurrency(feeAmount) },
+                ] : []),
+              ];
+              return (
+                <div className="animate-fade-in-up">
+                  <BookingSummary
+                    title="Reservation Summary"
+                    items={items}
+                    total={{ label: 'Estimated Total', value: formatCurrency(total) }}
+                  />
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right column — form with calendar */}
@@ -305,6 +320,14 @@ export default function ReservationPage({
                   )}
                 </CardContent>
               </Card>
+
+              {merchant && (
+                <RewardSelector
+                  merchantId={merchant.id}
+                  selectedRewardId={selectedRewardId}
+                  onApply={setSelectedRewardId}
+                />
+              )}
 
               <Button
                 type="submit"

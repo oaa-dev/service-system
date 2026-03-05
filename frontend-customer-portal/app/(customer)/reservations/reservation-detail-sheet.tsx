@@ -1,7 +1,7 @@
 'use client';
 
 import { format, differenceInDays } from 'date-fns';
-import { Calendar, Users, Store, MapPin, StickyNote, Loader2, Moon, MessageSquare } from 'lucide-react';
+import { Calendar, Users, Store, MapPin, StickyNote, Loader2, Moon, MessageSquare, CreditCard, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 
@@ -20,6 +20,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMyReservation, useCancelReservation } from '@/hooks/useCustomerDashboard';
 import { formatPrice } from '@/lib/storefront-utils';
 import { ChatPanel } from '@/components/chat/chat-panel';
+import { ReviewForm } from '@/components/reviews/review-form';
+import { useMyReviews } from '@/hooks/useReviews';
 import type { ReservationStatus } from '@/types/api';
 
 interface ReservationDetailSheetProps {
@@ -43,6 +45,22 @@ function getStatusVariant(status: ReservationStatus): 'default' | 'secondary' | 
   }
 }
 
+function getPaymentStatusClassName(status: string): string {
+  switch (status) {
+    case 'paid':
+      return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200';
+    case 'pending':
+      return 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200';
+    case 'failed':
+      return 'bg-red-100 text-red-800 hover:bg-red-100 border-red-200';
+    case 'refunded':
+      return 'bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200';
+    case 'unpaid':
+    default:
+      return 'bg-muted text-muted-foreground hover:bg-muted border-border';
+  }
+}
+
 function getStatusClassName(status: ReservationStatus): string {
   switch (status) {
     case 'pending':
@@ -63,6 +81,7 @@ function getStatusClassName(status: ReservationStatus): string {
 export default function ReservationDetailSheet({ open, onOpenChange, itemId }: ReservationDetailSheetProps) {
   const { data: response, isLoading } = useMyReservation(itemId);
   const cancelReservation = useCancelReservation();
+  const { data: myReviews } = useMyReviews({ per_page: 100 });
 
   const reservation = response?.data;
 
@@ -82,6 +101,10 @@ export default function ReservationDetailSheet({ open, onOpenChange, itemId }: R
 
   const canCancel = reservation && (reservation.status === 'pending' || reservation.status === 'confirmed');
   const merchant = reservation?.merchant;
+  const canReview = reservation?.status === 'checked_out';
+  const existingReview = merchant
+    ? myReviews?.data?.find(r => r.merchant_id === merchant.id)
+    : undefined;
 
   // Calculate nights from dates (use API value if available, otherwise compute)
   const nights = reservation?.nights ?? (reservation
@@ -174,6 +197,12 @@ export default function ReservationDetailSheet({ open, onOpenChange, itemId }: R
                       </span>
                       <span>{formatPrice(reservation.total_price)}</span>
                     </div>
+                    {Number(reservation.discount_amount) > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-600">
+                        <span>Loyalty discount</span>
+                        <span>-{formatPrice(reservation.discount_amount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Platform fee ({Number(reservation.fee_rate)}%)</span>
                       <span>{formatPrice(reservation.fee_amount)}</span>
@@ -183,6 +212,54 @@ export default function ReservationDetailSheet({ open, onOpenChange, itemId }: R
                       <span>Total</span>
                       <span className="font-[family-name:var(--font-display)]">{formatPrice(reservation.total_amount)}</span>
                     </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Payment */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Payment</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Status</span>
+                      </div>
+                      <Badge className={getPaymentStatusClassName(reservation.payment_status ?? 'unpaid')}>
+                        {(reservation.payment_status ?? 'unpaid').replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    {reservation.payment?.paid_at && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Paid on</span>
+                        <span>{format(new Date(reservation.payment.paid_at), 'MMM d, yyyy h:mm a')}</span>
+                      </div>
+                    )}
+                    {reservation.payment?.payment_method && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Method</span>
+                        <span className="capitalize">{reservation.payment.payment_method.replace('_', ' ')}</span>
+                      </div>
+                    )}
+                    {reservation.payment?.amount && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Amount paid</span>
+                        <span>{formatPrice(reservation.payment.amount)}</span>
+                      </div>
+                    )}
+                    {reservation.payment?.checkout_url && reservation.payment.status === 'pending' && !reservation.payment.is_expired && (
+                      <Button
+                        asChild
+                        className="w-full rounded-full mt-2"
+                        size="sm"
+                      >
+                        <a href={reservation.payment.checkout_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Pay Now
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -285,6 +362,23 @@ export default function ReservationDetailSheet({ open, onOpenChange, itemId }: R
                   <>
                     <Separator />
                     <ChatPanel type="reservations" id={reservation.id} />
+                  </>
+                )}
+
+                {/* Rate Your Experience */}
+                {canReview && merchant && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                        Rate Your Experience
+                      </h4>
+                      <ReviewForm
+                        merchantId={merchant.id}
+                        merchantSlug={merchant.slug}
+                        existingReview={existingReview}
+                      />
+                    </div>
                   </>
                 )}
               </>
