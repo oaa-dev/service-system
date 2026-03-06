@@ -39,7 +39,7 @@ COPY docker/nginx/railway.conf /etc/nginx/conf.d/default.conf
 COPY docker/supervisor/railway.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor
 
-CMD ["sh", "-c", "\
+CMD sh -c "\
 mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache/data && \
 chown -R www-data:www-data storage bootstrap/cache || true && \
 chmod -R 775 storage bootstrap/cache || true && \
@@ -57,4 +57,4 @@ echo \"DB_DATABASE=\${DB_DATABASE:-NOT SET}\" && \
 echo '--- END ENV CHECK ---' && \
 ln -sf /dev/stderr storage/logs/laravel.log && \
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf \
-"]
+"
