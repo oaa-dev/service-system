@@ -88,7 +88,7 @@ class AuthController extends Controller
             // Resend OTP to the existing unverified user (bypasses cooldown)
             $this->emailVerificationService->generateAndSendOtp($existingUser);
 
-            $existingUser->load(['profile.media', 'roles', 'merchant']);
+            $existingUser->load(['profile.media', 'roles', 'merchant.parent']);
             $token = $existingUser->createToken('auth_token')->accessToken;
 
             return $this->createdResponse([
@@ -127,7 +127,7 @@ class AuthController extends Controller
         // Send OTP verification email
         $this->emailVerificationService->generateAndSendOtp($user);
 
-        $user->load(['profile.media', 'roles', 'merchant']);
+        $user->load(['profile.media', 'roles', 'merchant.parent']);
 
         $token = $user->createToken('auth_token')->accessToken;
 
@@ -188,7 +188,7 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
-        $user->load(['profile.media', 'roles', 'merchant']);
+        $user->load(['profile.media', 'roles', 'merchant.parent']);
         $token = $user->createToken('auth_token')->accessToken;
 
         // Send OTP if email is not verified
@@ -255,7 +255,7 @@ class AuthController extends Controller
     )]
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['profile.media', 'roles', 'merchant', 'customer']);
+        $user = $request->user()->load(['profile.media', 'roles', 'merchant.parent', 'customer']);
 
         return $this->successResponse(
             new UserResource($user),
@@ -340,7 +340,7 @@ class AuthController extends Controller
         $user = $request->user();
         $this->emailVerificationService->verifyOtp($user, $request->validated('otp'));
         $user->refresh();
-        $user->load(['profile.media', 'roles', 'merchant']);
+        $user->load(['profile.media', 'roles', 'merchant.parent']);
 
         return $this->successResponse(new UserResource($user), 'Email verified successfully');
     }
@@ -390,7 +390,7 @@ class AuthController extends Controller
         ]);
 
         $merchant = $this->merchantService->createMerchantForUser($user->id, $data);
-        $user->load(['profile.media', 'roles', 'merchant']);
+        $user->load(['profile.media', 'roles', 'merchant.parent']);
 
         return $this->createdResponse([
             'user' => new UserResource($user),

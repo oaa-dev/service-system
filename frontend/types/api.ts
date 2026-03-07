@@ -633,6 +633,7 @@ export interface Merchant {
   enable_loyalty_program: boolean;
   enable_referral_program: boolean;
   allow_branch_self_edit?: boolean;
+  allow_branch_coupon_management?: boolean;
   inherit_from_parent?: boolean;
   average_rating: string | null; // decimal:2 cast returns string from API
   review_count: number;
@@ -652,6 +653,7 @@ export interface Merchant {
     address?: Address | null;
     business_hours?: MerchantBusinessHour[];
     allow_branch_self_edit?: boolean;
+    allow_branch_coupon_management?: boolean;
     contact_email?: string | null;
     contact_phone?: string | null;
     social_links?: MerchantSocialLink[] | null;
@@ -785,6 +787,7 @@ export interface UpdateBranchRequest {
   can_rent_units?: boolean;
   inherit_from_parent?: boolean;
   allow_branch_self_edit?: boolean;
+  allow_branch_coupon_management?: boolean;
 }
 
 export interface BranchQueryParams {
@@ -1817,4 +1820,111 @@ export interface MarkAsPaidRequest {
 
 export interface RequestRefundRequest {
   reason?: string;
+}
+
+// Coupon types
+export interface Coupon {
+  id: number;
+  merchant_id: number | null;
+  target_merchant_id: number | null;
+  code: string;
+  name: string;
+  description: string | null;
+  discount_type: 'percentage' | 'fixed' | 'free_product';
+  discount_value: string;
+  min_order_amount: string | null;
+  max_uses: number | null;
+  max_uses_per_customer: number | null;
+  used_count: number;
+  reset_period: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
+  applicable_to: string[] | null;
+  starts_at: string;
+  expires_at: string | null;
+  is_active: boolean;
+  is_public: boolean;
+  is_valid: boolean;
+  is_claimable: boolean;
+  claim_validity_hours: number | null;
+  valid_schedule: {
+    days: number[];
+    start_time?: string;
+    end_time?: string;
+  } | null;
+  claim?: {
+    claimed_at: string;
+    expires_at: string;
+    is_expired: boolean;
+  } | null;
+  is_inherited?: boolean;
+  merchant?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  target_merchant?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  creator?: {
+    id: number;
+    name: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CouponQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[name]'?: string;
+  'filter[code]'?: string;
+  'filter[is_active]'?: boolean;
+  'filter[discount_type]'?: string;
+  'filter[merchant_id]'?: number;
+}
+
+export interface CreateCouponRequest {
+  code?: string;
+  name: string;
+  description?: string;
+  discount_type: string;
+  discount_value?: number;
+  min_order_amount?: number | null;
+  max_uses?: number | null;
+  max_uses_per_customer?: number | null;
+  applicable_to?: string[] | null;
+  starts_at: string;
+  expires_at?: string | null;
+  is_active?: boolean;
+  is_public?: boolean;
+}
+
+export interface UpdateCouponRequest {
+  code?: string;
+  name?: string;
+  description?: string;
+  discount_type?: string;
+  discount_value?: number;
+  min_order_amount?: number | null;
+  max_uses?: number | null;
+  max_uses_per_customer?: number | null;
+  applicable_to?: string[] | null;
+  starts_at?: string;
+  expires_at?: string | null;
+  is_active?: boolean;
+  is_public?: boolean;
+}
+
+export interface ValidateCouponRequest {
+  code: string;
+  merchant_slug: string;
+  transaction_type: string;
+  subtotal: number;
+}
+
+export interface ValidateCouponResponse {
+  coupon: Coupon;
+  discount_amount: number;
 }

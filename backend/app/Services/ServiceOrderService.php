@@ -32,7 +32,8 @@ class ServiceOrderService implements ServiceOrderServiceInterface
         protected PlatformFeeServiceInterface $platformFeeService,
         protected LoyaltyServiceInterface $loyaltyService,
         protected ReferralServiceInterface $referralService,
-        protected PaymentServiceInterface $paymentService
+        protected PaymentServiceInterface $paymentService,
+        protected \App\Services\Contracts\CouponServiceInterface $couponService
     ) {}
 
     public function getMerchantServiceOrders(int $merchantId, array $filters = []): LengthAwarePaginator
@@ -95,10 +96,20 @@ class ServiceOrderService implements ServiceOrderServiceInterface
         // Validate loyalty reward and calculate discount if provided
         $loyaltyRewardId = ($data->loyalty_reward_id instanceof Optional) ? null : $data->loyalty_reward_id;
         $discountAmount = 0;
+        $couponId = null;
         if ($loyaltyRewardId !== null) {
             $reward = $this->loyaltyService->redeemReward($loyaltyRewardId, auth()->id());
             $discountAmount = $this->loyaltyService->calculateRewardDiscount($reward, $totalPrice);
         }
+
+        // Coupon discount (only if no loyalty reward applied)
+        $couponCode = ($data->coupon_code instanceof Optional) ? null : $data->coupon_code;
+        if ($couponCode !== null && $discountAmount === 0) {
+            $result = $this->couponService->validateCoupon($couponCode, $merchantId, 'sell_product', $totalPrice, auth()->id());
+            $discountAmount = $result['discount_amount'];
+            $couponId = $result['coupon']->id;
+        }
+
         $discountedTotal = max(0, $totalPrice - $discountAmount);
 
         // Calculate platform fee on discounted total
@@ -117,6 +128,7 @@ class ServiceOrderService implements ServiceOrderServiceInterface
             'unit_price' => $unitPrice,
             'total_price' => $totalPrice,
             'discount_amount' => $discountAmount,
+            'coupon_id' => $couponId,
             'fee_rate' => $feeData['fee_rate'],
             'fee_amount' => $feeData['fee_amount'],
             'total_amount' => $feeData['total_amount'],
@@ -127,6 +139,12 @@ class ServiceOrderService implements ServiceOrderServiceInterface
         // Mark loyalty reward as redeemed against this order
         if ($loyaltyRewardId !== null) {
             $this->loyaltyService->markRewardRedeemed($loyaltyRewardId, 'service_order', $serviceOrder->id);
+        }
+
+        // Record coupon usage
+        if ($couponId) {
+            $customer = \App\Models\Customer::where('user_id', auth()->id())->firstOrFail();
+            $this->couponService->applyCoupon($couponId, $customer->id, 'service_order', $serviceOrder->id, $discountAmount);
         }
 
         return $serviceOrder->load(['service', 'customer']);

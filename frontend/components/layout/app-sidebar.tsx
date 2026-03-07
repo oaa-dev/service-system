@@ -32,6 +32,7 @@ import {
   History,
   Gift,
   UserPlus,
+  Ticket,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -142,6 +143,14 @@ const navItems: NavItem[] = [
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     permission: 'reviews.view',
+  },
+  {
+    title: 'Coupons',
+    href: '/coupons',
+    icon: Ticket,
+    color: 'text-rose-500',
+    bgColor: 'bg-rose-500/10',
+    permission: 'coupons.view',
   },
   {
     title: 'Profile',
@@ -320,6 +329,14 @@ const merchantNavItems: NavItem[] = [
     icon: Star,
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
+    requiresActiveMerchant: true,
+  },
+  {
+    title: 'Coupons',
+    href: '/my-store/coupons',
+    icon: Ticket,
+    color: 'text-rose-500',
+    bgColor: 'bg-rose-500/10',
     requiresActiveMerchant: true,
   },
   {

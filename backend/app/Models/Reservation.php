@@ -25,6 +25,7 @@ class Reservation extends Model
         'fee_amount',
         'total_amount',
         'discount_amount',
+        'coupon_id',
         'payment_status',
         'status',
         'notes',
@@ -78,6 +79,11 @@ class Reservation extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function payment(): MorphOne

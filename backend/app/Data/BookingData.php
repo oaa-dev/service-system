@@ -15,5 +15,6 @@ class BookingData extends Data
         public int|Optional $party_size = new Optional,
         public string|null|Optional $notes = new Optional,
         public int|null|Optional $loyalty_reward_id = new Optional,
+        public string|null|Optional $coupon_code = new Optional,
     ) {}
 }

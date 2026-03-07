@@ -35,6 +35,8 @@ use App\Http\Controllers\Api\V1\LoyaltyProgramController;
 use App\Http\Controllers\Api\V1\CustomerReferralController;
 use App\Http\Controllers\Api\V1\ReferralProgramController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\CouponController;
+use App\Http\Controllers\Api\V1\MerchantCouponController;
 use App\Http\Controllers\Api\V1\PayMongoWebhookController;
 use App\Http\Controllers\Api\V1\SocialPlatformController;
 use App\Http\Controllers\Api\V1\StorefrontController;
@@ -84,10 +86,14 @@ Route::prefix('v1')->group(function () {
         Route::get('merchants/{slug}/services/{service}/reservation-availability', [StorefrontController::class, 'reservationAvailability']);
         Route::get('merchants/{slug}/branches', [StorefrontController::class, 'branches']);
         Route::get('merchants/{slug}/reviews', [StorefrontController::class, 'merchantReviews']);
+        Route::get('merchants/{slug}/coupons', [StorefrontController::class, 'merchantCoupons']);
 
         // Referral code validation (public)
         Route::get('referral/{code}', [CustomerReferralController::class, 'validateCode']);
     });
+
+    // Public coupon validation (no auth)
+    Route::post('coupons/validate', [CouponController::class, 'validate']);
 
     // Webhook routes (public, signature-verified)
     Route::post('webhooks/paymongo', [PayMongoWebhookController::class, 'handle']);
@@ -180,6 +186,13 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/referral-program', [ReferralProgramController::class, 'destroy']);
                 Route::get('/referrals', [ReferralProgramController::class, 'referrals']);
                 Route::get('/referral-stats', [ReferralProgramController::class, 'stats']);
+
+                // Coupon management (self-service)
+                Route::get('/coupons', [MerchantCouponController::class, 'index']);
+                Route::post('/coupons', [MerchantCouponController::class, 'store']);
+                Route::get('/coupons/{id}', [MerchantCouponController::class, 'show']);
+                Route::put('/coupons/{id}', [MerchantCouponController::class, 'update']);
+                Route::delete('/coupons/{id}', [MerchantCouponController::class, 'destroy']);
             });
 
             // User management routes with permission middleware
@@ -278,6 +291,15 @@ Route::prefix('v1')->group(function () {
             Route::middleware('permission:fields.create')->post('fields', [FieldController::class, 'store']);
             Route::middleware('permission:fields.update')->put('fields/{field}', [FieldController::class, 'update']);
             Route::middleware('permission:fields.delete')->delete('fields/{field}', [FieldController::class, 'destroy']);
+
+            // Coupon management routes (admin - platform coupons)
+            Route::middleware('permission:coupons.view')->group(function () {
+                Route::get('coupons', [CouponController::class, 'index']);
+                Route::get('coupons/{id}', [CouponController::class, 'show']);
+            });
+            Route::middleware('permission:coupons.create')->post('coupons', [CouponController::class, 'store']);
+            Route::middleware('permission:coupons.update')->put('coupons/{id}', [CouponController::class, 'update']);
+            Route::middleware('permission:coupons.delete')->delete('coupons/{id}', [CouponController::class, 'destroy']);
 
             // Customer management routes
             Route::middleware('permission:customers.view')->group(function () {
@@ -468,6 +490,10 @@ Route::prefix('v1')->group(function () {
             Route::get('customer/referral-rewards', [CustomerReferralController::class, 'myRewards'])->middleware('permission:customer_portal.referral');
             Route::post('customer/referrals/accept', [CustomerReferralController::class, 'accept'])->middleware('permission:customer_portal.referral');
 
+            // Customer Coupon claim routes
+            Route::post('customer/coupons/{coupon}/claim', [CustomerPortalController::class, 'claimCoupon'])->middleware('permission:customer_portal.browse');
+            Route::get('customer/coupons/claimed', [CustomerPortalController::class, 'claimedCoupons'])->middleware('permission:customer_portal.browse');
+
             // Payment routes
             Route::prefix('payments')->middleware('permission:payments.view')->group(function () {
                 Route::get('{payment}', [PaymentController::class, 'show']);
@@ -508,6 +534,8 @@ Route::prefix('v1')->group(function () {
 
                 Route::post('/favorite-merchants/{merchant}', [CustomerPortalController::class, 'toggleFavoriteMerchant'])->middleware('permission:customer_portal.view_own');
                 Route::get('/favorite-merchants', [CustomerPortalController::class, 'myFavoriteMerchants'])->middleware('permission:customer_portal.view_own');
+
+                Route::get('/coupons', [CustomerPortalController::class, 'myCoupons'])->middleware('permission:customer_portal.view_own');
 
                 // Chat conversations (scoped per booking/reservation/order/inquiry)
                 // {type} = bookings|reservations|orders|inquiries

@@ -15,5 +15,6 @@ class ReservationData extends Data
         public string|null|Optional $notes = new Optional,
         public string|null|Optional $special_requests = new Optional,
         public int|null|Optional $loyalty_reward_id = new Optional,
+        public string|null|Optional $coupon_code = new Optional,
     ) {}
 }

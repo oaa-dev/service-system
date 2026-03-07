@@ -19,6 +19,7 @@ class CreateServiceOrderRequest extends FormRequest
             'unit_label' => ['required', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'loyalty_reward_id' => ['nullable', 'integer', 'exists:loyalty_rewards,id'],
+            'coupon_code' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

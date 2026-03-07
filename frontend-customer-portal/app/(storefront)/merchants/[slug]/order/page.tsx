@@ -22,6 +22,7 @@ import { formatPrice } from '@/lib/storefront-utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { RewardSelector } from '@/components/loyalty/reward-selector';
+import { CouponInput } from '@/components/checkout/coupon-input';
 
 function formatCurrency(amount: string | number) {
   return `\u20B1${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -45,6 +46,8 @@ export default function OrderPage({
   const [unitLabel, setUnitLabel] = useState('pcs');
   const [notes, setNotes] = useState('');
   const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   const { data: merchantData, isLoading: merchantLoading } = useMerchantBySlug(slug);
   const { data: servicesData } = useMerchantServices(slug, { per_page: 100 });
@@ -70,6 +73,7 @@ export default function OrderPage({
         unit_label: unitLabel,
         notes: notes || undefined,
         loyalty_reward_id: selectedRewardId ?? undefined,
+        coupon_code: couponCode ?? undefined,
       });
       toast.success('Order placed successfully!');
       router.push(`/merchants/${slug}`);
@@ -274,7 +278,20 @@ export default function OrderPage({
                 <RewardSelector
                   merchantId={merchant.id}
                   selectedRewardId={selectedRewardId}
-                  onApply={setSelectedRewardId}
+                  onApply={(id) => { setSelectedRewardId(id); if (id) { setCouponCode(null); setCouponDiscount(0); } }}
+                />
+              )}
+
+              {merchant && !selectedRewardId && (
+                <CouponInput
+                  merchantSlug={slug}
+                  transactionType="sell_product"
+                  subtotal={estimatedTotal}
+                  disabled={createOrder.isPending}
+                  appliedCode={couponCode}
+                  appliedDiscount={couponDiscount}
+                  onApply={(code, discount) => { setCouponCode(code); setCouponDiscount(discount); }}
+                  onRemove={() => { setCouponCode(null); setCouponDiscount(0); }}
                 />
               )}
 

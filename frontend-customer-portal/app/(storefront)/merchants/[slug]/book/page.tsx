@@ -25,6 +25,7 @@ import { formatPrice } from '@/lib/storefront-utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { RewardSelector } from '@/components/loyalty/reward-selector';
+import { CouponInput } from '@/components/checkout/coupon-input';
 
 function formatTime(time: string) {
   const [h, m] = time.split(':');
@@ -61,6 +62,8 @@ export default function BookingPage({
   const [partySize, setPartySize] = useState(1);
   const [notes, setNotes] = useState('');
   const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
   const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
@@ -93,6 +96,7 @@ export default function BookingPage({
         party_size: partySize,
         notes: notes || undefined,
         loyalty_reward_id: selectedRewardId ?? undefined,
+        coupon_code: couponCode ?? undefined,
       });
       toast.success('Booking created successfully!');
       router.push(`/merchants/${slug}`);
@@ -375,7 +379,20 @@ export default function BookingPage({
                 <RewardSelector
                   merchantId={merchant.id}
                   selectedRewardId={selectedRewardId}
-                  onApply={setSelectedRewardId}
+                  onApply={(id) => { setSelectedRewardId(id); if (id) { setCouponCode(null); setCouponDiscount(0); } }}
+                />
+              )}
+
+              {merchant && !selectedRewardId && (
+                <CouponInput
+                  merchantSlug={slug}
+                  transactionType="booking"
+                  subtotal={selectedServiceFromList ? parseFloat(selectedServiceFromList.price) * partySize : 0}
+                  disabled={createBooking.isPending}
+                  appliedCode={couponCode}
+                  appliedDiscount={couponDiscount}
+                  onApply={(code, discount) => { setCouponCode(code); setCouponDiscount(discount); }}
+                  onRemove={() => { setCouponCode(null); setCouponDiscount(0); }}
                 />
               )}
 

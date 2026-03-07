@@ -23,6 +23,7 @@ class CreateCustomerReservationRequest extends FormRequest
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'special_requests' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'loyalty_reward_id' => ['nullable', 'integer', 'exists:loyalty_rewards,id'],
+            'coupon_code' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

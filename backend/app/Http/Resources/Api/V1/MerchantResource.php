@@ -32,6 +32,7 @@ class MerchantResource extends JsonResource
             'can_take_bookings' => $this->can_take_bookings,
             'can_rent_units' => $this->can_rent_units,
             'allow_branch_self_edit' => $this->allow_branch_self_edit,
+            'allow_branch_coupon_management' => $this->allow_branch_coupon_management,
             'inherit_from_parent' => $this->inherit_from_parent,
             'enable_loyalty_program' => $this->enable_loyalty_program,
             'enable_referral_program' => $this->enable_referral_program,
@@ -81,6 +82,7 @@ class MerchantResource extends JsonResource
                     ? MerchantBusinessHourResource::collection($this->parent->businessHours)->resolve()
                     : null,
                 'allow_branch_self_edit' => $this->parent->allow_branch_self_edit,
+                'allow_branch_coupon_management' => $this->parent->allow_branch_coupon_management,
                 'contact_email' => $this->parent->contact_email,
                 'contact_phone' => $this->parent->contact_phone,
                 'social_links' => $this->parent->relationLoaded('socialLinks')

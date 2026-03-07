@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTableFilters, type FilterField, type FilterValues } from '@/components/ui/data-table-filters';
 import { Switch } from '@/components/ui/switch';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Pencil, Trash2, Building2, RefreshCw, Store, Settings, ImageIcon, GitBranch, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Pencil, Trash2, Building2, RefreshCw, Store, Settings, ImageIcon, GitBranch, Layers, Ticket } from 'lucide-react';
 import { AddressFormFields } from '@/components/address-form-fields';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -348,6 +348,16 @@ function BranchRow({ item, onEdit, onDelete }: { item: Merchant; onEdit: () => v
     );
   };
 
+  const handleCouponManagementChange = (checked: boolean) => {
+    updateMutation.mutate(
+      { branchId: item.id, data: { allow_branch_coupon_management: checked } },
+      {
+        onSuccess: () => toast.success(`Coupon management ${checked ? 'enabled' : 'disabled'}`),
+        onError: () => toast.error('Failed to update coupon management'),
+      }
+    );
+  };
+
   return (
     <TableRow className="group">
       <TableCell className="font-medium">{item.name}</TableCell>
@@ -375,6 +385,13 @@ function BranchRow({ item, onEdit, onDelete }: { item: Merchant; onEdit: () => v
           checked={item.allow_branch_self_edit ?? false}
           onCheckedChange={handleSelfEditChange}
           disabled={isInherit || updateMutation.isPending}
+        />
+      </TableCell>
+      <TableCell>
+        <Switch
+          checked={item.allow_branch_coupon_management ?? false}
+          onCheckedChange={handleCouponManagementChange}
+          disabled={updateMutation.isPending}
         />
       </TableCell>
       <TableCell>
@@ -506,6 +523,7 @@ export default function MyStoreBranchesPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Mode</TableHead>
                 <TableHead>Self-Edit</TableHead>
+                <TableHead>Coupons</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-[70px] text-right">Actions</TableHead>
@@ -514,11 +532,11 @@ export default function MyStoreBranchesPage() {
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>{Array.from({ length: 6 }).map((_, j) => (<TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>))}</TableRow>
+                  <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => (<TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>))}</TableRow>
                 ))
               ) : data?.data?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32">
+                  <TableCell colSpan={7} className="h-32">
                     <div className="flex flex-col items-center justify-center text-center">
                       <Building2 className="h-10 w-10 text-muted-foreground/50 mb-2" />
                       <p className="text-muted-foreground font-medium">No branches found</p>

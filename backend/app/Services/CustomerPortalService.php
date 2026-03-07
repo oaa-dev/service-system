@@ -83,7 +83,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $booking = Booking::where('customer_id', $customerId)
-            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon'])
             ->findOrFail($bookingId);
 
         return $booking;
@@ -134,7 +134,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $reservation = Reservation::where('customer_id', $customerId)
-            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon'])
             ->findOrFail($reservationId);
 
         return $reservation;
@@ -186,7 +186,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $order = ServiceOrder::where('customer_id', $customerId)
-            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon'])
             ->findOrFail($orderId);
 
         return $order;

@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use App\Repositories\BookingRepository;
+use App\Repositories\Contracts\CouponRepositoryInterface;
+use App\Repositories\CouponRepository;
+use App\Services\Contracts\CouponServiceInterface;
+use App\Services\CouponService;
 use App\Repositories\BusinessTypeRepository;
 use App\Repositories\Contracts\BookingRepositoryInterface;
 use App\Repositories\Contracts\BusinessTypeRepositoryInterface;
@@ -175,6 +179,8 @@ class RepositoryServiceProvider extends ServiceProvider
         PaymentRepositoryInterface::class => PaymentRepository::class,
         PaymentServiceInterface::class => PaymentService::class,
         PayMongoServiceInterface::class => PayMongoService::class,
+        CouponRepositoryInterface::class => CouponRepository::class,
+        CouponServiceInterface::class => CouponService::class,
     ];
 
     public function register(): void

@@ -196,7 +196,7 @@ export default function BookingDetailSheet({ open, onOpenChange, itemId }: Booki
                     </div>
                     {Number(booking.discount_amount) > 0 && (
                       <div className="flex justify-between text-sm text-emerald-600">
-                        <span>Loyalty discount</span>
+                        <span>{booking.coupon ? `Coupon (${booking.coupon.code})` : 'Loyalty discount'}</span>
                         <span>-{formatPrice(booking.discount_amount)}</span>
                       </div>
                     )}

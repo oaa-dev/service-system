@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { ApiResponse, PaginatedResponse, Merchant, Service, BusinessType, PaymentMethod, PlatformFee, BookingAvailabilityResponse, ReservationAvailabilityResponse, BookingDayAvailability } from '@/types/api';
+import { ApiResponse, PaginatedResponse, Merchant, Service, BusinessType, PaymentMethod, PlatformFee, BookingAvailabilityResponse, ReservationAvailabilityResponse, BookingDayAvailability, Coupon, ValidateCouponRequest, ValidateCouponResponse } from '@/types/api';
 
 export interface StorefrontMerchantParams {
   page?: number;
@@ -78,6 +78,14 @@ export const storefrontService = {
   },
   getActivePlatformFees: async (): Promise<ApiResponse<PlatformFee[]>> => {
     const response = await api.get<ApiResponse<PlatformFee[]>>('/platform-fees/active');
+    return response.data;
+  },
+  getMerchantCoupons: async (slug: string): Promise<ApiResponse<Coupon[]>> => {
+    const response = await api.get<ApiResponse<Coupon[]>>(`/storefront/merchants/${slug}/coupons`);
+    return response.data;
+  },
+  validateCoupon: async (data: ValidateCouponRequest): Promise<ApiResponse<ValidateCouponResponse>> => {
+    const response = await api.post<ApiResponse<ValidateCouponResponse>>('/coupons/validate', data);
     return response.data;
   },
 };

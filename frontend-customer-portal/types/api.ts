@@ -1099,6 +1099,8 @@ export interface Booking {
   fee_amount: string;
   total_amount: string;
   discount_amount: string;
+  coupon_id: number | null;
+  coupon?: CouponSummary;
   status: BookingStatus;
   payment_status: string;
   payment?: Payment;
@@ -1436,6 +1438,8 @@ export interface Reservation {
   fee_amount: string;
   total_amount: string;
   discount_amount: string;
+  coupon_id: number | null;
+  coupon?: CouponSummary;
   status: ReservationStatus;
   payment_status: string;
   payment?: Payment;
@@ -1494,6 +1498,8 @@ export interface ServiceOrder {
   fee_amount: string;
   total_amount: string;
   discount_amount: string;
+  coupon_id: number | null;
+  coupon?: CouponSummary;
   status: ServiceOrderStatus;
   payment_status: string;
   payment?: Payment;
@@ -1849,4 +1855,75 @@ export interface ReferralRewardQueryParams {
   per_page?: number;
   status?: 'pending' | 'available' | 'redeemed' | 'expired';
   role?: 'referrer' | 'referee';
+}
+
+// Coupon types
+
+export interface CouponSummary {
+  id: number;
+  code: string;
+  name: string;
+  discount_type: 'percentage' | 'fixed' | 'free_product';
+  discount_value: string;
+}
+
+export interface Coupon {
+  id: number;
+  merchant_id: number | null;
+  target_merchant_id: number | null;
+  code: string;
+  name: string;
+  description: string | null;
+  discount_type: 'percentage' | 'fixed' | 'free_product';
+  discount_value: string;
+  min_order_amount: string | null;
+  max_uses: number | null;
+  max_uses_per_customer: number | null;
+  used_count: number;
+  reset_period: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
+  applicable_to: string[] | null;
+  starts_at: string;
+  expires_at: string | null;
+  is_active: boolean;
+  is_public: boolean;
+  is_valid: boolean;
+  is_claimable: boolean;
+  claim_validity_hours: number | null;
+  valid_schedule: {
+    days: number[];
+    start_time?: string;
+    end_time?: string;
+  } | null;
+  claim?: {
+    claimed_at: string;
+    expires_at: string;
+    is_expired: boolean;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MyCouponItem {
+  id: number;
+  type: 'claim' | 'usage';
+  status: 'active' | 'used' | 'expired';
+  coupon: Coupon;
+  claimed_at: string | null;
+  expires_at: string | null;
+  used_at: string | null;
+  used_on_type: string | null;
+  used_on_id: number | null;
+  discount_amount: string | null;
+}
+
+export interface ValidateCouponRequest {
+  code: string;
+  merchant_slug: string;
+  transaction_type: string;
+  subtotal: number;
+}
+
+export interface ValidateCouponResponse {
+  coupon: Coupon;
+  discount_amount: number;
 }

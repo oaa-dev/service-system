@@ -113,7 +113,7 @@ class DemoMerchantSeeder extends Seeder
                 $this->seedCategoriesAndServices($merchant, $config);
 
                 // Seed gallery images for active merchants only
-                if ($merchantIndex <= 40) {
+                if ($merchantIndex <= 20) {
                     $this->seedGalleryImages($merchant, $merchantIndex);
                 }
             }

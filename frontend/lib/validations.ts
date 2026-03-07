@@ -820,3 +820,35 @@ export const referralProgramSchema = z.object({
 });
 
 export type ReferralProgramFormData = z.infer<typeof referralProgramSchema>;
+
+// ─── Coupon ──────────────────────────────────────────────────────────────────
+
+export const createCouponSchema = z.object({
+  code: z.string().max(20).optional(),
+  name: z.string().min(1, 'Name is required').max(255),
+  description: z.string().optional(),
+  discount_type: z.enum(['percentage', 'fixed', 'free_product']),
+  discount_value: z.number().min(0).optional(),
+  min_order_amount: z.number().min(0).optional().nullable(),
+  max_uses: z.number().int().min(1).optional().nullable(),
+  max_uses_per_customer: z.number().int().min(1).optional().nullable(),
+  reset_period: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional().nullable(),
+  applicable_to: z.array(z.enum(['booking', 'reservation', 'sell_product'])).optional().nullable(),
+  starts_at: z.string().min(1, 'Start date is required'),
+  expires_at: z.string().optional().nullable(),
+  is_active: z.boolean().optional(),
+  is_public: z.boolean().optional(),
+  claim_validity_hours: z.number().int().min(1).optional().nullable(),
+  valid_schedule: z.object({
+    days: z.array(z.number().int().min(0).max(6)).min(1),
+    start_time: z.string().optional(),
+    end_time: z.string().optional(),
+  }).optional().nullable(),
+  target_merchant_id: z.number().nullable().optional(),
+});
+
+export type CreateCouponFormData = z.infer<typeof createCouponSchema>;
+
+export const updateCouponSchema = createCouponSchema.partial();
+
+export type UpdateCouponFormData = z.infer<typeof updateCouponSchema>;

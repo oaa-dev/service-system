@@ -17,6 +17,7 @@ import { useMerchantOnline } from '@/hooks/usePresence';
 import { useAuthStore } from '@/stores/authStore';
 import { useMyReferralCodes, useGenerateReferralCode } from '@/hooks/useReferrals';
 import { usePublicReviews } from '@/hooks/useReviews';
+import { CouponsSection } from '@/components/storefront/coupons-section';
 import type { Review } from '@/types/api';
 
 
@@ -146,7 +147,7 @@ function ReviewsSection({ slug, averageRating, reviewCount }: { slug: string; av
   );
 }
 
-function ReferralSection({ merchantId }: { merchantId: number }) {
+function ReferralBanner({ merchantId }: { merchantId: number }) {
   const [copied, setCopied] = useState(false);
   const { data: codesData } = useMyReferralCodes();
   const generateCode = useGenerateReferralCode();
@@ -177,66 +178,40 @@ function ReferralSection({ merchantId }: { merchantId: number }) {
   const isGenerating = generateCode.isPending;
 
   return (
-    <div className="animate-fade-in delay-100 rounded-xl border border-indigo-200/60 bg-indigo-50/50 p-5">
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-          <UserPlus className="h-5 w-5 text-indigo-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-indigo-900">Refer a Friend</h3>
-          <p className="text-sm text-indigo-700 mt-0.5">
-            Share your referral code and earn rewards when friends transact here.
-          </p>
-        </div>
+    <div className="flex-1 flex items-center gap-2.5 rounded-lg border border-indigo-200/60 bg-indigo-50/40 px-3 py-2.5">
+      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+        <UserPlus className="h-4 w-4 text-indigo-600" />
       </div>
-
-      {code ? (
-        <div className="flex items-center gap-2">
-          <code className="text-sm font-mono font-bold tracking-widest text-indigo-700 bg-indigo-100 px-3 py-1.5 rounded-lg flex-1">
-            {code}
-          </code>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 flex-shrink-0 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-indigo-900">Refer a Friend</p>
+        {code ? (
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <code className="text-xs font-mono font-bold tracking-wider text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
+              {code}
+            </code>
+            <button
+              onClick={handleShare}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-0.5"
+            >
+              {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        ) : (
+          <button
             onClick={handleShare}
+            disabled={isGenerating}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-0.5 flex items-center gap-1"
           >
-            {copied ? (
+            {isGenerating ? 'Generating...' : (
               <>
-                <Check className="h-3.5 w-3.5 text-green-600" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                Copy
+                <UserPlus className="h-3 w-3" />
+                Get referral code
               </>
             )}
-          </Button>
-        </div>
-      ) : (
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
-          onClick={handleShare}
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            'Generating...'
-          ) : copied ? (
-            <>
-              <Check className="h-3.5 w-3.5 text-green-600" />
-              Copied
-            </>
-          ) : (
-            <>
-              <UserPlus className="h-3.5 w-3.5" />
-              Get My Referral Code
-            </>
-          )}
-        </Button>
-      )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -398,54 +373,36 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ slug:
             <MerchantGallery merchant={displayMerchant} />
           </div>
 
-          {/* Loyalty Program Section (inherits from parent org for branches) */}
-          {merchant.enable_loyalty_program && displayMerchant.loyalty_program && (
-            <div className="animate-fade-in delay-100 rounded-xl border border-amber-200/60 bg-amber-50/50 p-5">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Gift className="h-5 w-5 text-amber-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-amber-900">
-                    {displayMerchant.loyalty_program.name}
-                  </h3>
-                  {displayMerchant.loyalty_program.description && (
-                    <p className="text-sm text-amber-700 mt-0.5">
-                      {displayMerchant.loyalty_program.description}
+          {/* Loyalty & Referral — compact inline banners */}
+          {(merchant.enable_loyalty_program && displayMerchant.loyalty_program) || (isAuthenticated && merchant.enable_referral_program && displayMerchant.referral_program) ? (
+            <div className="animate-fade-in delay-100 flex flex-col sm:flex-row gap-2">
+              {merchant.enable_loyalty_program && displayMerchant.loyalty_program && (
+                <div className="flex-1 flex items-center gap-2.5 rounded-lg border border-amber-200/60 bg-amber-50/40 px-3 py-2.5">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <Gift className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-900 truncate">{displayMerchant.loyalty_program.name}</p>
+                    <p className="text-xs text-amber-700">
+                      Collect {displayMerchant.loyalty_program.required_stamps} stamps
+                      {displayMerchant.loyalty_program.tiers && displayMerchant.loyalty_program.tiers.length > 0 && (
+                        <span> &middot; {displayMerchant.loyalty_program.tiers
+                          .map((t) => t.reward_description || (t.reward_type === 'free_product' ? 'Free product' : `${t.reward_value ?? '?'}${t.reward_type === 'discount_percentage' ? '% off' : ' off'}`))
+                          .join(', ')}</span>
+                      )}
                     </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-1.5 text-amber-800">
-                  <Stamp className="h-4 w-4 text-amber-600" />
-                  <span>
-                    Collect <strong>{displayMerchant.loyalty_program.required_stamps}</strong> stamps
-                  </span>
-                </div>
-                {displayMerchant.loyalty_program.tiers && displayMerchant.loyalty_program.tiers.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-amber-800">
-                    <Award className="h-4 w-4 text-amber-600" />
-                    <span>
-                      {displayMerchant.loyalty_program.tiers
-                        .map((t) => t.reward_description || (t.reward_type === 'free_product' ? 'Free product' : `${t.reward_value ?? '?'}${t.reward_type === 'discount_percentage' ? '% off' : ' off'}`))
-                        .join(', ')}
-                    </span>
                   </div>
-                )}
-                {displayMerchant.loyalty_program.stamp_expiry_days && (
-                  <div className="text-amber-600 text-xs">
-                    Stamps expire after {displayMerchant.loyalty_program.stamp_expiry_days} days
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* Referral Program Section (inherits from parent org for branches) */}
-          {isAuthenticated && merchant.enable_referral_program && displayMerchant.referral_program && (
-            <ReferralSection merchantId={merchant.id} />
-          )}
+              {isAuthenticated && merchant.enable_referral_program && displayMerchant.referral_program && (
+                <ReferralBanner merchantId={merchant.id} />
+              )}
+            </div>
+          ) : null}
+
+          {/* Coupons Section */}
+          <CouponsSection slug={slug} />
 
           {/* Organization gate: info callout + View Branches CTA */}
           {isOrganization && (

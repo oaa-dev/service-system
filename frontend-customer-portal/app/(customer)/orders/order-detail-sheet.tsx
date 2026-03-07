@@ -207,7 +207,7 @@ export default function OrderDetailSheet({ open, onOpenChange, itemId }: OrderDe
                     </div>
                     {Number(order.discount_amount) > 0 && (
                       <div className="flex justify-between text-sm text-emerald-600">
-                        <span>Loyalty discount</span>
+                        <span>{order.coupon ? `Coupon (${order.coupon.code})` : 'Loyalty discount'}</span>
                         <span>-{formatPrice(order.discount_amount)}</span>
                       </div>
                     )}

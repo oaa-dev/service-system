@@ -1,5 +1,7 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { storefrontService, StorefrontMerchantParams, StorefrontServiceParams } from '@/services/storefrontService';
+import { customerActionService } from '@/services/customerActionService';
+import type { ValidateCouponRequest } from '@/types/api';
 
 export function useStorefrontMerchants(params?: StorefrontMerchantParams) {
   return useQuery({
@@ -110,5 +112,37 @@ export function useActivePlatformFees() {
     queryKey: ['storefront', 'platformFees'],
     queryFn: () => storefrontService.getActivePlatformFees(),
     staleTime: Infinity,
+  });
+}
+
+export function useMerchantCoupons(slug: string) {
+  return useQuery({
+    queryKey: ['storefront', 'merchants', slug, 'coupons'],
+    queryFn: () => storefrontService.getMerchantCoupons(slug),
+    enabled: !!slug,
+    staleTime: 60000,
+  });
+}
+
+export function useValidateCoupon() {
+  return useMutation({
+    mutationFn: (data: ValidateCouponRequest) => storefrontService.validateCoupon(data),
+  });
+}
+
+export function useClaimCoupon() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (couponId: number) => customerActionService.claimCoupon(couponId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storefront'] });
+    },
+  });
+}
+
+export function useMyCoupons() {
+  return useQuery({
+    queryKey: ['customer', 'coupons'],
+    queryFn: () => customerActionService.getMyCoupons(),
   });
 }

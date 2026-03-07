@@ -32,7 +32,8 @@ class ReservationService implements ReservationServiceInterface
         protected PlatformFeeServiceInterface $platformFeeService,
         protected LoyaltyServiceInterface $loyaltyService,
         protected ReferralServiceInterface $referralService,
-        protected PaymentServiceInterface $paymentService
+        protected PaymentServiceInterface $paymentService,
+        protected \App\Services\Contracts\CouponServiceInterface $couponService
     ) {}
 
     public function getMerchantReservations(int $merchantId, array $filters = []): LengthAwarePaginator
@@ -125,10 +126,20 @@ class ReservationService implements ReservationServiceInterface
         // Validate loyalty reward and calculate discount if provided
         $loyaltyRewardId = ($data->loyalty_reward_id instanceof Optional) ? null : $data->loyalty_reward_id;
         $discountAmount = 0;
+        $couponId = null;
         if ($loyaltyRewardId !== null) {
             $reward = $this->loyaltyService->redeemReward($loyaltyRewardId, auth()->id());
             $discountAmount = $this->loyaltyService->calculateRewardDiscount($reward, $totalPrice);
         }
+
+        // Coupon discount (only if no loyalty reward applied)
+        $couponCode = ($data->coupon_code instanceof Optional) ? null : $data->coupon_code;
+        if ($couponCode !== null && $discountAmount === 0) {
+            $result = $this->couponService->validateCoupon($couponCode, $merchantId, 'reservation', $totalPrice, auth()->id());
+            $discountAmount = $result['discount_amount'];
+            $couponId = $result['coupon']->id;
+        }
+
         $discountedTotal = max(0, $totalPrice - $discountAmount);
 
         // Calculate platform fee on discounted total
@@ -145,6 +156,7 @@ class ReservationService implements ReservationServiceInterface
             'price_per_night' => $pricePerNight,
             'total_price' => $totalPrice,
             'discount_amount' => $discountAmount,
+            'coupon_id' => $couponId,
             'fee_rate' => $feeData['fee_rate'],
             'fee_amount' => $feeData['fee_amount'],
             'total_amount' => $feeData['total_amount'],
@@ -156,6 +168,12 @@ class ReservationService implements ReservationServiceInterface
         // Mark loyalty reward as redeemed against this reservation
         if ($loyaltyRewardId !== null) {
             $this->loyaltyService->markRewardRedeemed($loyaltyRewardId, 'reservation', $reservation->id);
+        }
+
+        // Record coupon usage
+        if ($couponId) {
+            $customer = \App\Models\Customer::where('user_id', auth()->id())->firstOrFail();
+            $this->couponService->applyCoupon($couponId, $customer->id, 'reservation', $reservation->id, $discountAmount);
         }
 
         return $reservation->load(['service.serviceCategory', 'customer']);

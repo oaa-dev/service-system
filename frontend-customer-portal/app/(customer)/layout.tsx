@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Calendar, Gift, Heart, Home, ShoppingBag, Star, User, LogOut, UserPlus } from 'lucide-react';
+import { Calendar, Gift, Heart, Home, ShoppingBag, Star, Ticket, User, LogOut, UserPlus } from 'lucide-react';
 
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -45,6 +45,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     { href: '/loyalty', label: 'Loyalty', icon: Gift },
     { href: '/referrals', label: 'Referrals', icon: UserPlus },
     { href: '/reviews', label: 'Reviews', icon: Star },
+    { href: '/coupons', label: 'Coupons', icon: Ticket },
     { href: '/profile', label: 'Profile', icon: User },
   ];
 

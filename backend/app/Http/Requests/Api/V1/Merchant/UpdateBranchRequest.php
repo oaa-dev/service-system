@@ -42,6 +42,7 @@ class UpdateBranchRequest extends FormRequest
             'can_rent_units' => ['sometimes', 'boolean'],
             'inherit_from_parent' => ['sometimes', 'boolean'],
             'allow_branch_self_edit' => ['sometimes', 'boolean'],
+            'allow_branch_coupon_management' => ['sometimes', 'boolean'],
         ];
     }
 }

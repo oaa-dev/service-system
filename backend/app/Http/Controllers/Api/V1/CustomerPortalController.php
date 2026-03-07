@@ -16,6 +16,8 @@ use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\PaymentMethodResource;
 use App\Http\Resources\Api\V1\ReservationResource;
 use App\Http\Resources\Api\V1\ServiceOrderResource;
+use App\Http\Resources\Api\V1\CouponResource;
+use App\Services\Contracts\CouponServiceInterface;
 use App\Services\Contracts\CustomerPortalServiceInterface;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +29,8 @@ class CustomerPortalController extends Controller
     use ApiResponse;
 
     public function __construct(
-        protected CustomerPortalServiceInterface $customerPortalService
+        protected CustomerPortalServiceInterface $customerPortalService,
+        protected CouponServiceInterface $couponService
     ) {}
 
     public function createBooking(CreateCustomerBookingRequest $request, string $slug): JsonResponse
@@ -218,5 +221,37 @@ class CustomerPortalController extends Controller
         );
 
         return $this->successResponse($result, 'Identity document uploaded successfully');
+    }
+
+    public function myCoupons(Request $request): JsonResponse
+    {
+        $items = $this->couponService->getMyCoupons(auth()->id(), $request->status);
+
+        return $this->successResponse($items, 'My coupons retrieved successfully');
+    }
+
+    public function claimCoupon(int $coupon): JsonResponse
+    {
+        $claim = $this->couponService->claimCoupon($coupon, auth()->id());
+
+        return $this->successResponse([
+            'claimed_at' => $claim->claimed_at->toISOString(),
+            'expires_at' => $claim->expires_at->toISOString(),
+        ], 'Coupon claimed successfully');
+    }
+
+    public function claimedCoupons(): JsonResponse
+    {
+        $claims = $this->couponService->getClaimedCoupons(auth()->id());
+
+        // Load claims relation on each coupon scoped to this user so CouponResource can render claim data
+        $coupons = $claims->pluck('coupon')->each(function ($coupon) use ($claims) {
+            $coupon->setRelation('claims', $claims->where('coupon_id', $coupon->id)->values());
+        });
+
+        return $this->successResponse(
+            CouponResource::collection($coupons),
+            'Claimed coupons retrieved'
+        );
     }
 }

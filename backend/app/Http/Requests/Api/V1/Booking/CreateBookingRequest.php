@@ -21,6 +21,7 @@ class CreateBookingRequest extends FormRequest
             'party_size' => ['sometimes', 'integer', 'min:1'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'loyalty_reward_id' => ['nullable', 'integer', 'exists:loyalty_rewards,id'],
+            'coupon_code' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

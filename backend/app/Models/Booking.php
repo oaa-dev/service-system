@@ -25,6 +25,7 @@ class Booking extends Model
         'fee_amount',
         'total_amount',
         'discount_amount',
+        'coupon_id',
         'payment_status',
         'status',
         'notes',
@@ -76,6 +77,11 @@ class Booking extends Model
     public function bookingSlot(): BelongsTo
     {
         return $this->belongsTo(MerchantBookingSlot::class, 'booking_slot_id');
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function payment(): MorphOne

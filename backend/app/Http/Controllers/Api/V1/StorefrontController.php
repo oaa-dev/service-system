@@ -9,6 +9,8 @@ use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\ReviewResource;
 use App\Http\Resources\Api\V1\ServiceResource;
 use App\Models\Merchant;
+use App\Http\Resources\Api\V1\CouponResource;
+use App\Services\Contracts\CouponServiceInterface;
 use App\Services\Contracts\ReviewServiceInterface;
 use App\Services\Contracts\StorefrontServiceInterface;
 use App\Traits\ApiResponse;
@@ -21,7 +23,8 @@ class StorefrontController extends Controller
 
     public function __construct(
         protected StorefrontServiceInterface $storefrontService,
-        protected ReviewServiceInterface $reviewService
+        protected ReviewServiceInterface $reviewService,
+        protected CouponServiceInterface $couponService
     ) {}
 
     public function merchants(Request $request): JsonResponse
@@ -132,6 +135,18 @@ class StorefrontController extends Controller
         return $this->successResponse(
             MerchantResource::collection($merchants),
             'Map merchants retrieved successfully'
+        );
+    }
+
+    public function merchantCoupons(string $slug): JsonResponse
+    {
+        $merchant = Merchant::where('slug', $slug)->where('status', 'active')->firstOrFail();
+        $userId = auth('api')->id();
+        $coupons = $this->couponService->getPublicCouponsForMerchant($merchant->id, $userId);
+
+        return $this->successResponse(
+            CouponResource::collection($coupons),
+            'Coupons retrieved successfully'
         );
     }
 }

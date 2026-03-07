@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { ApiResponse, Booking, Reservation, ServiceOrder } from '@/types/api';
+import { ApiResponse, Booking, Coupon, MyCouponItem, Reservation, ServiceOrder } from '@/types/api';
 
 export interface CreateBookingPayload {
   service_id: number;
@@ -9,6 +9,7 @@ export interface CreateBookingPayload {
   party_size: number;
   notes?: string;
   loyalty_reward_id?: number;
+  coupon_code?: string;
 }
 
 export interface CreateReservationPayload {
@@ -19,6 +20,7 @@ export interface CreateReservationPayload {
   notes?: string;
   special_requests?: string;
   loyalty_reward_id?: number;
+  coupon_code?: string;
 }
 
 export interface CreateOrderPayload {
@@ -27,6 +29,7 @@ export interface CreateOrderPayload {
   unit_label: string;
   notes?: string;
   loyalty_reward_id?: number;
+  coupon_code?: string;
 }
 
 export const customerActionService = {
@@ -40,6 +43,18 @@ export const customerActionService = {
   },
   createOrder: async (slug: string, data: CreateOrderPayload): Promise<ApiResponse<ServiceOrder>> => {
     const response = await api.post<ApiResponse<ServiceOrder>>(`/customer/merchants/${slug}/orders`, data);
+    return response.data;
+  },
+  claimCoupon: async (couponId: number): Promise<ApiResponse<{ claimed_at: string; expires_at: string }>> => {
+    const response = await api.post<ApiResponse<{ claimed_at: string; expires_at: string }>>(`/customer/coupons/${couponId}/claim`);
+    return response.data;
+  },
+  getClaimedCoupons: async (): Promise<ApiResponse<Coupon[]>> => {
+    const response = await api.get<ApiResponse<Coupon[]>>('/customer/coupons/claimed');
+    return response.data;
+  },
+  getMyCoupons: async (): Promise<ApiResponse<MyCouponItem[]>> => {
+    const response = await api.get<ApiResponse<MyCouponItem[]>>('/customer/my/coupons');
     return response.data;
   },
 };
