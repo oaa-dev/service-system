@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { CouponFormDialog } from '@/components/coupon-form-dialog';
 import { PermissionGate } from '@/components/permission-gate';
+import { useAllMerchants } from '@/hooks/useMerchants';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 
@@ -41,7 +42,7 @@ const discountTypeLabels: Record<string, string> = {
   free_product: 'Free Product',
 };
 
-const filters: FilterField[] = [
+const staticFilters: FilterField[] = [
   { key: 'search', label: 'Search', type: 'text', placeholder: 'Search by name or code...' },
   {
     key: 'discount_type',
@@ -95,10 +96,30 @@ export default function PlatformCouponsPage() {
     if (filterValues.search) params['filter[name]'] = filterValues.search;
     if (filterValues.discount_type) params['filter[discount_type]'] = filterValues.discount_type;
     if (filterValues.is_active) params['filter[is_active]'] = filterValues.is_active === '1';
+    if (filterValues.merchant_id === 'platform') {
+      params['filter[merchant_id]'] = 'null';
+    } else if (filterValues.merchant_id) {
+      params['filter[merchant_id]'] = filterValues.merchant_id;
+    }
     return params;
   }, [page, perPage, filterValues]);
 
   const { data, isLoading, refetch, isFetching } = useCoupons(queryParams);
+  const { data: allMerchantsData } = useAllMerchants();
+  const merchants = allMerchantsData?.data?.filter((m) => !m.parent_id) ?? [];
+
+  const filters = useMemo<FilterField[]>(() => [
+    ...staticFilters,
+    {
+      key: 'merchant_id',
+      label: 'Merchant',
+      type: 'select',
+      options: [
+        { label: 'Platform Only', value: 'platform' },
+        ...merchants.map((m) => ({ label: m.name, value: String(m.id) })),
+      ],
+    },
+  ], [merchants]);
   const createMutation = useCreateCoupon();
   const updateMutation = useUpdateCoupon();
   const deleteMutation = useDeleteCoupon();
@@ -311,7 +332,8 @@ export default function PlatformCouponsPage() {
         isPending={createMutation.isPending}
         error={createMutation.error as AxiosError<ApiError> | null}
         title="Create Coupon"
-        description="Create a new platform-wide coupon."
+        description="Create a new platform-wide or merchant coupon."
+        merchants={merchants}
       />
 
       <CouponFormDialog
@@ -323,6 +345,7 @@ export default function PlatformCouponsPage() {
         error={updateMutation.error as AxiosError<ApiError> | null}
         title="Edit Coupon"
         description="Update coupon details."
+        merchants={merchants}
       />
 
       <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>

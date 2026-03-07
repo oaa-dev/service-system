@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/stores/authStore';
 import {
   getMyProfile,
   updateMyProfile,
@@ -14,16 +15,20 @@ import {
 import { UpdateProfilePayload, ChangePasswordPayload, UpdatePreferencesPayload } from '@/types/api';
 
 export function useMyProfile() {
+  const { isAuthenticated } = useAuthStore();
   return useQuery({
     queryKey: ['customer', 'profile'],
     queryFn: () => getMyProfile(),
+    enabled: isAuthenticated,
   });
 }
 
 export function useMyCustomerRecord() {
+  const { isAuthenticated } = useAuthStore();
   return useQuery({
     queryKey: ['customer', 'record'],
     queryFn: () => getMyCustomerRecord(),
+    enabled: isAuthenticated,
   });
 }
 
@@ -74,9 +79,11 @@ export function useUpdateMyPreferences() {
 }
 
 export function useMyPaymentMethods() {
+  const { isAuthenticated } = useAuthStore();
   return useQuery({
     queryKey: ['customer', 'paymentMethods'],
     queryFn: () => getMyPaymentMethods(),
+    enabled: isAuthenticated,
   });
 }
 

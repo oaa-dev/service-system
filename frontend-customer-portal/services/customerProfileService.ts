@@ -75,8 +75,6 @@ export async function uploadIdentityDocument(
   const formData = new FormData();
   formData.append('document', file);
   return api
-    .post<ApiResponse<CustomerRecord>>('/customer/my/identity-document', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    .post<ApiResponse<CustomerRecord>>('/customer/my/identity-document', formData)
     .then(r => r.data);
 }

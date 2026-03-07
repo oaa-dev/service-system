@@ -25,6 +25,7 @@ class CouponData extends Data
         public bool|Optional $is_claimable = new Optional,
         public int|null|Optional $claim_validity_hours = new Optional,
         public array|null|Optional $valid_schedule = new Optional,
+        public int|null|Optional $merchant_id = new Optional,
         public int|null|Optional $target_merchant_id = new Optional,
     ) {}
 }

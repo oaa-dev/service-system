@@ -81,7 +81,13 @@ class CouponService implements CouponServiceInterface
                 AllowedFilter::partial('code'),
                 AllowedFilter::exact('is_active'),
                 AllowedFilter::exact('discount_type'),
-                AllowedFilter::exact('merchant_id'),
+                AllowedFilter::callback('merchant_id', function ($query, $value) {
+                    if ($value === '' || $value === 'null') {
+                        $query->whereNull('merchant_id');
+                    } else {
+                        $query->where('merchant_id', $value);
+                    }
+                }),
             ])
             ->defaultSort('-created_at')
             ->with(['merchant', 'targetMerchant'])
@@ -163,6 +169,17 @@ class CouponService implements CouponServiceInterface
 
         if (isset($attributes['code'])) {
             $attributes['code'] = strtoupper($attributes['code']);
+        }
+
+        // Validate target_merchant_id if both merchant_id and target_merchant_id are present
+        $merchantId = $attributes['merchant_id'] ?? null;
+        $targetMerchantId = $attributes['target_merchant_id'] ?? null;
+
+        if ($targetMerchantId !== null && $merchantId !== null) {
+            $targetMerchant = Merchant::find($targetMerchantId);
+            if (! $targetMerchant || $targetMerchant->parent_id !== $merchantId) {
+                throw new ApiException('Target merchant must be a branch of the selected organization', 422);
+            }
         }
 
         return $this->couponRepository->update($id, $attributes);

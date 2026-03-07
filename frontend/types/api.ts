@@ -1882,7 +1882,7 @@ export interface CouponQueryParams {
   'filter[code]'?: string;
   'filter[is_active]'?: boolean;
   'filter[discount_type]'?: string;
-  'filter[merchant_id]'?: number;
+  'filter[merchant_id]'?: number | string;
 }
 
 export interface CreateCouponRequest {
@@ -1894,11 +1894,17 @@ export interface CreateCouponRequest {
   min_order_amount?: number | null;
   max_uses?: number | null;
   max_uses_per_customer?: number | null;
+  reset_period?: string | null;
   applicable_to?: string[] | null;
   starts_at: string;
   expires_at?: string | null;
   is_active?: boolean;
   is_public?: boolean;
+  is_claimable?: boolean;
+  claim_validity_hours?: number | null;
+  valid_schedule?: { days: number[]; start_time?: string; end_time?: string } | null;
+  merchant_id?: number | null;
+  target_merchant_id?: number | null;
 }
 
 export interface UpdateCouponRequest {
@@ -1910,11 +1916,17 @@ export interface UpdateCouponRequest {
   min_order_amount?: number | null;
   max_uses?: number | null;
   max_uses_per_customer?: number | null;
+  reset_period?: string | null;
   applicable_to?: string[] | null;
   starts_at?: string;
   expires_at?: string | null;
   is_active?: boolean;
   is_public?: boolean;
+  is_claimable?: boolean;
+  claim_validity_hours?: number | null;
+  valid_schedule?: { days: number[]; start_time?: string; end_time?: string } | null;
+  merchant_id?: number | null;
+  target_merchant_id?: number | null;
 }
 
 export interface ValidateCouponRequest {

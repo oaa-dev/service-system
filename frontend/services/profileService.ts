@@ -25,11 +25,7 @@ export const profileService = {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    const response = await api.post<ApiResponse<Profile>>('/profile/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post<ApiResponse<Profile>>('/profile/avatar', formData);
     return response.data;
   },
 

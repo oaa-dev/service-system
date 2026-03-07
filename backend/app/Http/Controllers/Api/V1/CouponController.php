@@ -34,10 +34,15 @@ class CouponController extends Controller
     public function store(StoreCouponRequest $request): JsonResponse
     {
         $data = CouponData::from($request->validated());
-        $coupon = $this->couponService->createCoupon($data, null, $request->user()->id);
+        $coupon = $this->couponService->createCoupon(
+            $data,
+            $request->merchant_id,
+            $request->user()->id,
+            $request->target_merchant_id
+        );
 
         return $this->createdResponse(
-            new CouponResource($coupon),
+            new CouponResource($coupon->load(['merchant', 'targetMerchant'])),
             'Coupon created successfully'
         );
     }
@@ -58,7 +63,7 @@ class CouponController extends Controller
         $coupon = $this->couponService->updateCoupon($id, $data);
 
         return $this->successResponse(
-            new CouponResource($coupon),
+            new CouponResource($coupon->load(['merchant', 'targetMerchant'])),
             'Coupon updated successfully'
         );
     }

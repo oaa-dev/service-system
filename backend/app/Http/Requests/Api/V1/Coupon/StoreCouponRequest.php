@@ -36,6 +36,7 @@ class StoreCouponRequest extends FormRequest
             'valid_schedule.days.*' => ['integer', 'min:0', 'max:6'],
             'valid_schedule.start_time' => ['nullable', 'date_format:H:i'],
             'valid_schedule.end_time' => ['nullable', 'date_format:H:i', 'after:valid_schedule.start_time'],
+            'merchant_id' => ['nullable', 'integer', 'exists:merchants,id'],
             'target_merchant_id' => ['nullable', 'integer', 'exists:merchants,id'],
         ];
     }

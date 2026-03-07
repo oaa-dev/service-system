@@ -23,11 +23,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { Shuffle } from 'lucide-react';
 import { AxiosError } from 'axios';
-
-interface BranchOption {
-  id: number;
-  name: string;
-}
+import { Merchant } from '@/types/api';
+import { useMerchantBranches } from '@/hooks/useMerchants';
 
 interface Props {
   open: boolean;
@@ -38,7 +35,8 @@ interface Props {
   error: AxiosError<ApiError> | null;
   title: string;
   description: string;
-  branches?: BranchOption[];
+  merchants?: Merchant[];
+  branches?: { id: number; name: string }[];
 }
 
 const discountTypeOptions = [
@@ -72,7 +70,7 @@ function generateCode(): string {
   return code;
 }
 
-export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPending, error, title, description, branches }: Props) {
+export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPending, error, title, description, merchants, branches }: Props) {
   const isEdit = !!coupon;
 
   const form = useForm<CreateCouponFormData>({
@@ -94,6 +92,7 @@ export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPendi
       is_public: false,
       claim_validity_hours: null,
       valid_schedule: null,
+      merchant_id: null,
       target_merchant_id: null,
     },
   });
@@ -117,6 +116,7 @@ export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPendi
         is_public: coupon.is_public,
         claim_validity_hours: coupon.claim_validity_hours,
         valid_schedule: coupon.valid_schedule,
+        merchant_id: coupon.merchant_id ?? null,
         target_merchant_id: coupon.target_merchant_id ?? null,
       });
     } else if (open && !coupon) {
@@ -137,6 +137,7 @@ export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPendi
         is_public: false,
         claim_validity_hours: null,
         valid_schedule: null,
+        merchant_id: null,
         target_merchant_id: null,
       });
     }
@@ -162,6 +163,15 @@ export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPendi
   const discountType = form.watch('discount_type');
   const validSchedule = form.watch('valid_schedule');
   const hasScheduleDays = validSchedule?.days && validSchedule.days.length > 0;
+  const selectedMerchantId = form.watch('merchant_id');
+  const selectedMerchant = merchants?.find((m) => m.id === selectedMerchantId);
+  const isOrganization = selectedMerchant?.type === 'organization';
+
+  // Fetch branches when an organization merchant is selected (admin context)
+  const { data: branchesData } = useMerchantBranches(selectedMerchantId ?? 0, { per_page: 100 });
+  const resolvedBranches = merchants
+    ? (isOrganization ? branchesData?.data?.map((b) => ({ id: b.id, name: b.name })) ?? [] : [])
+    : (branches ?? []);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) form.reset(); onOpenChange(v); }}>
@@ -483,7 +493,41 @@ export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPendi
                 </FormItem>
               )} />
 
-              {branches && branches.length > 0 && (
+              {merchants && (
+                <FormField control={form.control} name="merchant_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Scope</FormLabel>
+                    <Select
+                      onValueChange={(v) => {
+                        const val = v === 'platform' ? null : parseInt(v);
+                        field.onChange(val);
+                        // Reset target branch when merchant changes
+                        form.setValue('target_merchant_id', null);
+                      }}
+                      value={field.value ? String(field.value) : 'platform'}
+                      disabled={isPending}
+                    >
+                      <FormControl>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="platform">Platform-wide</SelectItem>
+                        {merchants.map((m) => (
+                          <SelectItem key={m.id} value={String(m.id)}>
+                            {m.name} {m.type === 'organization' ? '(Org)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-xs">
+                      Platform-wide coupons apply globally. Merchant coupons are scoped to that merchant.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+
+              {resolvedBranches.length > 0 && (
                 <FormField control={form.control} name="target_merchant_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Target Branch</FormLabel>
@@ -497,7 +541,7 @@ export function CouponFormDialog({ open, onOpenChange, coupon, onSubmit, isPendi
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="all">All Branches (Organization-wide)</SelectItem>
-                        {branches.map((b) => (
+                        {resolvedBranches.map((b) => (
                           <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
                         ))}
                       </SelectContent>

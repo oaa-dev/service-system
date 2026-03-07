@@ -844,6 +844,7 @@ export const createCouponSchema = z.object({
     start_time: z.string().optional(),
     end_time: z.string().optional(),
   }).optional().nullable(),
+  merchant_id: z.number().nullable().optional(),
   target_merchant_id: z.number().nullable().optional(),
 });
 
