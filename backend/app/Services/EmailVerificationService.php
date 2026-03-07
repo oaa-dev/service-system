@@ -8,6 +8,7 @@ use App\Mail\OtpMail;
 use App\Models\EmailVerification;
 use App\Models\User;
 use App\Services\Contracts\EmailVerificationServiceInterface;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
@@ -41,7 +42,11 @@ class EmailVerificationService implements EmailVerificationServiceInterface
             'last_resent_at' => now(),
         ]);
 
-        Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+        try {
+            Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send OTP email to ' . $user->email . ': ' . $e->getMessage());
+        }
     }
 
     public function verifyOtp(User $user, string $otp): void
