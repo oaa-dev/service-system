@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useState, useRef, useEffect } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Store, Calendar, Home, ShoppingBag, ArrowLeft, MessageCircle, GitBranch, Info, Gift, UserPlus, Copy, Check, Star, User, Phone, Mail, Navigation } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Store, ArrowLeft, MessageCircle, GitBranch, Info, Gift, UserPlus, Copy, Check, Star, User, Phone, Mail, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MerchantHeader } from '@/components/storefront/merchant-header';
@@ -299,9 +299,7 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ slug:
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const [showMobileCTA, setShowMobileCTA] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const ctaSentinelRef = useRef<HTMLDivElement>(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const { isAuthenticated } = useAuthStore();
@@ -323,17 +321,6 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ slug:
   const pagination = servicesData?.meta;
 
   const categories = merchant?.service_categories || [];
-
-  // Mobile sticky CTA
-  useEffect(() => {
-    if (!ctaSentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowMobileCTA(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(ctaSentinelRef.current);
-    return () => observer.disconnect();
-  }, [merchant]);
 
   const handleSearchChange = (value: string) => { setSearch(value); setPage(1); };
   const handleClearSearch = () => { setSearch(''); setPage(1); };
@@ -385,16 +372,6 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ slug:
     loyalty_program: merchant.loyalty_program ?? merchant.parent?.loyalty_program ?? null,
     referral_program: merchant.referral_program ?? merchant.parent?.referral_program ?? null,
   };
-
-  const primaryCTA = !isOrganization && (
-    merchant.can_take_bookings
-      ? { href: `/merchants/${merchant.slug}/book`, label: 'Book a Service', icon: Calendar }
-      : merchant.can_rent_units
-      ? { href: `/merchants/${merchant.slug}/reserve`, label: 'Make a Reservation', icon: Home }
-      : merchant.can_sell_products
-      ? { href: `/merchants/${merchant.slug}/order`, label: 'Place an Order', icon: ShoppingBag }
-      : null
-  );
 
   return (
     <div className="container mx-auto px-4 py-5 max-w-7xl">
@@ -482,9 +459,6 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ slug:
               </Button>
             </div>
           )}
-
-          {/* CTA sentinel for mobile sticky detection */}
-          <div ref={ctaSentinelRef} />
 
           {/* Sidebar on mobile (below header, before services) */}
           {!isOrganization && (
@@ -629,18 +603,6 @@ export default function MerchantDetailPage({ params }: { params: Promise<{ slug:
           </div>
         )}
       </div>
-
-      {/* Mobile Sticky Bottom CTA */}
-      {primaryCTA && showMobileCTA && (
-        <div className="fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-sm border-t border-warm-200/30 shadow-warm-xl md:hidden z-40 animate-fade-in-up">
-          <Button asChild className="w-full gap-2" size="lg">
-            <Link href={primaryCTA.href}>
-              <primaryCTA.icon className="h-4 w-4" />
-              {primaryCTA.label}
-            </Link>
-          </Button>
-        </div>
-      )}
 
       {/* Chat Sheet */}
       <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>

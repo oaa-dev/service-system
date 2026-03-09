@@ -33,59 +33,56 @@ const SERVICE_TYPE_CONFIG: Record<string, { label: string; className: string; ic
 interface ServiceCardProps {
   service: Service;
   merchantSlug: string;
-  onClick?: () => void;
 }
 
-export function ServiceCard({ service, merchantSlug, onClick }: ServiceCardProps) {
+export function ServiceCard({ service, merchantSlug }: ServiceCardProps) {
   const typeConfig = SERVICE_TYPE_CONFIG[service.service_type] || SERVICE_TYPE_CONFIG.bookable;
   const TypeIcon = typeConfig.icon;
+  const actionHref = `/merchants/${merchantSlug}/${typeConfig.actionPath}?service=${service.id}`;
 
   return (
-    <Card
-      className="group overflow-hidden hover-lift transition-all duration-300 border-warm-200/30 shadow-warm cursor-pointer p-0"
-      onClick={onClick}
-    >
-      {/* Image area */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        {service.image?.preview ? (
-          <img
-            src={service.image.preview}
-            alt={service.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <TypeIcon className="h-8 w-8 text-muted-foreground/20" />
-          </div>
-        )}
-
-        {/* Service type pill — top left, compact */}
-        <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm ${typeConfig.className}`}>
-          {typeConfig.label}
-        </span>
-
-        {/* Hover action overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <Link
-            href={`/merchants/${merchantSlug}/${typeConfig.actionPath}?service=${service.id}`}
-            className="rounded-full bg-white text-foreground font-semibold text-xs px-5 py-2 shadow-lg hover:bg-white/90 transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {typeConfig.actionLabel}
-          </Link>
-        </div>
-      </div>
-
-      {/* Info — compact */}
-      <div className="px-2.5 py-2">
-        <h3 className="font-semibold text-xs text-foreground line-clamp-1">{service.name}</h3>
-        <p className="text-sm font-bold text-primary mt-0.5">
-          {formatPrice(service.price)}
-          {service.service_type === 'reservation' && service.price_per_night && (
-            <span className="text-[10px] font-normal text-muted-foreground"> /night</span>
+    <Link href={actionHref} className="block">
+      <Card
+        className="group overflow-hidden hover-lift transition-all duration-300 border-warm-200/30 shadow-warm cursor-pointer p-0"
+      >
+        {/* Image area */}
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          {service.image?.preview ? (
+            <img
+              src={service.image.preview}
+              alt={service.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <TypeIcon className="h-8 w-8 text-muted-foreground/20" />
+            </div>
           )}
-        </p>
-      </div>
-    </Card>
+
+          {/* Service type pill — top left, compact */}
+          <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm ${typeConfig.className}`}>
+            {typeConfig.label}
+          </span>
+
+          {/* Hover action label overlay (desktop) */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <span className="rounded-full bg-white text-foreground font-semibold text-xs px-5 py-2 shadow-lg">
+              {typeConfig.actionLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Info — compact */}
+        <div className="px-2.5 py-2">
+          <h3 className="font-semibold text-xs text-foreground line-clamp-1">{service.name}</h3>
+          <p className="text-sm font-bold text-primary mt-0.5">
+            {formatPrice(service.price)}
+            {service.service_type === 'reservation' && service.price_per_night && (
+              <span className="text-[10px] font-normal text-muted-foreground"> /night</span>
+            )}
+          </p>
+        </div>
+      </Card>
+    </Link>
   );
 }
