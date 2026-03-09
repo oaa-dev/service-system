@@ -68,11 +68,29 @@ class PayMongoService implements PayMongoServiceInterface
 
         $attributes = $response->json('data.attributes');
 
+        // Determine effective payment status from checkout session
+        // PayMongo checkout sessions use 'active'/'expired' as top-level status,
+        // the actual payment result is in payment_intent or payments array
+        $rawStatus = $attributes['status'] ?? 'unknown';
+        $paymentIntentStatus = $attributes['payment_intent']['attributes']['status'] ?? null;
+        $payments = $attributes['payments'] ?? [];
+
+        // Derive a normalized status: paid, expired, or the raw status
+        if ($paymentIntentStatus === 'succeeded' || $rawStatus === 'paid') {
+            $effectiveStatus = 'paid';
+        } elseif (! empty($payments) && collect($payments)->contains(fn ($p) => ($p['attributes']['status'] ?? null) === 'paid')) {
+            $effectiveStatus = 'paid';
+        } elseif ($rawStatus === 'expired') {
+            $effectiveStatus = 'expired';
+        } else {
+            $effectiveStatus = $rawStatus;
+        }
+
         return [
             'id' => $response->json('data.id'),
-            'status' => $attributes['status'] ?? 'unknown',
+            'status' => $effectiveStatus,
             'payment_intent' => $attributes['payment_intent'] ?? null,
-            'payments' => $attributes['payments'] ?? [],
+            'payments' => $payments,
             'payment_method_used' => $attributes['payment_method_used'] ?? null,
         ];
     }
