@@ -89,7 +89,7 @@ export default function BookingPage({
     if (!selectedServiceId || !selectedDateStr || !selectedSlotId) return;
 
     try {
-      await createBooking.mutateAsync({
+      const result = await createBooking.mutateAsync({
         service_id: selectedServiceId,
         booking_date: selectedDateStr,
         booking_slot_id: selectedSlotId,
@@ -98,8 +98,14 @@ export default function BookingPage({
         loyalty_reward_id: selectedRewardId ?? undefined,
         coupon_code: couponCode ?? undefined,
       });
-      toast.success('Booking created successfully!');
-      router.push(`/merchants/${slug}`);
+      const checkoutUrl = result?.data?.payment?.checkout_url;
+      if (checkoutUrl) {
+        toast.success('Redirecting to payment...');
+        window.location.href = checkoutUrl;
+      } else {
+        toast.success('Booking created successfully!');
+        router.push(`/merchants/${slug}`);
+      }
     } catch {
       toast.error('Failed to create booking. Please try again.');
     }

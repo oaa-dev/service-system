@@ -16,9 +16,11 @@ use App\Repositories\Contracts\MerchantRepositoryInterface;
 use App\Repositories\Contracts\PaymentMethodRepositoryInterface;
 use App\Services\Contracts\BookingServiceInterface;
 use App\Services\Contracts\CustomerPortalServiceInterface;
+use App\Services\Contracts\PaymentServiceInterface;
 use App\Services\Contracts\ReservationServiceInterface;
 use App\Services\Contracts\ServiceOrderServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -32,28 +34,51 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         protected PaymentMethodRepositoryInterface $paymentMethodRepository,
         protected BookingServiceInterface $bookingService,
         protected ReservationServiceInterface $reservationService,
-        protected ServiceOrderServiceInterface $serviceOrderService
+        protected ServiceOrderServiceInterface $serviceOrderService,
+        protected PaymentServiceInterface $paymentService
     ) {}
 
     public function createBooking(string $slug, BookingData $data): Booking
     {
         $merchant = $this->resolveActiveMerchant($slug);
 
-        return $this->bookingService->createBooking($merchant->id, $data);
+        $booking = $this->bookingService->createBooking($merchant->id, $data);
+
+        $this->createPaymentAndCheckout($booking);
+
+        return $booking->load('payment');
     }
 
     public function createReservation(string $slug, ReservationData $data): Reservation
     {
         $merchant = $this->resolveActiveMerchant($slug);
 
-        return $this->reservationService->createReservation($merchant->id, $data);
+        $reservation = $this->reservationService->createReservation($merchant->id, $data);
+
+        $this->createPaymentAndCheckout($reservation);
+
+        return $reservation->load('payment');
     }
 
     public function createOrder(string $slug, ServiceOrderData $data): ServiceOrder
     {
         $merchant = $this->resolveActiveMerchant($slug);
 
-        return $this->serviceOrderService->createServiceOrder($merchant->id, $data);
+        $order = $this->serviceOrderService->createServiceOrder($merchant->id, $data);
+
+        $this->createPaymentAndCheckout($order);
+
+        return $order->load('payment');
+    }
+
+    /**
+     * Create a payment record and request an online PayMongo checkout session for the given transaction.
+     */
+    private function createPaymentAndCheckout(Model $payable): void
+    {
+        $payment = $this->paymentService->createPaymentForTransaction($payable, 'online');
+        $this->paymentService->requestOnlinePayment($payment);
+        $payable->refresh();
     }
 
     public function getMyBookings(Request $request): LengthAwarePaginator

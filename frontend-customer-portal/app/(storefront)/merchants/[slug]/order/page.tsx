@@ -67,7 +67,7 @@ export default function OrderPage({
     if (!selectedServiceId || quantity <= 0) return;
 
     try {
-      await createOrder.mutateAsync({
+      const result = await createOrder.mutateAsync({
         service_id: selectedServiceId,
         quantity,
         unit_label: unitLabel,
@@ -75,8 +75,14 @@ export default function OrderPage({
         loyalty_reward_id: selectedRewardId ?? undefined,
         coupon_code: couponCode ?? undefined,
       });
-      toast.success('Order placed successfully!');
-      router.push(`/merchants/${slug}`);
+      const checkoutUrl = result?.data?.payment?.checkout_url;
+      if (checkoutUrl) {
+        toast.success('Redirecting to payment...');
+        window.location.href = checkoutUrl;
+      } else {
+        toast.success('Order placed successfully!');
+        router.push(`/merchants/${slug}`);
+      }
     } catch {
       toast.error('Failed to place order. Please try again.');
     }

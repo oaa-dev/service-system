@@ -88,7 +88,7 @@ export default function ReservationPage({
     if (!selectedServiceId || !checkIn || !checkOut) return;
 
     try {
-      await createReservation.mutateAsync({
+      const result = await createReservation.mutateAsync({
         service_id: selectedServiceId,
         check_in: checkIn,
         check_out: checkOut,
@@ -98,8 +98,14 @@ export default function ReservationPage({
         loyalty_reward_id: selectedRewardId ?? undefined,
         coupon_code: couponCode ?? undefined,
       });
-      toast.success('Reservation created successfully!');
-      router.push(`/merchants/${slug}`);
+      const checkoutUrl = result?.data?.payment?.checkout_url;
+      if (checkoutUrl) {
+        toast.success('Redirecting to payment...');
+        window.location.href = checkoutUrl;
+      } else {
+        toast.success('Reservation created successfully!');
+        router.push(`/merchants/${slug}`);
+      }
     } catch {
       toast.error('Failed to create reservation. Please try again.');
     }

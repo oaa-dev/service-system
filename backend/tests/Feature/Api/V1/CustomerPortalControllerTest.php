@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\ServiceOrder;
 use App\Models\ServiceSchedule;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Laravel\Passport\Passport;
 
 beforeEach(function () {
@@ -26,6 +27,23 @@ beforeEach(function () {
         'can_take_bookings' => true,
         'can_sell_products' => true,
         'can_rent_units' => true,
+    ]);
+
+    // Set PayMongo config for tests and fake API calls
+    config([
+        'paymongo.secret_key' => 'sk_test_fake',
+        'paymongo.success_url' => 'http://localhost:3001/payment/success',
+        'paymongo.cancel_url' => 'http://localhost:3001/payment/cancel',
+    ]);
+    Http::fake([
+        'https://api.paymongo.com/v1/checkout_sessions' => Http::response([
+            'data' => [
+                'id' => 'cs_test_customer_portal',
+                'attributes' => [
+                    'checkout_url' => 'https://checkout.paymongo.com/test/customer_portal',
+                ],
+            ],
+        ]),
     ]);
 });
 
@@ -66,6 +84,11 @@ describe('Customer Booking', function () {
                     'status' => 'pending',
                     'party_size' => 2,
                     'notes' => 'Test booking from customer portal',
+                    'payment_status' => 'pending',
+                    'payment' => [
+                        'status' => 'pending',
+                        'checkout_url' => 'https://checkout.paymongo.com/test/customer_portal',
+                    ],
                 ],
             ]);
     });
@@ -89,6 +112,7 @@ describe('Customer Booking', function () {
             'service_id' => $service->id,
             'booking_date' => $nextMonday,
             'start_time' => '10:00',
+            'party_size' => 1,
         ]);
 
         $response->assertStatus(404);
@@ -112,6 +136,7 @@ describe('Customer Booking', function () {
             'service_id' => $service->id,
             'booking_date' => now()->next('Monday')->format('Y-m-d'),
             'start_time' => '10:00',
+            'party_size' => 1,
         ]);
 
         $response->assertStatus(404);
@@ -170,6 +195,11 @@ describe('Customer Reservation', function () {
                     'nights' => 2,
                     'notes' => 'Anniversary getaway',
                     'special_requests' => 'Late check-in please',
+                    'payment_status' => 'pending',
+                    'payment' => [
+                        'status' => 'pending',
+                        'checkout_url' => 'https://checkout.paymongo.com/test/customer_portal',
+                    ],
                 ],
             ]);
     });
@@ -229,6 +259,11 @@ describe('Customer Order', function () {
                     'status' => 'pending',
                     'unit_label' => 'pcs',
                     'notes' => 'Please deliver by noon',
+                    'payment_status' => 'pending',
+                    'payment' => [
+                        'status' => 'pending',
+                        'checkout_url' => 'https://checkout.paymongo.com/test/customer_portal',
+                    ],
                 ],
             ]);
 
