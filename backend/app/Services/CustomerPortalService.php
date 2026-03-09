@@ -10,6 +10,7 @@ use App\Data\ServiceOrderData;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Merchant;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\ServiceOrder;
 use App\Repositories\Contracts\MerchantRepositoryInterface;
@@ -98,7 +99,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
             ])
             ->allowedSorts(['booking_date', 'created_at', 'status'])
             ->defaultSort('-created_at')
-            ->with(['service', 'service.media'])
+            ->with(['service', 'service.media', 'payment'])
             ->paginate($request->per_page ?? 15)
             ->appends(request()->query());
     }
@@ -108,7 +109,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $booking = Booking::where('customer_id', $customerId)
-            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon', 'payment'])
             ->findOrFail($bookingId);
 
         return $booking;
@@ -149,7 +150,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
             ])
             ->allowedSorts(['check_in', 'created_at', 'status'])
             ->defaultSort('-created_at')
-            ->with(['service', 'service.media'])
+            ->with(['service', 'service.media', 'payment'])
             ->paginate($request->per_page ?? 15)
             ->appends(request()->query());
     }
@@ -159,7 +160,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $reservation = Reservation::where('customer_id', $customerId)
-            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon', 'payment'])
             ->findOrFail($reservationId);
 
         return $reservation;
@@ -201,7 +202,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
             ])
             ->allowedSorts(['created_at', 'status', 'order_number'])
             ->defaultSort('-created_at')
-            ->with(['service', 'service.media'])
+            ->with(['service', 'service.media', 'payment'])
             ->paginate($request->per_page ?? 15)
             ->appends(request()->query());
     }
@@ -211,7 +212,7 @@ class CustomerPortalService implements CustomerPortalServiceInterface
         $customerId = auth()->id();
 
         $order = ServiceOrder::where('customer_id', $customerId)
-            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon'])
+            ->with(['service', 'service.media', 'service.serviceCategory', 'merchant', 'merchant.address', 'coupon', 'payment'])
             ->findOrFail($orderId);
 
         return $order;
@@ -326,6 +327,19 @@ class CustomerPortalService implements CustomerPortalServiceInterface
             ->with(['businessType', 'media', 'address'])
             ->paginate($request->per_page ?? 15)
             ->appends(request()->query());
+    }
+
+    public function checkMyPaymentStatus(int $paymentId): Payment
+    {
+        $payment = Payment::with('payable')->findOrFail($paymentId);
+
+        if ($payment->payable->customer_id !== auth()->id()) {
+            throw new ModelNotFoundException('Payment not found.');
+        }
+
+        $payment = $this->paymentService->checkPaymentStatus($payment);
+
+        return $payment->load('payable');
     }
 
     /**

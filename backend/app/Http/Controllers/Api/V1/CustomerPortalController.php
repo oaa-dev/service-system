@@ -14,6 +14,7 @@ use App\Http\Requests\Api\V1\CustomerPortal\CreateCustomerReservationRequest;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\PaymentMethodResource;
+use App\Http\Resources\Api\V1\PaymentResource;
 use App\Http\Resources\Api\V1\ReservationResource;
 use App\Http\Resources\Api\V1\ServiceOrderResource;
 use App\Http\Resources\Api\V1\CouponResource;
@@ -238,6 +239,16 @@ class CustomerPortalController extends Controller
             'claimed_at' => $claim->claimed_at->toISOString(),
             'expires_at' => $claim->expires_at->toISOString(),
         ], 'Coupon claimed successfully');
+    }
+
+    public function checkMyPaymentStatus(int $payment): JsonResponse
+    {
+        $paymentModel = $this->customerPortalService->checkMyPaymentStatus($payment);
+
+        return $this->successResponse(
+            new PaymentResource($paymentModel),
+            'Payment status checked successfully'
+        );
     }
 
     public function claimedCoupons(): JsonResponse

@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMyOrder, useCancelOrder } from '@/hooks/useCustomerDashboard';
+import { useMyOrder, useCancelOrder, useCheckPaymentStatus } from '@/hooks/useCustomerDashboard';
 import { formatPrice } from '@/lib/storefront-utils';
 import { ChatPanel } from '@/components/chat/chat-panel';
 import { ReviewForm } from '@/components/reviews/review-form';
@@ -87,6 +87,7 @@ function getStatusClassName(status: ServiceOrderStatus): string {
 export default function OrderDetailSheet({ open, onOpenChange, itemId }: OrderDetailSheetProps) {
   const { data: response, isLoading } = useMyOrder(itemId);
   const cancelOrder = useCancelOrder();
+  const checkPayment = useCheckPaymentStatus();
   const { data: myReviews } = useMyReviews({ per_page: 100 });
 
   const order = response?.data;
@@ -266,6 +267,22 @@ export default function OrderDetailSheet({ open, onOpenChange, itemId }: OrderDe
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Pay Now
                         </a>
+                      </Button>
+                    )}
+                    {order.payment?.status === 'pending' && (
+                      <Button
+                        className="w-full rounded-full mt-2"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => order.payment && checkPayment.mutate(order.payment.id)}
+                        disabled={checkPayment.isPending}
+                      >
+                        {checkPayment.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <CreditCard className="mr-2 h-4 w-4" />
+                        )}
+                        Check Payment Status
                       </Button>
                     )}
                   </div>

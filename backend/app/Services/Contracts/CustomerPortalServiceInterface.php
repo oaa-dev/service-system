@@ -8,6 +8,7 @@ use App\Data\BookingData;
 use App\Data\ReservationData;
 use App\Data\ServiceOrderData;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\ServiceOrder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -50,4 +51,6 @@ interface CustomerPortalServiceInterface
     public function toggleFavoriteMerchant(int $merchantId): bool;
 
     public function getMyFavoriteMerchants(Request $request): LengthAwarePaginator;
+
+    public function checkMyPaymentStatus(int $paymentId): Payment;
 }

@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { ApiResponse, Booking, Coupon, MyCouponItem, Reservation, ServiceOrder } from '@/types/api';
+import { ApiResponse, Booking, Coupon, MyCouponItem, Payment, Reservation, ServiceOrder } from '@/types/api';
 
 export interface CreateBookingPayload {
   service_id: number;
@@ -55,6 +55,10 @@ export const customerActionService = {
   },
   getMyCoupons: async (): Promise<ApiResponse<MyCouponItem[]>> => {
     const response = await api.get<ApiResponse<MyCouponItem[]>>('/customer/my/coupons');
+    return response.data;
+  },
+  checkPaymentStatus: async (paymentId: number): Promise<ApiResponse<Payment>> => {
+    const response = await api.post<ApiResponse<Payment>>(`/customer/my/payments/${paymentId}/check-status`);
     return response.data;
   },
 };

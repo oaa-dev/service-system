@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { customerDashboardService, MyBookingParams, MyReservationParams, MyOrderParams } from '@/services/customerDashboardService';
+import { customerActionService } from '@/services/customerActionService';
 
 export function useMyStats() {
   return useQuery({
@@ -82,6 +83,18 @@ export function useCancelOrder() {
     mutationFn: (id: number) => customerDashboardService.cancelMyOrder(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer'] });
+    },
+  });
+}
+
+export function useCheckPaymentStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId: number) => customerActionService.checkPaymentStatus(paymentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer', 'bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'orders'] });
     },
   });
 }

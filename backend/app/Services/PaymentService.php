@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Reservation;
+use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Notifications\PaymentReceivedNotification;
 use App\Notifications\PaymentRequestedNotification;
@@ -106,6 +109,9 @@ class PaymentService implements PaymentServiceInterface
         // Update payable payment_status
         $payment->payable->update(['payment_status' => 'paid']);
 
+        // Auto-advance transaction status
+        $this->autoAdvancePayableStatus($payment->payable);
+
         return $payment;
     }
 
@@ -153,6 +159,9 @@ class PaymentService implements PaymentServiceInterface
                 // Update payable payment_status
                 $payment->payable->update(['payment_status' => 'paid']);
 
+                // Auto-advance transaction status
+                $this->autoAdvancePayableStatus($payment->payable);
+
                 // Notify customer
                 $customerUser = User::find($payment->payable->customer_id);
                 if ($customerUser) {
@@ -195,6 +204,9 @@ class PaymentService implements PaymentServiceInterface
             ]);
 
             $payment->payable->update(['payment_status' => 'paid']);
+
+            // Auto-advance transaction status
+            $this->autoAdvancePayableStatus($payment->payable);
         } elseif ($sessionStatus === 'expired' && $payment->status === 'pending') {
             $this->validateTransition($payment, 'expired');
 
@@ -242,6 +254,20 @@ class PaymentService implements PaymentServiceInterface
         $payableType = $payable->getMorphClass();
 
         return $this->paymentRepository->findByPayable($payableType, $payable->id);
+    }
+
+    /**
+     * Auto-advance the payable's transaction status when payment is confirmed paid.
+     */
+    private function autoAdvancePayableStatus(Model $payable): void
+    {
+        if ($payable instanceof Booking && $payable->status === 'pending') {
+            $payable->update(['status' => 'confirmed', 'confirmed_at' => now()]);
+        } elseif ($payable instanceof Reservation && $payable->status === 'pending') {
+            $payable->update(['status' => 'confirmed', 'confirmed_at' => now()]);
+        } elseif ($payable instanceof ServiceOrder && $payable->status === 'pending') {
+            $payable->update(['status' => 'received']);
+        }
     }
 
     /**

@@ -554,6 +554,8 @@ Route::prefix('v1')->group(function () {
                 Route::post('/favorite-merchants/{merchant}', [CustomerPortalController::class, 'toggleFavoriteMerchant'])->middleware('permission:customer_portal.view_own');
                 Route::get('/favorite-merchants', [CustomerPortalController::class, 'myFavoriteMerchants'])->middleware('permission:customer_portal.view_own');
 
+                Route::post('/payments/{payment}/check-status', [CustomerPortalController::class, 'checkMyPaymentStatus'])->middleware('permission:customer_portal.view_own');
+
                 Route::get('/coupons', [CustomerPortalController::class, 'myCoupons'])->middleware('permission:customer_portal.view_own');
 
                 // Chat conversations (scoped per booking/reservation/order/inquiry)
