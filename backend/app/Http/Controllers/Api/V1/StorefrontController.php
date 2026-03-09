@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\AdvertisementResource;
+use App\Http\Resources\Api\V1\CouponResource;
 use App\Http\Resources\Api\V1\MerchantResource;
 use App\Http\Resources\Api\V1\ReviewResource;
 use App\Http\Resources\Api\V1\ServiceResource;
 use App\Models\Merchant;
-use App\Http\Resources\Api\V1\CouponResource;
+use App\Services\Contracts\AdvertisementServiceInterface;
 use App\Services\Contracts\CouponServiceInterface;
 use App\Services\Contracts\ReviewServiceInterface;
 use App\Services\Contracts\StorefrontServiceInterface;
@@ -24,7 +26,8 @@ class StorefrontController extends Controller
     public function __construct(
         protected StorefrontServiceInterface $storefrontService,
         protected ReviewServiceInterface $reviewService,
-        protected CouponServiceInterface $couponService
+        protected CouponServiceInterface $couponService,
+        protected AdvertisementServiceInterface $advertisementService
     ) {}
 
     public function merchants(Request $request): JsonResponse
@@ -147,6 +150,16 @@ class StorefrontController extends Controller
         return $this->successResponse(
             CouponResource::collection($coupons),
             'Coupons retrieved successfully'
+        );
+    }
+
+    public function advertisements(Request $request): JsonResponse
+    {
+        $ads = $this->advertisementService->getActiveAds($request);
+
+        return $this->successResponse(
+            AdvertisementResource::collection($ads),
+            'Advertisements retrieved successfully'
         );
     }
 }

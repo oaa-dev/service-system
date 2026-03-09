@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Calendar, ShoppingBag, Home } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { formatPrice } from '@/lib/storefront-utils';
 import type { Service } from '@/types/api';
@@ -10,21 +9,21 @@ import type { Service } from '@/types/api';
 const SERVICE_TYPE_CONFIG: Record<string, { label: string; className: string; icon: typeof Calendar; actionLabel: string; actionPath: string }> = {
   bookable: {
     label: 'Bookable',
-    className: 'bg-primary/10 text-primary border-primary/20',
+    className: 'bg-primary/80 text-white',
     icon: Calendar,
     actionLabel: 'Book',
     actionPath: 'book',
   },
   sellable: {
     label: 'Product',
-    className: 'bg-accent/10 text-accent-foreground border-accent/20',
+    className: 'bg-accent text-accent-foreground',
     icon: ShoppingBag,
     actionLabel: 'Place Order',
     actionPath: 'order',
   },
   reservation: {
     label: 'Rental',
-    className: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
+    className: 'bg-emerald-600/80 text-white',
     icon: Home,
     actionLabel: 'Reserve',
     actionPath: 'reserve',
@@ -56,23 +55,20 @@ export function ServiceCard({ service, merchantSlug, onClick }: ServiceCardProps
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <TypeIcon className="h-10 w-10 text-muted-foreground/30" />
+            <TypeIcon className="h-8 w-8 text-muted-foreground/20" />
           </div>
         )}
 
-        {/* Service type badge - top right */}
-        <Badge
-          variant="outline"
-          className={`absolute top-2 right-2 text-xs shadow-sm backdrop-blur-sm ${typeConfig.className}`}
-        >
+        {/* Service type pill — top left, compact */}
+        <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm ${typeConfig.className}`}>
           {typeConfig.label}
-        </Badge>
+        </span>
 
         {/* Hover action overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <Link
             href={`/merchants/${merchantSlug}/${typeConfig.actionPath}?service=${service.id}`}
-            className="rounded-lg bg-white/90 text-foreground font-medium text-sm px-4 py-2 shadow-sm hover:bg-white transition-colors"
+            className="rounded-full bg-white text-foreground font-semibold text-xs px-5 py-2 shadow-lg hover:bg-white/90 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             {typeConfig.actionLabel}
@@ -80,15 +76,13 @@ export function ServiceCard({ service, merchantSlug, onClick }: ServiceCardProps
         </div>
       </div>
 
-      {/* Info section */}
-      <div className="p-3">
-        <h3 className="font-semibold text-sm text-foreground line-clamp-1">
-          {service.name}
-        </h3>
-        <p className="text-base font-bold text-primary">
+      {/* Info — compact */}
+      <div className="px-2.5 py-2">
+        <h3 className="font-semibold text-xs text-foreground line-clamp-1">{service.name}</h3>
+        <p className="text-sm font-bold text-primary mt-0.5">
           {formatPrice(service.price)}
           {service.service_type === 'reservation' && service.price_per_night && (
-            <span className="text-xs font-normal text-muted-foreground"> / night</span>
+            <span className="text-[10px] font-normal text-muted-foreground"> /night</span>
           )}
         </p>
       </div>

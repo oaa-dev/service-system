@@ -99,6 +99,21 @@ return [
     | Reference Data Icon Configuration
     |--------------------------------------------------------------------------
     */
+    'ad_image' => [
+        'mimes' => ['jpeg', 'png', 'webp'],
+        'max_size' => 10240, // KB (10MB)
+        'min_width' => 400,
+        'min_height' => 200,
+        'max_width' => 6000,
+        'max_height' => 6000,
+        'recommendation' => 'Upload an ad image in JPEG, PNG, or WebP format. Minimum 400x200 pixels, maximum 6000x6000 pixels. Max file size: 10MB.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reference Data Icon Configuration
+    |--------------------------------------------------------------------------
+    */
     'reference_icon' => [
         'mimes' => ['jpeg', 'png', 'webp', 'svg'],
         'max_size' => 2048, // KB (2MB)

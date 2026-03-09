@@ -35,8 +35,8 @@ export function MerchantGallery({ merchant }: MerchantGalleryProps) {
   const tabs: { key: GalleryTab; label: string; icon: typeof Camera; count: number }[] = [
     { key: 'all', label: 'All', icon: Camera, count: allImages.length },
     { key: 'photos', label: 'Photos', icon: Camera, count: photos.length },
-    { key: 'interiors', label: 'Interiors', icon: Sofa, count: interiors.length },
-    { key: 'exteriors', label: 'Exteriors', icon: TreePine, count: exteriors.length },
+    { key: 'interiors', label: 'Interior', icon: Sofa, count: interiors.length },
+    { key: 'exteriors', label: 'Exterior', icon: TreePine, count: exteriors.length },
   ];
 
   const updateScrollButtons = useCallback(() => {
@@ -46,73 +46,61 @@ export function MerchantGallery({ merchant }: MerchantGalleryProps) {
     setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
   }, []);
 
-  // Check scroll state after images change or on initial render
   useEffect(() => {
     updateScrollButtons();
   }, [filteredImages.length, updateScrollButtons]);
 
-  const scrollLeft = () => {
-    scrollRef.current?.scrollBy({ left: -280, behavior: 'smooth' });
-  };
-
-  const scrollRight = () => {
-    scrollRef.current?.scrollBy({ left: 280, behavior: 'smooth' });
-  };
-
   if (allImages.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-xl font-bold">Gallery</h2>
-
-      {/* Tab filters */}
-      <div className="flex gap-2 flex-wrap">
-        {tabs.filter(t => t.count > 0 || t.key === 'all').map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => {
-              setActiveTab(tab.key);
-              if (scrollRef.current) {
-                scrollRef.current.scrollLeft = 0;
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
-              activeTab === tab.key
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-warm-50/50 text-muted-foreground border-warm-200/30 hover:border-primary/30'
-            }`}
-          >
-            <tab.icon className="h-3.5 w-3.5" />
-            {tab.label}
-            <span className="text-xs opacity-70">({tab.count})</span>
-          </button>
-        ))}
+    <div className="space-y-2">
+      {/* Header row: title + tabs inline */}
+      <div className="flex items-center gap-3 justify-between">
+        <h2 className="text-base font-bold font-[family-name:var(--font-display)] flex-shrink-0">Gallery</h2>
+        <div className="flex gap-1 flex-wrap justify-end">
+          {tabs.filter(t => t.count > 0 || t.key === 'all').map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setActiveTab(tab.key);
+                if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+              }}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-warm-50/50 text-muted-foreground border-warm-200/30 hover:border-primary/30'
+              }`}
+            >
+              <tab.icon className="h-3 w-3" />
+              {tab.label}
+              <span className="opacity-60">{tab.count}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Horizontal scroll row */}
       <div className="relative">
-        {/* Left scroll button — inside container */}
         {canScrollLeft && (
           <button
-            onClick={scrollLeft}
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-md border border-warm-200/40 backdrop-blur-sm hover:bg-background transition-colors"
+            onClick={() => scrollRef.current?.scrollBy({ left: -260, behavior: 'smooth' })}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 shadow-md border border-warm-200/40 backdrop-blur-sm hover:bg-background transition-colors"
             aria-label="Scroll left"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
         )}
 
-        {/* Scroll container */}
         <div
           ref={scrollRef}
           onScroll={updateScrollButtons}
-          className="scrollbar-none flex gap-3 overflow-x-auto scroll-smooth"
+          className="scrollbar-none flex gap-2 overflow-x-auto scroll-smooth"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
         >
           {filteredImages.map((img) => (
             <div
               key={img.id}
-              className="relative flex-shrink-0 w-52 aspect-[4/3] rounded-lg overflow-hidden cursor-pointer group/img"
+              className="relative flex-shrink-0 w-44 aspect-[4/3] rounded-lg overflow-hidden cursor-pointer group/img"
               onClick={() => setSelectedImage(img.url)}
             >
               <img
@@ -124,19 +112,18 @@ export function MerchantGallery({ merchant }: MerchantGalleryProps) {
           ))}
         </div>
 
-        {/* Right scroll button — inside container */}
         {canScrollRight && (
           <button
-            onClick={scrollRight}
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-md border border-warm-200/40 backdrop-blur-sm hover:bg-background transition-colors"
+            onClick={() => scrollRef.current?.scrollBy({ left: 260, behavior: 'smooth' })}
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 shadow-md border border-warm-200/40 backdrop-blur-sm hover:bg-background transition-colors"
             aria-label="Scroll right"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      {/* Lightbox — rendered via portal to avoid stacking context issues */}
+      {/* Lightbox */}
       {selectedImage && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"

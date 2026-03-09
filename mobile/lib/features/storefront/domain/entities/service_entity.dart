@@ -9,6 +9,7 @@ class ServiceEntity extends Equatable {
   final bool isActive;
   final bool isBookable;
   final bool isSellable;
+  final bool isReservable;
   final int? duration;
   final String? imageUrl;
 
@@ -21,6 +22,7 @@ class ServiceEntity extends Equatable {
     required this.isActive,
     required this.isBookable,
     required this.isSellable,
+    this.isReservable = false,
     this.duration,
     this.imageUrl,
   });
@@ -35,6 +37,7 @@ class ServiceEntity extends Equatable {
         isActive,
         isBookable,
         isSellable,
+        isReservable,
         duration,
         imageUrl,
       ];

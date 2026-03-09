@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, Search } from 'lucide-react';
+import { Heart, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { MerchantCard } from '@/components/storefront/merchant-card';
 import { useMyFavorites } from '@/hooks/useFavorites';
@@ -22,14 +22,9 @@ export default function FavoritesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Heart className="h-6 w-6 text-red-500" />
-            My Favorites
-          </h1>
-          <p className="text-muted-foreground mt-1">Merchants you&apos;ve saved</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">My Favorites</h1>
+        <p className="text-sm text-muted-foreground">Merchants you&apos;ve saved</p>
       </div>
 
       <div className="relative max-w-sm">
@@ -65,26 +60,33 @@ export default function FavoritesPage() {
           </div>
 
           {pagination && pagination.last_page > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {pagination.current_page} of {pagination.last_page}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= pagination.last_page}
-                onClick={() => setPage(page + 1)}
-              >
-                Next
-              </Button>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {pagination.total} {pagination.total === 1 ? 'favorite' : 'favorites'}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  {page} / {pagination.last_page}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page >= pagination.last_page}
+                  onClick={() => setPage(page + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </>

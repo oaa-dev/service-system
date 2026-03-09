@@ -153,6 +153,11 @@ class ImageRule implements ValidationRule
         return new self('service_image');
     }
 
+    public static function adImage(): self
+    {
+        return new self('ad_image');
+    }
+
     public static function referenceIcon(): self
     {
         return new self('reference_icon');

@@ -61,7 +61,7 @@ MerchantModel _$MerchantModelFromJson(Map<String, dynamic> json) =>
       logo: json['logo'] == null
           ? null
           : LogoModel.fromJson(json['logo'] as Map<String, dynamic>),
-      averageRating: (json['average_rating'] as num?)?.toDouble(),
+      averageRating: _toDouble(json['average_rating']),
       reviewCount: (json['review_count'] as num?)?.toInt(),
       childrenCount: (json['children_count'] as num?)?.toInt(),
       parentId: (json['parent_id'] as num?)?.toInt(),

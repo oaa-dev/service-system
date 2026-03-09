@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/favorites_bloc.dart';
 import '../bloc/favorites_event.dart';
@@ -24,6 +25,7 @@ class FavoriteButton extends StatelessWidget {
         size: size,
       ),
       onPressed: () {
+        HapticFeedback.mediumImpact();
         context
             .read<FavoritesBloc>()
             .add(ToggleFavoriteEvent(merchantId, isFavorited));

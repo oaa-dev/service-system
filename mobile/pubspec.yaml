@@ -58,6 +58,18 @@ dependencies:
   # Star ratings
   flutter_rating_bar: ^4.0.1
 
+  # QR scanning
+  mobile_scanner: ^6.0.0
+
+  # Sharing
+  share_plus: ^10.1.4
+
+  # URL launcher
+  url_launcher: ^6.3.1
+
+  # Animations
+  flutter_animate: ^4.5.0
+
   # HTTP multipart (for avatar upload)
   http: ^1.2.2
 

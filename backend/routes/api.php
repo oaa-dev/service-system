@@ -1,43 +1,44 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AdvertisementController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\DeployController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\BusinessTypeController;
 use App\Http\Controllers\Api\V1\ConfigController;
-use App\Http\Controllers\Api\V1\DocumentTypeController;
-use App\Http\Controllers\Api\V1\GeographicController;
-use App\Http\Controllers\Api\V1\MerchantController;
-use App\Http\Controllers\Api\V1\MyMerchantController;
-use App\Http\Controllers\Api\V1\MerchantBookingSlotController;
-use App\Http\Controllers\Api\V1\MessagingController;
-use App\Http\Controllers\Api\V1\NotificationController;
-use App\Http\Controllers\Api\V1\PaymentMethodController;
-use App\Http\Controllers\Api\V1\PermissionController;
-use App\Http\Controllers\Api\V1\ProfileController;
-use App\Http\Controllers\Api\V1\RoleController;
-use App\Http\Controllers\Api\V1\CustomerController;
-use App\Http\Controllers\Api\V1\CustomerTagController;
-use App\Http\Controllers\Api\V1\BookingController;
-use App\Http\Controllers\Api\V1\FieldController;
-use App\Http\Controllers\Api\V1\MerchantServiceCategoryController;
-use App\Http\Controllers\Api\V1\PlatformFeeController;
-use App\Http\Controllers\Api\V1\MerchantServiceController;
-use App\Http\Controllers\Api\V1\ReservationController;
-use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ConversationController;
-use App\Http\Controllers\Api\V1\CustomerPortalController;
-use App\Http\Controllers\Api\V1\CustomerReviewController;
-use App\Http\Controllers\Api\V1\MerchantReviewController;
-use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\CouponController;
+use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\CustomerLoyaltyController;
+use App\Http\Controllers\Api\V1\CustomerPortalController;
+use App\Http\Controllers\Api\V1\CustomerReferralController;
+use App\Http\Controllers\Api\V1\CustomerReviewController;
+use App\Http\Controllers\Api\V1\CustomerTagController;
+use App\Http\Controllers\Api\V1\DeployController;
+use App\Http\Controllers\Api\V1\DocumentTypeController;
+use App\Http\Controllers\Api\V1\FieldController;
+use App\Http\Controllers\Api\V1\GeographicController;
 use App\Http\Controllers\Api\V1\LoyaltyController;
 use App\Http\Controllers\Api\V1\LoyaltyProgramController;
-use App\Http\Controllers\Api\V1\CustomerReferralController;
-use App\Http\Controllers\Api\V1\ReferralProgramController;
-use App\Http\Controllers\Api\V1\PaymentController;
-use App\Http\Controllers\Api\V1\CouponController;
+use App\Http\Controllers\Api\V1\MerchantBookingSlotController;
+use App\Http\Controllers\Api\V1\MerchantController;
 use App\Http\Controllers\Api\V1\MerchantCouponController;
+use App\Http\Controllers\Api\V1\MerchantReviewController;
+use App\Http\Controllers\Api\V1\MerchantServiceCategoryController;
+use App\Http\Controllers\Api\V1\MerchantServiceController;
+use App\Http\Controllers\Api\V1\MessagingController;
+use App\Http\Controllers\Api\V1\MyMerchantController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentMethodController;
 use App\Http\Controllers\Api\V1\PayMongoWebhookController;
+use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\PlatformFeeController;
+use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ReferralProgramController;
+use App\Http\Controllers\Api\V1\ReservationController;
+use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\SocialPlatformController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -87,10 +88,15 @@ Route::prefix('v1')->group(function () {
         Route::get('merchants/{slug}/branches', [StorefrontController::class, 'branches']);
         Route::get('merchants/{slug}/reviews', [StorefrontController::class, 'merchantReviews']);
         Route::get('merchants/{slug}/coupons', [StorefrontController::class, 'merchantCoupons']);
+        Route::get('advertisements', [StorefrontController::class, 'advertisements']);
 
         // Referral code validation (public)
         Route::get('referral/{code}', [CustomerReferralController::class, 'validateCode']);
     });
+
+    // Advertisement tracking (public, lightweight)
+    Route::post('advertisements/{id}/impression', [AdvertisementController::class, 'trackImpression']);
+    Route::post('advertisements/{id}/click', [AdvertisementController::class, 'trackClick']);
 
     // Public coupon validation (no auth)
     Route::post('coupons/validate', [CouponController::class, 'validate']);
@@ -300,6 +306,19 @@ Route::prefix('v1')->group(function () {
             Route::middleware('permission:coupons.create')->post('coupons', [CouponController::class, 'store']);
             Route::middleware('permission:coupons.update')->put('coupons/{id}', [CouponController::class, 'update']);
             Route::middleware('permission:coupons.delete')->delete('coupons/{id}', [CouponController::class, 'destroy']);
+
+            // Advertisement management routes
+            Route::middleware('permission:advertisements.view')->group(function () {
+                Route::get('advertisements', [AdvertisementController::class, 'index']);
+                Route::get('advertisements/{id}', [AdvertisementController::class, 'show']);
+            });
+            Route::middleware('permission:advertisements.create')->post('advertisements', [AdvertisementController::class, 'store']);
+            Route::middleware('permission:advertisements.update')->group(function () {
+                Route::put('advertisements/{id}', [AdvertisementController::class, 'update']);
+                Route::post('advertisements/{id}/image', [AdvertisementController::class, 'uploadImage']);
+                Route::delete('advertisements/{id}/image', [AdvertisementController::class, 'deleteImage']);
+            });
+            Route::middleware('permission:advertisements.delete')->delete('advertisements/{id}', [AdvertisementController::class, 'destroy']);
 
             // Customer management routes
             Route::middleware('permission:customers.view')->group(function () {

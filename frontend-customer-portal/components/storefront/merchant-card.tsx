@@ -64,7 +64,7 @@ export function MerchantCard({ merchant }: MerchantCardProps) {
                 className={`text-xs font-medium shadow-sm ${
                   openStatus.isOpen
                     ? 'bg-emerald-500/90 text-white border-emerald-600/20'
-                    : 'bg-gray-800/70 text-gray-200 border-gray-700/20'
+                    : 'bg-muted/70 text-muted-foreground border-muted/20'
                 }`}
               >
                 {openStatus.label}

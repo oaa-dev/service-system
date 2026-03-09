@@ -3,6 +3,7 @@
 import { use, useState, useMemo, useCallback } from 'react';
 import { useMerchant } from '@/hooks/useMerchants';
 import { useServiceOrders, useUpdateServiceOrderStatus } from '@/hooks/useServiceOrders';
+import { useMarkAsPaid, useCheckPaymentStatus } from '@/hooks/usePayments';
 import { ServiceOrder, ServiceOrderStatus, ServiceOrderQueryParams, MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +21,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ChevronLeft, ChevronRight, ArrowLeft, Store, Package, User, Truck, CheckCircle, Ban, ClipboardList, Clock, Loader, RefreshCw, Plus,
+  ChevronLeft, ChevronRight, ArrowLeft, Store, Package, User, Truck, CheckCircle, Ban, ClipboardList, Clock, Loader, RefreshCw, Plus, CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { PermissionGate } from '@/components/permission-gate';
@@ -43,6 +44,14 @@ const orderStatusColors: Record<ServiceOrderStatus, string> = {
   delivering: 'bg-orange-500',
   completed: 'bg-gray-500',
   cancelled: 'bg-red-500',
+};
+
+const paymentStatusConfig: Record<string, { label: string; variant: 'outline' | 'secondary' | 'default' | 'destructive'; className?: string }> = {
+  unpaid: { label: 'Unpaid', variant: 'outline' },
+  pending: { label: 'Pending', variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  paid: { label: 'Paid', variant: 'secondary', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  failed: { label: 'Failed', variant: 'destructive' },
+  refunded: { label: 'Refunded', variant: 'secondary', className: 'bg-purple-100 text-purple-800 border-purple-200' },
 };
 
 const filters: FilterField[] = [
@@ -93,6 +102,7 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
   const [perPage, setPerPage] = useState(10);
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [statusAction, setStatusAction] = useState<{ order: ServiceOrder; status: ServiceOrderStatus } | null>(null);
+  const [paymentAction, setPaymentAction] = useState<'request_payment' | 'mark_cash' | ''>('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const queryParams = useMemo<ServiceOrderQueryParams>(() => {
@@ -104,6 +114,8 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
 
   const { data, isLoading, refetch, isFetching } = useServiceOrders(merchantId, queryParams);
   const statusMutation = useUpdateServiceOrderStatus();
+  const markAsPaidMutation = useMarkAsPaid();
+  const checkStatusMutation = useCheckPaymentStatus();
 
   const handleFilterChange = useCallback((values: FilterValues) => { setFilterValues(values); setPage(1); }, []);
   const handleFilterReset = useCallback(() => { setFilterValues({}); setPage(1); }, []);
@@ -111,8 +123,20 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
   const handleStatusUpdate = () => {
     if (statusAction) {
       statusMutation.mutate(
-        { merchantId, serviceOrderId: statusAction.order.id, data: { status: statusAction.status } },
-        { onSuccess: () => setStatusAction(null) }
+        {
+          merchantId,
+          serviceOrderId: statusAction.order.id,
+          data: {
+            status: statusAction.status,
+            payment_action: paymentAction || null,
+          },
+        },
+        {
+          onSuccess: () => {
+            setStatusAction(null);
+            setPaymentAction('');
+          },
+        }
       );
     }
   };
@@ -220,14 +244,22 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
                       )}
                       {order.notes && <p className="text-sm text-muted-foreground mt-1">{order.notes}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                       <Badge className={orderStatusColors[order.status]}>{order.status}</Badge>
+                      {order.payment_status && (() => {
+                        const cfg = paymentStatusConfig[order.payment_status] ?? { label: order.payment_status, variant: 'outline' as const };
+                        return (
+                          <Badge variant={cfg.variant} className={cfg.className}>
+                            <CreditCard className="h-3 w-3 mr-1" />{cfg.label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
-                  {VALID_ACTIONS[order.status] && (
+                  {(VALID_ACTIONS[order.status] || order.payment?.id) && (
                     <PermissionGate permission="service_orders.update_status">
-                      <div className="flex gap-2 mt-3 pt-3 border-t">
-                        {VALID_ACTIONS[order.status].map((action) => (
+                      <div className="flex gap-2 mt-3 pt-3 border-t flex-wrap">
+                        {VALID_ACTIONS[order.status]?.map((action) => (
                           <Button
                             key={action.status}
                             variant={action.variant || 'default'}
@@ -238,6 +270,26 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
                             {action.icon}{action.label}
                           </Button>
                         ))}
+                        {order.payment?.id && (order.payment_status === 'pending' || order.payment_status === 'unpaid') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => markAsPaidMutation.mutate({ id: order.payment!.id })}
+                            disabled={markAsPaidMutation.isPending}
+                          >
+                            <CreditCard className="mr-1 h-3 w-3" /> Mark as Paid
+                          </Button>
+                        )}
+                        {order.payment?.id && order.payment_status === 'pending' && order.payment.gateway !== 'cash' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => checkStatusMutation.mutate({ id: order.payment!.id })}
+                            disabled={checkStatusMutation.isPending}
+                          >
+                            <RefreshCw className={`mr-1 h-3 w-3 ${checkStatusMutation.isPending ? 'animate-spin' : ''}`} /> Check Status
+                          </Button>
+                        )}
                       </div>
                     </PermissionGate>
                   )}
@@ -263,7 +315,7 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
       <CreateOrderDialog merchantId={merchantId} open={createOpen} onOpenChange={setCreateOpen} />
 
       {/* Status update confirmation */}
-      <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
+      <AlertDialog open={!!statusAction} onOpenChange={(open) => { if (!open) { setStatusAction(null); setPaymentAction(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Update Order Status</AlertDialogTitle>
@@ -271,6 +323,21 @@ export default function MerchantOrdersPage({ params }: { params: Promise<{ id: s
               Are you sure you want to change order {statusAction?.order.order_number} status to <span className="font-semibold">{statusAction?.status}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {statusAction?.status === 'received' && (
+            <div className="py-2">
+              <p className="text-sm font-medium mb-2">Payment Action</p>
+              <Select value={paymentAction} onValueChange={(v) => setPaymentAction(v as typeof paymentAction)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No payment action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Payment Action</SelectItem>
+                  <SelectItem value="request_payment">Request Online Payment</SelectItem>
+                  <SelectItem value="mark_cash">Mark as Cash</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleStatusUpdate}>

@@ -1,10 +1,12 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
+import '../../domain/entities/booking_availability_entity.dart';
 import '../../domain/entities/merchant_entity.dart';
 import '../../domain/entities/service_entity.dart';
 import '../../domain/repositories/storefront_repository.dart';
 import '../datasources/storefront_remote_data_source.dart';
+import '../models/booking_availability_model.dart';
 import '../models/business_hours_model.dart';
 import '../models/merchant_model.dart';
 import '../models/service_model.dart';
@@ -38,12 +40,10 @@ class StorefrontRepositoryImpl implements StorefrontRepository {
           .toList();
 
       final meta = json['meta'] as Map<String, dynamic>?;
-      final pagination =
-          meta?['pagination'] as Map<String, dynamic>? ?? {};
 
-      final currentPage = (pagination['current_page'] as num?)?.toInt() ?? 1;
-      final lastPage = (pagination['last_page'] as num?)?.toInt() ?? 1;
-      final total = (pagination['total'] as num?)?.toInt() ?? merchants.length;
+      final currentPage = (meta?['current_page'] as num?)?.toInt() ?? 1;
+      final lastPage = (meta?['last_page'] as num?)?.toInt() ?? 1;
+      final total = (meta?['total'] as num?)?.toInt() ?? merchants.length;
 
       return MerchantsResult(
         merchants: merchants,
@@ -115,6 +115,62 @@ class StorefrontRepositoryImpl implements StorefrontRepository {
     );
   }
 
+  @override
+  Future<Either<Failure, BookingAvailabilityEntity>> getBookingAvailability({
+    required String slug,
+    required int serviceId,
+    required String date,
+  }) async {
+    final result =
+        await _remote.getBookingAvailability(slug, serviceId, date);
+    return result.map(_toAvailabilityEntity);
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> createBooking({
+    required String slug,
+    required Map<String, dynamic> data,
+  }) async {
+    return _remote.createBooking(slug, data);
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> createReservation({
+    required String slug,
+    required Map<String, dynamic> data,
+  }) async {
+    return _remote.createReservation(slug, data);
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> createOrder({
+    required String slug,
+    required Map<String, dynamic> data,
+  }) async {
+    return _remote.createOrder(slug, data);
+  }
+
+  BookingAvailabilityEntity _toAvailabilityEntity(
+      BookingAvailabilityModel model) {
+    return BookingAvailabilityEntity(
+      date: model.date,
+      hasSlots: model.hasSlots,
+      slots: model.slots.map(_toSlotEntity).toList(),
+    );
+  }
+
+  BookingSlotEntity _toSlotEntity(BookingSlotModel model) {
+    return BookingSlotEntity(
+      slotId: model.slotId,
+      startTime: model.startTime,
+      endTime: model.endTime,
+      booked: model.booked,
+      available: model.available,
+      maxCapacity: model.maxCapacity,
+      isFull: model.isFull,
+    );
+  }
+
   ServiceEntity _toServiceEntity(ServiceModel model) {
     return ServiceEntity(
       id: model.id,
@@ -125,6 +181,7 @@ class StorefrontRepositoryImpl implements StorefrontRepository {
       isActive: model.isActive,
       isBookable: model.isBookable,
       isSellable: model.isSellable,
+      isReservable: model.isReservable,
       duration: model.duration,
       imageUrl: model.imageUrl,
     );

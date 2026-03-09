@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Home, Calendar, AlertCircle } from 'lucide-react';
+import { Home, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import ReservationDetailSheet from './reservation-detail-sheet';
 
@@ -97,8 +97,8 @@ export default function ReservationsPage() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-in">
-        <h1 className="text-3xl font-bold tracking-tight font-[family-name:var(--font-display)]">My Reservations</h1>
-        <p className="text-muted-foreground">View and manage your unit reservations</p>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">My Reservations</h1>
+        <p className="text-sm text-muted-foreground">View and manage your unit reservations</p>
       </div>
 
       {isLoading ? (
@@ -116,24 +116,20 @@ export default function ReservationsPage() {
           ))}
         </div>
       ) : reservations.length === 0 ? (
-        <Card className="shadow-warm border-0">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 mb-4">
-              <Home className="h-8 w-8 text-amber-600" />
-            </div>
-            <p className="text-lg font-medium text-muted-foreground">No reservations found</p>
-            <p className="text-sm text-muted-foreground">Your reservation history will appear here</p>
-          </CardContent>
-        </Card>
+        <div className="py-16 text-center space-y-3">
+          <Home className="h-12 w-12 mx-auto text-muted-foreground/30" />
+          <p className="font-medium text-muted-foreground">No reservations found</p>
+          <p className="text-sm text-muted-foreground">Your reservation history will appear here</p>
+        </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {reservations.map((reservation, index) => (
               <Card key={reservation.id} className="shadow-warm border-0 rounded-xl hover-lift animate-fade-in-up cursor-pointer" style={{ animationDelay: `${index * 50}ms` }} onClick={() => setSelectedId(reservation.id)}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                      <CardTitle className="text-lg font-[family-name:var(--font-display)]">{reservation.unit?.name || 'Unit'}</CardTitle>
+                      <CardTitle className="text-base font-[family-name:var(--font-display)]">{reservation.unit?.name || 'Unit'}</CardTitle>
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <Calendar className="h-4 w-4" />
@@ -155,7 +151,7 @@ export default function ReservationsPage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Total Amount</p>
-                      <p className="text-lg font-semibold font-[family-name:var(--font-display)]">{formatCurrency(reservation.total_amount)}</p>
+                      <p className="text-base font-semibold font-[family-name:var(--font-display)]">{formatCurrency(reservation.total_amount)}</p>
                       {reservation.payment_status && (
                         <Badge className={`text-xs ${getPaymentBadgeClassName(reservation.payment_status)}`}>
                           {reservation.payment_status.replace('_', ' ')}
@@ -182,30 +178,30 @@ export default function ReservationsPage() {
           {/* Pagination */}
           {meta && meta.last_page > 1 && (
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing {meta.from} to {meta.to} of {meta.total} reservations
-              </div>
-              <div className="flex items-center space-x-2">
+              <p className="text-sm text-muted-foreground">
+                {meta.total} {meta.total === 1 ? 'reservation' : 'reservations'}
+              </p>
+              <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
                 >
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="text-sm font-medium">
-                  Page {meta.current_page} of {meta.last_page}
-                </div>
+                <span className="text-sm text-muted-foreground px-2">
+                  {page} / {meta.last_page}
+                </span>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setPage((p) => p + 1)}
+                  size="icon"
+                  className="h-8 w-8"
                   disabled={page >= meta.last_page}
+                  onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

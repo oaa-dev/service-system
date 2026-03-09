@@ -27,7 +27,7 @@ export function FavoriteButton({ merchantId, isFavorited = false, size = 'sm' }:
     <Button
       variant="ghost"
       size="icon"
-      className={`rounded-full ${size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'} bg-white/80 hover:bg-white shadow-sm`}
+      className={`rounded-full ${size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'} bg-card/80 hover:bg-card shadow-sm`}
       onClick={handleClick}
       disabled={toggleFavorite.isPending}
     >
@@ -35,7 +35,7 @@ export function FavoriteButton({ merchantId, isFavorited = false, size = 'sm' }:
         className={`${size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'} transition-colors ${
           isFavorited
             ? 'fill-red-500 text-red-500'
-            : 'text-gray-600 hover:text-red-400'
+            : 'text-muted-foreground hover:text-red-400'
         }`}
       />
     </Button>

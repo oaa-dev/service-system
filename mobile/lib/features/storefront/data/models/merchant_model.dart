@@ -64,6 +64,13 @@ class LogoModel {
   Map<String, dynamic> toJson() => _$LogoModelToJson(this);
 }
 
+double? _toDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
 @JsonSerializable()
 class MerchantModel {
   final int id;
@@ -73,7 +80,7 @@ class MerchantModel {
   final String? status;
   final String? description;
   final LogoModel? logo;
-  @JsonKey(name: 'average_rating')
+  @JsonKey(name: 'average_rating', fromJson: _toDouble)
   final double? averageRating;
   @JsonKey(name: 'review_count')
   final int? reviewCount;

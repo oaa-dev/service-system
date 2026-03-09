@@ -313,16 +313,11 @@ export default function MyCouponsPage() {
   const expiredItems = allItems.filter((i) => i.status === 'expired');
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <Ticket className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">My Coupons</h1>
-          <p className="text-sm text-muted-foreground">Your claimed and used coupons</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">My Coupons</h1>
+        <p className="text-sm text-muted-foreground">Your claimed and used coupons</p>
       </div>
 
       {/* Loading state */}

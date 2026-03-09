@@ -1940,3 +1940,81 @@ export interface ValidateCouponResponse {
   coupon: Coupon;
   discount_amount: number;
 }
+
+// Advertisement Types
+
+export type AdvertisementType = 'banner' | 'featured_merchant' | 'promotional_card' | 'popup';
+export type AdvertisementPlacement =
+  | 'homepage_hero'
+  | 'homepage_sidebar'
+  | 'merchant_listing'
+  | 'merchant_detail'
+  | 'dashboard_banner'
+  | 'storefront_banner';
+export type AdvertisementAudience = 'customer' | 'merchant' | 'all';
+
+export interface Advertisement {
+  id: number;
+  merchant_id: number | null;
+  title: string;
+  description: string | null;
+  type: AdvertisementType;
+  placement: AdvertisementPlacement;
+  target_audience: AdvertisementAudience;
+  link_url: string | null;
+  link_text: string | null;
+  is_active: boolean;
+  starts_at: string;
+  expires_at: string | null;
+  sort_order: number;
+  impressions: number;
+  clicks: number;
+  is_valid: boolean;
+  image: { url: string; thumb: string; preview: string } | null;
+  merchant: { id: number; name: string; slug: string } | null;
+  creator: { id: number; name: string } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAdvertisementRequest {
+  title: string;
+  description?: string | null;
+  type: AdvertisementType;
+  placement: AdvertisementPlacement;
+  target_audience: AdvertisementAudience;
+  link_url?: string | null;
+  link_text?: string | null;
+  merchant_id?: number | null;
+  is_active?: boolean;
+  starts_at: string;
+  expires_at?: string | null;
+  sort_order?: number;
+}
+
+export interface UpdateAdvertisementRequest {
+  title?: string;
+  description?: string | null;
+  type?: AdvertisementType;
+  placement?: AdvertisementPlacement;
+  target_audience?: AdvertisementAudience;
+  link_url?: string | null;
+  link_text?: string | null;
+  merchant_id?: number | null;
+  is_active?: boolean;
+  starts_at?: string;
+  expires_at?: string | null;
+  sort_order?: number;
+}
+
+export interface AdvertisementQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[search]'?: string;
+  'filter[type]'?: AdvertisementType | '';
+  'filter[placement]'?: AdvertisementPlacement | '';
+  'filter[target_audience]'?: AdvertisementAudience | '';
+  'filter[is_active]'?: boolean;
+  'filter[merchant_id]'?: number | string;
+}

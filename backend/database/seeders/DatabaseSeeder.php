@@ -41,6 +41,8 @@ class DatabaseSeeder extends Seeder
             DemoMerchantSeeder::class,
             DemoCustomerSeeder::class,
             DemoTransactionSeeder::class,
+            DemoCouponSeeder::class,
+            DemoAdvertisementSeeder::class,
         ]);
     }
 }

@@ -1927,3 +1927,26 @@ export interface ValidateCouponResponse {
   coupon: Coupon;
   discount_amount: number;
 }
+
+// Advertisement Types
+
+export type AdvertisementType = 'banner' | 'featured_merchant' | 'promotional_card' | 'popup';
+
+export interface Advertisement {
+  id: number;
+  merchant_id: number | null;
+  title: string;
+  description: string | null;
+  type: AdvertisementType;
+  placement: string;
+  target_audience: string;
+  link_url: string | null;
+  link_text: string | null;
+  is_active: boolean;
+  starts_at: string;
+  expires_at: string | null;
+  sort_order: number;
+  image: { url: string; thumb: string; preview: string } | null;
+  merchant: { id: number; name: string; slug: string } | null;
+  created_at: string;
+}

@@ -33,6 +33,7 @@ import {
   Gift,
   UserPlus,
   Ticket,
+  Megaphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -217,6 +218,14 @@ const settingsItems: NavItem[] = [
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     permission: 'fields.view',
+  },
+  {
+    title: 'Advertisements',
+    href: '/advertisements',
+    icon: Megaphone,
+    color: 'text-sky-500',
+    bgColor: 'bg-sky-500/10',
+    permission: 'advertisements.view',
   },
 ];
 

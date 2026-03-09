@@ -3,15 +3,25 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../domain/entities/merchant_entity.dart';
 import '../../domain/entities/service_entity.dart';
+import '../bloc/booking_form/booking_form_bloc.dart';
+import '../bloc/booking_form/booking_form_event.dart';
 import '../bloc/merchant_detail/merchant_detail_bloc.dart';
 import '../bloc/merchant_detail/merchant_detail_event.dart';
 import '../bloc/merchant_detail/merchant_detail_state.dart';
+import '../bloc/order_form/order_form_bloc.dart';
+import '../bloc/order_form/order_form_event.dart';
+import '../bloc/reservation_form/reservation_form_bloc.dart';
+import '../bloc/reservation_form/reservation_form_event.dart';
+import '../widgets/booking/booking_wizard_sheet.dart';
 import '../widgets/business_hours_widget.dart';
+import '../widgets/order/order_wizard_sheet.dart';
+import '../widgets/reservation/reservation_wizard_sheet.dart';
 
 class MerchantDetailPage extends StatefulWidget {
   final String slug;
@@ -203,38 +213,17 @@ class _MerchantDetailPageState extends State<MerchantDetailPage>
                     if (services.isNotEmpty) ...[
                       _buildSectionCard(
                         icon: Icons.grid_view_rounded,
-                        title: 'Services',
-                        trailing: services.length > 3
-                            ? GestureDetector(
-                                onTap: () {
-                                  // TODO: navigate to all services
-                                },
-                                child: Text(
-                                  'See all',
-                                  style: AppTypography.labelMedium.copyWith(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              )
-                            : null,
-                        child: _buildServicesHorizontal(services),
+                        title: 'Services (${services.length})',
+                        child: _buildServicesGrid(merchant.slug, services),
                       ),
                       const SizedBox(height: 16),
                     ],
-                    // Extra space for the sticky bottom bar
-                    const SizedBox(height: 100),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
             ),
           ],
-        ),
-        // Sticky bottom CTA bar
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: _buildStickyCtaBar(merchant),
         ),
       ],
     );
@@ -603,24 +592,27 @@ class _MerchantDetailPageState extends State<MerchantDetailPage>
     );
   }
 
-  Widget _buildServicesHorizontal(List<ServiceEntity> services) {
-    return SizedBox(
-      height: 190,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: services.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          return _buildServiceCard(services[index]);
-        },
+  Widget _buildServicesGrid(String merchantSlug, List<ServiceEntity> services) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.62,
       ),
+      itemCount: services.length,
+      itemBuilder: (context, index) {
+        return _buildServiceCard(merchantSlug, services[index], services);
+      },
     );
   }
 
-  Widget _buildServiceCard(ServiceEntity service) {
+  Widget _buildServiceCard(String merchantSlug, ServiceEntity service, List<ServiceEntity> allServices) {
+    final actionData = _getServiceAction(service);
+
     return Container(
-      width: 160,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
@@ -636,13 +628,11 @@ class _MerchantDetailPageState extends State<MerchantDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Service image
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(12)),
-            child: SizedBox(
-              height: 100,
-              width: 160,
+            child: AspectRatio(
+              aspectRatio: 1.3,
               child: service.imageUrl != null
                   ? CachedNetworkImage(
                       imageUrl: service.imageUrl!,
@@ -655,40 +645,111 @@ class _MerchantDetailPageState extends State<MerchantDetailPage>
                   : _serviceCardPlaceholder(),
             ),
           ),
-          // Service info
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  service.name,
-                  style: AppTypography.titleSmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(20),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    service.name,
+                    style: AppTypography.titleSmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Text(
-                    '\u20B1${service.price}',
-                    style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '\u20B1${service.price}',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const Spacer(),
+                  if (actionData != null)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 34,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _onServiceAction(merchantSlug, service, allServices),
+                        icon: Icon(actionData.icon, size: 14),
+                        label: Text(actionData.label),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: actionData.color,
+                          foregroundColor: AppColors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          textStyle: AppTypography.labelSmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  _ServiceAction? _getServiceAction(ServiceEntity service) {
+    if (service.isBookable) {
+      return _ServiceAction(
+        icon: Icons.calendar_today_rounded,
+        label: 'Book Now',
+        color: AppColors.primary,
+      );
+    }
+    if (service.isReservable) {
+      return _ServiceAction(
+        icon: Icons.house_rounded,
+        label: 'Reserve',
+        color: AppColors.secondary,
+      );
+    }
+    if (service.isSellable) {
+      return _ServiceAction(
+        icon: Icons.shopping_bag_rounded,
+        label: 'Order',
+        color: AppColors.success,
+      );
+    }
+    return null;
+  }
+
+  void _onServiceAction(String merchantSlug, ServiceEntity service, List<ServiceEntity> allServices) {
+    debugPrint('[ServiceAction] service=${service.name}, isBookable=${service.isBookable}, isReservable=${service.isReservable}, isSellable=${service.isSellable}');
+    try {
+      if (service.isBookable) {
+        _openBookingWizard(merchantSlug, allServices, preselectedService: service);
+      } else if (service.isReservable) {
+        _openReservationWizard(merchantSlug, allServices, preselectedService: service);
+      } else if (service.isSellable) {
+        _openOrderWizard(merchantSlug, allServices, preselectedService: service);
+      } else {
+        debugPrint('[ServiceAction] No matching action for service type');
+      }
+    } catch (e, stack) {
+      debugPrint('[ServiceAction] ERROR: $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _serviceCardPlaceholder() {
@@ -706,149 +767,98 @@ class _MerchantDetailPageState extends State<MerchantDetailPage>
     );
   }
 
-  Widget _buildStickyCtaBar(MerchantEntity merchant) {
-    final hasBookings = merchant.canTakeBookings;
-    final hasOrders = merchant.canSellProducts;
-    final isOrg = merchant.isOrganization;
-
-    if (!hasBookings && !hasOrders && !isOrg) return const SizedBox.shrink();
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-          20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withAlpha(60),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+  void _openBookingWizard(String slug, List<ServiceEntity> services, {ServiceEntity? preselectedService}) {
+    final sl = GetIt.instance;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SafeArea(
-        top: false,
-        child: isOrg
-            ? _buildOrgCta()
-            : _buildIndividualCta(hasBookings, hasOrders),
-      ),
-    );
-  }
-
-  Widget _buildOrgCta() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          // TODO: navigate to branches list
-        },
-        icon: const Icon(Icons.store_rounded, size: 20),
-        label: const Text('View Branches'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.white,
-          foregroundColor: AppColors.primary,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-          textStyle: AppTypography.labelLarge.copyWith(
-            fontWeight: FontWeight.w700,
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.92,
+        child: BlocProvider(
+          create: (_) => sl<BookingFormBloc>()
+            ..add(InitBookingFormEvent(
+              services: services,
+              merchantSlug: slug,
+              preselectedServiceId: preselectedService?.id,
+            )),
+          child: BookingWizardSheet(
+            services: services,
+            merchantSlug: slug,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildIndividualCta(bool hasBookings, bool hasOrders) {
-    if (hasBookings && hasOrders) {
-      return Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: navigate to booking flow
-                },
-                icon: const Icon(Icons.calendar_today_rounded, size: 18),
-                label: const Text('Book Now'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.white,
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  textStyle: AppTypography.labelLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SizedBox(
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: navigate to order flow
-                },
-                icon: const Icon(Icons.shopping_bag_rounded, size: 18),
-                label: const Text('Order'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.white,
-                  side: const BorderSide(color: AppColors.white, width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  textStyle: AppTypography.labelLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          // TODO: navigate to booking or order flow
-        },
-        icon: Icon(
-          hasBookings
-              ? Icons.calendar_today_rounded
-              : Icons.shopping_bag_rounded,
-          size: 18,
-        ),
-        label: Text(hasBookings ? 'Book Now' : 'Place Order'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.white,
-          foregroundColor: AppColors.primary,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-          textStyle: AppTypography.labelLarge.copyWith(
-            fontWeight: FontWeight.w700,
+  void _openReservationWizard(String slug, List<ServiceEntity> services, {ServiceEntity? preselectedService}) {
+    final sl = GetIt.instance;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.92,
+        child: BlocProvider(
+          create: (_) => sl<ReservationFormBloc>()
+            ..add(InitReservationFormEvent(
+              services: services,
+              merchantSlug: slug,
+              preselectedServiceId: preselectedService?.id,
+            )),
+          child: ReservationWizardSheet(
+            services: services,
+            merchantSlug: slug,
           ),
         ),
       ),
     );
   }
+
+  void _openOrderWizard(String slug, List<ServiceEntity> services, {ServiceEntity? preselectedService}) {
+    final sl = GetIt.instance;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.92,
+        child: BlocProvider(
+          create: (_) => sl<OrderFormBloc>()
+            ..add(InitOrderFormEvent(
+              services: services,
+              merchantSlug: slug,
+              preselectedServiceId: preselectedService?.id,
+            )),
+          child: OrderWizardSheet(
+            services: services,
+            merchantSlug: slug,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ServiceAction {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _ServiceAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 }
 
 class _CapabilityData {

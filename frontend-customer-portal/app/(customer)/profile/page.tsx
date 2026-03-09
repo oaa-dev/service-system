@@ -9,8 +9,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-in">
-        <h1 className="text-3xl font-bold tracking-tight font-[family-name:var(--font-display)]">Profile</h1>
-        <p className="text-muted-foreground">View and manage your account information</p>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">Profile</h1>
+        <p className="text-sm text-muted-foreground">View and manage your account information</p>
       </div>
 
       <Tabs defaultValue="personal-info" className="space-y-4">

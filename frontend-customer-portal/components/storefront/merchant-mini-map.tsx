@@ -45,7 +45,7 @@ export default function MerchantMiniMap({
               onCloseClick={() => setInfoOpen(false)}
               headerDisabled
             >
-              <p className="text-xs font-semibold text-gray-900 px-0.5">{merchantName}</p>
+              <p className="text-xs font-semibold text-foreground px-0.5">{merchantName}</p>
             </InfoWindow>
           )}
         </Map>

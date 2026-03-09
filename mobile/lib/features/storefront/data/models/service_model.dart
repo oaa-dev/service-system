@@ -30,6 +30,7 @@ class ServiceModel {
 
   bool get isBookable => serviceType == 'bookable';
   bool get isSellable => serviceType == 'sellable';
+  bool get isReservable => serviceType == 'reservation';
   String? get imageUrl => (image?['url'] as String?) ?? (image?['thumb'] as String?);
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) =>

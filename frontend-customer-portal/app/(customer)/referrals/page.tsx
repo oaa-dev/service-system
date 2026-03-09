@@ -84,7 +84,7 @@ function ReferralCodeCard({ code }: { code: ReferralCode }) {
 const referralStatusConfig: Record<Referral['status'], { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   completed: { label: 'Completed', className: 'bg-green-100 text-green-800 border-green-200' },
-  expired: { label: 'Expired', className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-muted' },
   cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-700 border-red-200' },
 };
 
@@ -127,8 +127,8 @@ function ReferralRow({ referral }: { referral: Referral }) {
 const rewardStatusConfig: Record<ReferralReward['status'], { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   available: { label: 'Available', className: 'bg-green-100 text-green-800 border-green-200' },
-  redeemed: { label: 'Redeemed', className: 'bg-gray-100 text-gray-600 border-gray-200' },
-  expired: { label: 'Expired', className: 'bg-gray-100 text-gray-500 border-gray-200' },
+  redeemed: { label: 'Redeemed', className: 'bg-muted text-muted-foreground border-muted' },
+  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-muted' },
 };
 
 function formatRewardValue(reward: ReferralReward): string {
@@ -325,15 +325,10 @@ function RewardsTab() {
 
 export default function ReferralsPage() {
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <UserPlus className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">Referrals</h1>
-          <p className="text-sm text-muted-foreground">Share codes, track referrals, and earn rewards</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">Referrals</h1>
+        <p className="text-sm text-muted-foreground">Share codes, track referrals, and earn rewards</p>
       </div>
 
       <Tabs defaultValue="codes">

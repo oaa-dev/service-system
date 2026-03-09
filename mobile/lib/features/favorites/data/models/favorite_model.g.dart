@@ -19,7 +19,7 @@ FavoriteMerchantModel _$FavoriteMerchantModelFromJson(
   name: json['name'] as String,
   slug: json['slug'] as String,
   logo: json['logo'] as Map<String, dynamic>?,
-  averageRating: (json['average_rating'] as num?)?.toDouble(),
+  averageRating: _toDouble(json['average_rating']),
   reviewCount: (json['review_count'] as num?)?.toInt(),
   address: json['address'] as Map<String, dynamic>?,
 );

@@ -132,7 +132,7 @@ export default function LoyaltyCardDetailPage({
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-44 w-full rounded-2xl" />
         <Skeleton className="h-48 w-full rounded-xl" />
@@ -142,7 +142,7 @@ export default function LoyaltyCardDetailPage({
 
   if (isError || !card) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-3">
+      <div className="py-16 text-center space-y-3">
         <Gift className="h-12 w-12 mx-auto text-muted-foreground/30" />
         <p className="font-medium text-muted-foreground">Card not found</p>
         <Link
@@ -162,7 +162,7 @@ export default function LoyaltyCardDetailPage({
   const availableRewards = rewards.filter((r) => r.status === 'available');
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Back link */}
       <Link
         href="/loyalty"

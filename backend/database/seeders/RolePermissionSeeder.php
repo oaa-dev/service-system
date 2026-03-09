@@ -158,6 +158,12 @@ class RolePermissionSeeder extends Seeder
                 'coupons.update',
                 'coupons.delete',
             ],
+            'advertisements' => [
+                'advertisements.view',
+                'advertisements.create',
+                'advertisements.update',
+                'advertisements.delete',
+            ],
         ];
 
         // Create all permissions
@@ -195,6 +201,7 @@ class RolePermissionSeeder extends Seeder
                 'referral_programs.view', 'referral_programs.create', 'referral_programs.update', 'referral_programs.delete',
                 'payments.view', 'payments.manage',
                 'coupons.view', 'coupons.create', 'coupons.update', 'coupons.delete',
+                'advertisements.view', 'advertisements.create', 'advertisements.update', 'advertisements.delete',
             ],
             'manager' => [
                 'users.view', 'users.create', 'users.update',
@@ -203,6 +210,7 @@ class RolePermissionSeeder extends Seeder
                 'loyalty_programs.view',
                 'loyalty_cards.view',
                 'coupons.view',
+                'advertisements.view',
             ],
             'user' => [
                 'users.view',

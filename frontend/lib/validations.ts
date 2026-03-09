@@ -853,3 +853,34 @@ export type CreateCouponFormData = z.infer<typeof createCouponSchema>;
 export const updateCouponSchema = createCouponSchema.partial();
 
 export type UpdateCouponFormData = z.infer<typeof updateCouponSchema>;
+
+// ─── Advertisement ────────────────────────────────────────────────────────────
+
+export const advertisementSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(255),
+  description: z.string().nullable().optional(),
+  type: z.enum(['banner', 'featured_merchant', 'promotional_card', 'popup']),
+  placement: z.enum([
+    'homepage_hero',
+    'homepage_sidebar',
+    'merchant_listing',
+    'merchant_detail',
+    'dashboard_banner',
+    'storefront_banner',
+  ]),
+  target_audience: z.enum(['customer', 'merchant', 'all']),
+  link_url: z
+    .string()
+    .url('Must be a valid URL')
+    .nullable()
+    .optional()
+    .or(z.literal('')),
+  link_text: z.string().max(100).nullable().optional(),
+  merchant_id: z.number().nullable().optional(),
+  is_active: z.boolean().optional(),
+  starts_at: z.string().min(1, 'Start date is required'),
+  expires_at: z.string().nullable().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export type AdvertisementFormData = z.infer<typeof advertisementSchema>;

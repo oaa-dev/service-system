@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import '../core/pages/placeholder_page.dart';
 import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_state.dart';
@@ -20,6 +19,12 @@ import '../features/reviews/presentation/pages/my_reviews_page.dart';
 import '../features/profile/presentation/bloc/profile/profile_bloc.dart';
 import '../features/profile/presentation/pages/me_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
+import '../features/dashboard/presentation/bloc/dashboard_bloc.dart';
+import '../features/transactions/presentation/bloc/bookings/bookings_bloc.dart';
+import '../features/transactions/presentation/bloc/reservations/reservations_bloc.dart';
+import '../features/transactions/presentation/bloc/orders/orders_bloc.dart';
+import '../features/transactions/presentation/pages/transactions_page.dart';
+import '../features/rewards/presentation/pages/rewards_tab_page.dart';
 
 final GetIt _sl = GetIt.instance;
 
@@ -96,6 +101,7 @@ GoRouter createAppRouter(AuthBloc authBloc) {
           providers: [
             BlocProvider(create: (_) => _sl<FavoritesBloc>()),
             BlocProvider(create: (_) => _sl<ProfileBloc>()),
+            BlocProvider(create: (_) => _sl<DashboardBloc>()),
           ],
           child: MainShell(child: child),
         ),
@@ -109,19 +115,18 @@ GoRouter createAppRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: AppRoutes.transactions,
-            builder: (context, state) => const PlaceholderTabPage(
-              title: 'Transactions',
-              message: 'Your bookings, reservations, and orders will appear here.',
-              icon: Icons.receipt_long_outlined,
+            builder: (context, state) => MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => _sl<BookingsBloc>()),
+                BlocProvider(create: (_) => _sl<ReservationsBloc>()),
+                BlocProvider(create: (_) => _sl<OrdersBloc>()),
+              ],
+              child: const TransactionsPage(),
             ),
           ),
           GoRoute(
             path: AppRoutes.rewards,
-            builder: (context, state) => const PlaceholderTabPage(
-              title: 'Rewards',
-              message: 'Your loyalty cards and referrals will appear here.',
-              icon: Icons.star_outline,
-            ),
+            builder: (context, state) => const RewardsTabPage(),
           ),
           GoRoute(
             path: AppRoutes.me,

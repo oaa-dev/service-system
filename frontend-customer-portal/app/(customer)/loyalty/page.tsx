@@ -17,16 +17,11 @@ export default function LoyaltyCardsPage() {
   const pagination = data?.meta;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <Gift className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">My Loyalty Cards</h1>
-          <p className="text-sm text-muted-foreground">Stamps and rewards from your favourite merchants</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">My Loyalty Cards</h1>
+        <p className="text-sm text-muted-foreground">Stamps and rewards from your favourite merchants</p>
       </div>
 
       {/* Loading state */}
@@ -55,7 +50,7 @@ export default function LoyaltyCardsPage() {
       {/* Cards list */}
       {!isLoading && cards.length > 0 && (
         <>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {cards.map((card) => (
               <Link key={card.id} href={`/loyalty/${card.id}`} className="block group">
                 <div className="relative">

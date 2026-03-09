@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../dashboard/presentation/bloc/dashboard_bloc.dart';
+import '../../../dashboard/presentation/bloc/dashboard_event.dart';
+import '../../../dashboard/presentation/bloc/dashboard_state.dart';
 import '../bloc/profile/profile_bloc.dart';
 import '../bloc/profile/profile_event.dart';
 import '../bloc/profile/profile_state.dart';
@@ -16,16 +19,22 @@ class MePage extends StatefulWidget {
   State<MePage> createState() => _MePageState();
 }
 
-class _MePageState extends State<MePage> {
+class _MePageState extends State<MePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     context.read<ProfileBloc>().add(const LoadProfileEvent());
     context.read<ProfileBloc>().add(const LoadPaymentMethodsEvent());
+    context.read<DashboardBloc>().add(const LoadDashboardStatsEvent());
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: BlocBuilder<ProfileBloc, ProfileState>(
@@ -253,53 +262,65 @@ class _MePageState extends State<MePage> {
   }
 
   Widget _buildStatsRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.grey900.withAlpha(8),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
+    return BlocBuilder<DashboardBloc, DashboardState>(
+      builder: (context, dashState) {
+        String bookings = '\u2014';
+        String reservations = '\u2014';
+        String orders = '\u2014';
+
+        if (dashState is DashboardLoaded) {
+          bookings = '${dashState.stats.totalBookings}';
+          reservations = '${dashState.stats.totalReservations}';
+          orders = '${dashState.stats.totalOrders}';
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.grey900.withAlpha(8),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            _buildStatItem(
-              label: 'Favorites',
-              value: '\u2014',
-              onTap: () => context.push(AppRoutes.favorites),
+            child: Row(
+              children: [
+                _buildStatItem(
+                  label: 'Bookings',
+                  value: bookings,
+                  onTap: () => context.push(AppRoutes.transactions),
+                ),
+                Container(
+                  width: 1,
+                  height: 32,
+                  color: AppColors.grey200,
+                ),
+                _buildStatItem(
+                  label: 'Reservations',
+                  value: reservations,
+                  onTap: () => context.push(AppRoutes.transactions),
+                ),
+                Container(
+                  width: 1,
+                  height: 32,
+                  color: AppColors.grey200,
+                ),
+                _buildStatItem(
+                  label: 'Orders',
+                  value: orders,
+                  onTap: () => context.push(AppRoutes.transactions),
+                ),
+              ],
             ),
-            Container(
-              width: 1,
-              height: 32,
-              color: AppColors.grey200,
-            ),
-            _buildStatItem(
-              label: 'Reviews',
-              value: '\u2014',
-              onTap: () => context.push(AppRoutes.myReviews),
-            ),
-            Container(
-              width: 1,
-              height: 32,
-              color: AppColors.grey200,
-            ),
-            _buildStatItem(
-              label: 'Orders',
-              value: '\u2014',
-              onTap: () {
-                // TODO: navigate to orders
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

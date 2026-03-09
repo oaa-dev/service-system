@@ -276,3 +276,8 @@
 .dark .glass {
   background: oklch(0.15 0 0 / 70%);
 }
+
+/* Safe area bottom padding for mobile tab bars */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

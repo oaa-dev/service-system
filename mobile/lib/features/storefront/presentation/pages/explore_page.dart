@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../ads/presentation/widgets/ad_banner_carousel.dart';
 import '../bloc/merchant_list/merchant_list_bloc.dart';
 import '../bloc/merchant_list/merchant_list_event.dart';
 import '../bloc/merchant_list/merchant_list_state.dart';
@@ -17,7 +18,11 @@ class ExplorePage extends StatefulWidget {
   State<ExplorePage> createState() => _ExplorePageState();
 }
 
-class _ExplorePageState extends State<ExplorePage> {
+class _ExplorePageState extends State<ExplorePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final _scrollController = ScrollController();
 
   @override
@@ -56,6 +61,7 @@ class _ExplorePageState extends State<ExplorePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: RefreshIndicator(
@@ -128,7 +134,12 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
 
             const SliverToBoxAdapter(
-              child: SizedBox(height: 20),
+              child: SizedBox(height: 16),
+            ),
+
+            // Ad banner carousel
+            const SliverToBoxAdapter(
+              child: AdBannerCarousel(position: 'banner'),
             ),
 
             // Content area

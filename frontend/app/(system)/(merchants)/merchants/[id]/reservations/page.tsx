@@ -3,6 +3,7 @@
 import { use, useState, useMemo, useCallback } from 'react';
 import { useMerchant } from '@/hooks/useMerchants';
 import { useReservations, useUpdateReservationStatus } from '@/hooks/useReservations';
+import { useMarkAsPaid, useCheckPaymentStatus } from '@/hooks/usePayments';
 import { Reservation, ReservationStatus, ReservationQueryParams, MerchantStatus, merchantStatusLabels } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +21,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ChevronLeft, ChevronRight, ArrowLeft, Store, CalendarDays, RefreshCw, User, DoorOpen, DoorClosed, BedDouble, Ban, Plus,
+  ChevronLeft, ChevronRight, ArrowLeft, Store, CalendarDays, RefreshCw, User, DoorOpen, DoorClosed, BedDouble, Ban, Plus, CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { PermissionGate } from '@/components/permission-gate';
@@ -41,6 +42,14 @@ const reservationStatusColors: Record<ReservationStatus, string> = {
   checked_in: 'bg-emerald-500',
   checked_out: 'bg-gray-500',
   cancelled: 'bg-red-500',
+};
+
+const paymentStatusConfig: Record<string, { label: string; variant: 'outline' | 'secondary' | 'default' | 'destructive'; className?: string }> = {
+  unpaid: { label: 'Unpaid', variant: 'outline' },
+  pending: { label: 'Pending', variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  paid: { label: 'Paid', variant: 'secondary', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  failed: { label: 'Failed', variant: 'destructive' },
+  refunded: { label: 'Refunded', variant: 'secondary', className: 'bg-purple-100 text-purple-800 border-purple-200' },
 };
 
 const filters: FilterField[] = [
@@ -81,6 +90,7 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
   const [perPage, setPerPage] = useState(10);
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [statusAction, setStatusAction] = useState<{ reservation: Reservation; status: ReservationStatus } | null>(null);
+  const [paymentAction, setPaymentAction] = useState<'request_payment' | 'mark_cash' | ''>('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const queryParams = useMemo<ReservationQueryParams>(() => {
@@ -91,6 +101,8 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
 
   const { data, isLoading, refetch, isFetching } = useReservations(merchantId, queryParams);
   const statusMutation = useUpdateReservationStatus();
+  const markAsPaidMutation = useMarkAsPaid();
+  const checkStatusMutation = useCheckPaymentStatus();
 
   const handleFilterChange = useCallback((values: FilterValues) => { setFilterValues(values); setPage(1); }, []);
   const handleFilterReset = useCallback(() => { setFilterValues({}); setPage(1); }, []);
@@ -98,8 +110,20 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
   const handleStatusUpdate = () => {
     if (statusAction) {
       statusMutation.mutate(
-        { merchantId, reservationId: statusAction.reservation.id, data: { status: statusAction.status } },
-        { onSuccess: () => setStatusAction(null) }
+        {
+          merchantId,
+          reservationId: statusAction.reservation.id,
+          data: {
+            status: statusAction.status,
+            payment_action: paymentAction || null,
+          },
+        },
+        {
+          onSuccess: () => {
+            setStatusAction(null);
+            setPaymentAction('');
+          },
+        }
       );
     }
   };
@@ -214,14 +238,22 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
                       {reservation.notes && <p className="text-sm text-muted-foreground mt-1">{reservation.notes}</p>}
                       {reservation.special_requests && <p className="text-sm text-muted-foreground mt-1 italic">{reservation.special_requests}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                       <Badge className={reservationStatusColors[reservation.status]}>{reservation.status.replace(/_/g, ' ')}</Badge>
+                      {reservation.payment_status && (() => {
+                        const cfg = paymentStatusConfig[reservation.payment_status] ?? { label: reservation.payment_status, variant: 'outline' as const };
+                        return (
+                          <Badge variant={cfg.variant} className={cfg.className}>
+                            <CreditCard className="h-3 w-3 mr-1" />{cfg.label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
-                  {VALID_ACTIONS[reservation.status] && (
+                  {(VALID_ACTIONS[reservation.status] || reservation.payment?.id) && (
                     <PermissionGate permission="reservations.update_status">
-                      <div className="flex gap-2 mt-3 pt-3 border-t">
-                        {VALID_ACTIONS[reservation.status].map((action) => (
+                      <div className="flex gap-2 mt-3 pt-3 border-t flex-wrap">
+                        {VALID_ACTIONS[reservation.status]?.map((action) => (
                           <Button
                             key={action.status}
                             variant={action.variant || 'default'}
@@ -232,6 +264,26 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
                             {action.icon}{action.label}
                           </Button>
                         ))}
+                        {reservation.payment?.id && (reservation.payment_status === 'pending' || reservation.payment_status === 'unpaid') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => markAsPaidMutation.mutate({ id: reservation.payment!.id })}
+                            disabled={markAsPaidMutation.isPending}
+                          >
+                            <CreditCard className="mr-1 h-3 w-3" /> Mark as Paid
+                          </Button>
+                        )}
+                        {reservation.payment?.id && reservation.payment_status === 'pending' && reservation.payment.gateway !== 'cash' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => checkStatusMutation.mutate({ id: reservation.payment!.id })}
+                            disabled={checkStatusMutation.isPending}
+                          >
+                            <RefreshCw className={`mr-1 h-3 w-3 ${checkStatusMutation.isPending ? 'animate-spin' : ''}`} /> Check Status
+                          </Button>
+                        )}
                       </div>
                     </PermissionGate>
                   )}
@@ -257,7 +309,7 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
       <CreateReservationDialog merchantId={merchantId} open={createOpen} onOpenChange={setCreateOpen} />
 
       {/* Status update confirmation */}
-      <AlertDialog open={!!statusAction} onOpenChange={(open) => !open && setStatusAction(null)}>
+      <AlertDialog open={!!statusAction} onOpenChange={(open) => { if (!open) { setStatusAction(null); setPaymentAction(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Update Reservation Status</AlertDialogTitle>
@@ -265,6 +317,21 @@ export default function MerchantReservationsPage({ params }: { params: Promise<{
               Are you sure you want to change reservation #{statusAction?.reservation.id} status to <span className="font-semibold">{statusAction?.status.replace(/_/g, ' ')}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {statusAction?.status === 'confirmed' && (
+            <div className="py-2">
+              <p className="text-sm font-medium mb-2">Payment Action</p>
+              <Select value={paymentAction} onValueChange={(v) => setPaymentAction(v as typeof paymentAction)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No payment action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Payment Action</SelectItem>
+                  <SelectItem value="request_payment">Request Online Payment</SelectItem>
+                  <SelectItem value="mark_cash">Mark as Cash</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleStatusUpdate}>

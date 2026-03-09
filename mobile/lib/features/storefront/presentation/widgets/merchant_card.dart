@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -48,7 +49,7 @@ class _MerchantCardState extends State<MerchantCard>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
+    return (AnimatedScale(
       scale: _isPressed ? 0.97 : 1.0,
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeInOut,
@@ -86,7 +87,10 @@ class _MerchantCardState extends State<MerchantCard>
           ),
         ),
       ),
-    );
+    ))
+        .animate()
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 0.05, end: 0, duration: 300.ms);
   }
 
   Widget _buildImageSection() {

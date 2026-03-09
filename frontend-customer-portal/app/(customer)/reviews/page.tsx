@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Star, Store, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Store, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -86,15 +86,10 @@ export default function MyReviewsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-          <Star className="h-5 w-5 text-amber-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">My Reviews</h1>
-          <p className="text-sm text-muted-foreground">Reviews you&apos;ve written</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-bold font-[family-name:var(--font-display)]">My Reviews</h1>
+        <p className="text-sm text-muted-foreground">Reviews you&apos;ve written</p>
       </div>
 
       {isLoading ? (
@@ -123,7 +118,7 @@ export default function MyReviewsPage() {
         </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {reviews.map(review => (
               <ReviewCard key={review.id} review={review} onDelete={handleDelete} />
             ))}

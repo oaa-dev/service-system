@@ -1,22 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Ticket, Copy, Check, Clock, LogIn, RefreshCw, Tag, Scissors, Bookmark, CalendarDays } from 'lucide-react';
+import { Copy, Check, Clock, LogIn, RefreshCw, Tag, Scissors, Bookmark, CalendarDays, ChevronLeft, ChevronRight, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useMerchantCoupons, useClaimCoupon } from '@/hooks/useStorefront';
 import { useAuthStore } from '@/stores/authStore';
 import type { Coupon } from '@/types/api';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDiscount(coupon: Coupon): string {
-  if (coupon.discount_type === 'percentage') return `${parseFloat(coupon.discount_value).toFixed(0)}% OFF`;
-  if (coupon.discount_type === 'fixed') return `₱${parseFloat(coupon.discount_value).toFixed(0)} OFF`;
-  return 'FREE PRODUCT';
-}
 
 const applicableLabels: Record<string, string> = {
   booking: 'Bookings',
@@ -104,7 +97,27 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-// ─── CouponCard ───────────────────────────────────────────────────────────────
+// ─── Color themes per discount type ──────────────────────────────────────────
+
+const themes = {
+  percentage: {
+    gradient: 'from-emerald-600 via-emerald-500 to-teal-500',
+    border: 'border-emerald-200/70',
+    stripeAlpha: 'rgba(255,255,255,0.06)',
+  },
+  fixed: {
+    gradient: 'from-green-600 via-green-500 to-emerald-500',
+    border: 'border-green-200/70',
+    stripeAlpha: 'rgba(255,255,255,0.06)',
+  },
+  free_product: {
+    gradient: 'from-teal-600 via-teal-500 to-cyan-500',
+    border: 'border-teal-200/70',
+    stripeAlpha: 'rgba(255,255,255,0.06)',
+  },
+} as const;
+
+// ─── CouponCard (Ticket) ─────────────────────────────────────────────────────
 
 function CouponCard({ coupon }: { coupon: Coupon }) {
   const { isAuthenticated } = useAuthStore();
@@ -116,10 +129,6 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
   const hasClaimExpiry = coupon.is_claimable && coupon.claim_validity_hours;
   const countdown = useCountdown(isClaimed && hasClaimExpiry ? claim?.expires_at : null);
 
-  const discountText = formatDiscount(coupon);
-  const isPercentage = coupon.discount_type === 'percentage';
-  const isFixed = coupon.discount_type === 'fixed';
-
   const handleClaim = () => {
     claimMutation.mutate(coupon.id, {
       onSuccess: () => toast.success('Coupon saved to your account!'),
@@ -127,129 +136,162 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
     });
   };
 
-  const accentColor = isPercentage
-    ? 'from-emerald-500 to-teal-500'
-    : isFixed
-      ? 'from-green-500 to-emerald-500'
-      : 'from-teal-500 to-cyan-500';
+  const theme = themes[coupon.discount_type];
 
   return (
-    <div className="relative flex rounded-xl overflow-hidden shadow-sm border border-emerald-100 bg-white group hover:shadow-md transition-shadow duration-200">
-      {/* Left accent strip */}
-      <div className={`w-2 flex-shrink-0 bg-gradient-to-b ${accentColor}`} />
+    <div
+      className={`
+        ticket-card group relative w-[296px] flex-shrink-0 flex
+        rounded-xl border bg-card
+        shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]
+        hover:shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.04)]
+        hover:-translate-y-0.5
+        transition-all duration-300 ease-out
+        overflow-hidden
+        ${theme.border}
+      `}
+    >
+      {/* ── Left Stub (the tear-off discount section) ── */}
+      <div className={`relative w-[90px] flex-shrink-0 bg-gradient-to-br ${theme.gradient} flex flex-col items-center justify-center`}>
+        {/* Diagonal stripe texture overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `repeating-linear-gradient(-45deg, transparent, transparent 3px, ${theme.stripeAlpha} 3px, ${theme.stripeAlpha} 6px)`,
+          }}
+        />
 
-      {/* Ticket notch — top */}
-      <div className="absolute left-2 -top-2.5 w-5 h-5 rounded-full bg-slate-50 border border-emerald-100 z-10" />
-      {/* Ticket notch — bottom */}
-      <div className="absolute left-2 -bottom-2.5 w-5 h-5 rounded-full bg-slate-50 border border-emerald-100 z-10" />
-
-      {/* Main body */}
-      <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-3 p-4 pl-5">
-        {/* Discount display */}
-        <div className="flex-shrink-0 text-center sm:text-left sm:w-24">
-          <p className={`font-display font-extrabold leading-tight text-emerald-700 ${discountText.length > 8 ? 'text-lg' : 'text-xl'}`}>
-            {discountText}
-          </p>
-          {coupon.min_order_amount && parseFloat(coupon.min_order_amount) > 0 && (
-            <p className="text-xs text-slate-500 mt-0.5">
-              Min ₱{parseFloat(coupon.min_order_amount).toFixed(0)}
-            </p>
+        {/* Discount value */}
+        <div className="relative text-center px-2">
+          {coupon.discount_type === 'free_product' ? (
+            <div className="space-y-1">
+              <Gift className="h-7 w-7 text-white mx-auto drop-shadow-sm" />
+              <p className="text-[10px] font-extrabold text-white uppercase tracking-wider leading-tight">
+                Free<br />Product
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-[26px] font-black text-white leading-none tracking-tight font-[family-name:var(--font-display)] drop-shadow-sm">
+                {coupon.discount_type === 'percentage'
+                  ? `${parseFloat(coupon.discount_value).toFixed(0)}%`
+                  : `₱${parseFloat(coupon.discount_value).toFixed(0)}`}
+              </p>
+              <p className="text-[9px] font-extrabold text-white/75 uppercase tracking-[0.2em] mt-1">
+                OFF
+              </p>
+            </>
           )}
         </div>
 
-        {/* Dashed divider */}
-        <div className="hidden sm:block h-10 border-l-2 border-dashed border-emerald-200 flex-shrink-0" />
-        <div className="sm:hidden w-full border-t-2 border-dashed border-emerald-200" />
+        {coupon.min_order_amount && parseFloat(coupon.min_order_amount) > 0 && (
+          <p className="relative text-white/50 text-[7px] font-medium mt-2 text-center leading-tight tracking-wide uppercase">
+            Min ₱{parseFloat(coupon.min_order_amount).toFixed(0)}
+          </p>
+        )}
+      </div>
 
-        {/* Details */}
-        <div className="flex-1 min-w-0 space-y-0.5">
-          <p className="font-semibold text-slate-800 text-sm leading-snug truncate">{coupon.name}</p>
+      {/* ── Perforation line (the tear zone) ── */}
+      <div className="relative w-0 z-10">
+        {/* Top notch — semicircle punched into the card edge */}
+        <div className="absolute -top-[7px] left-1/2 -translate-x-1/2 w-[14px] h-[14px] rounded-full bg-background shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)]" />
+        {/* Bottom notch */}
+        <div className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-[14px] h-[14px] rounded-full bg-background shadow-[inset_0_-1px_2px_rgba(0,0,0,0.08)]" />
+        {/* Vertical dashed tear line */}
+        <div className="absolute top-2 bottom-2 left-1/2 -translate-x-1/2 border-l-[1.5px] border-dashed border-emerald-200/60" />
+        {/* Tiny scissors icon at the top of perforation */}
+        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-10">
+          <Scissors className="h-2 w-2 text-emerald-300/80 -rotate-90" />
+        </div>
+      </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+      {/* ── Right Body (details & action) ── */}
+      <div className="flex-1 min-w-0 pl-4 pr-3 py-2.5 flex flex-col justify-between gap-2">
+        {/* Title & meta info */}
+        <div className="space-y-1.5">
+          <p className="font-bold text-slate-800 text-[13px] leading-snug line-clamp-1 font-[family-name:var(--font-display)]">
+            {coupon.name}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-1">
             {coupon.applicable_to && coupon.applicable_to.length > 0 && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
-                <Tag className="h-3 w-3" />
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-slate-500 bg-slate-50 ring-1 ring-slate-100 px-1.5 py-[2px] rounded-md">
+                <Tag className="h-2 w-2 flex-shrink-0" />
                 {coupon.applicable_to.map((t) => applicableLabels[t] ?? t).join(', ')}
               </span>
             )}
-            {formatSchedule(coupon.valid_schedule) && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
-                <CalendarDays className="h-3 w-3" />
-                {formatSchedule(coupon.valid_schedule)}
+            {coupon.expires_at && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-slate-400 bg-slate-50 ring-1 ring-slate-100 px-1.5 py-[2px] rounded-md">
+                <Clock className="h-2 w-2 flex-shrink-0" />
+                {new Date(coupon.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
               </span>
             )}
-            {coupon.expires_at && (
-              <span className="flex items-center gap-1 text-xs text-slate-400">
-                <Clock className="h-3 w-3" />
-                Until {new Date(coupon.expires_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+            {formatSchedule(coupon.valid_schedule) && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-slate-400 bg-slate-50 ring-1 ring-slate-100 px-1.5 py-[2px] rounded-md">
+                <CalendarDays className="h-2 w-2 flex-shrink-0" />
+                {formatSchedule(coupon.valid_schedule)}
               </span>
             )}
           </div>
         </div>
 
-        {/* Right action column */}
-        <div className="flex-shrink-0 flex flex-col items-end sm:items-center gap-1.5 min-w-[110px]">
+        {/* Action area */}
+        <div>
           {isClaimed ? (
-            // Claimed — show code + copy + optional countdown
-            <div className="flex flex-col items-end sm:items-center gap-1 w-full">
-              <div className="flex items-center gap-1.5 w-full justify-end sm:justify-center">
-                <code className="font-mono font-bold tracking-widest text-emerald-700 text-xs bg-emerald-50 border border-dashed border-emerald-300 px-2 py-0.5 rounded">
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <code className="font-mono font-bold tracking-wider text-emerald-700 text-[11px] bg-emerald-50/80 border border-dashed border-emerald-200 px-1.5 py-0.5 rounded truncate">
                   {coupon.code}
                 </code>
                 <CopyButton code={coupon.code} />
               </div>
-              {countdown && (
-                <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
-                  <Clock className="h-3 w-3" />
+              {countdown ? (
+                <span className="text-[9px] text-amber-600 font-semibold flex items-center gap-0.5 flex-shrink-0">
+                  <Clock className="h-2.5 w-2.5" />
                   {countdown}
                 </span>
+              ) : (
+                <span className="text-[9px] text-emerald-600 font-medium flex items-center gap-0.5 flex-shrink-0">
+                  <Bookmark className="h-2.5 w-2.5 fill-emerald-600" />
+                  Saved
+                </span>
               )}
-              <span className="text-xs text-emerald-600 flex items-center gap-1">
-                <Bookmark className="h-3 w-3 fill-emerald-600" />
-                Saved
-              </span>
             </div>
           ) : isClaimedExpired ? (
-            // Expired claim — re-claim
             <Button
               size="sm"
               variant="outline"
-              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5 text-xs"
+              className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1 text-[11px] h-7 rounded-lg font-semibold"
               onClick={handleClaim}
               disabled={claimMutation.isPending}
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-3 w-3" />
               Claim Again
             </Button>
           ) : !isAuthenticated ? (
-            // Not logged in
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 text-xs"
-              asChild
-            >
+            <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-[11px] h-7 rounded-lg font-semibold shadow-sm" asChild>
               <Link href="/login">
-                <LogIn className="h-3.5 w-3.5" />
+                <LogIn className="h-3 w-3" />
                 Login to Claim
               </Link>
             </Button>
           ) : (
-            // Authenticated, not yet claimed — show claim button for ALL coupons
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 text-xs"
-              onClick={handleClaim}
-              disabled={claimMutation.isPending}
-            >
-              <Bookmark className="h-3.5 w-3.5" />
-              {claimMutation.isPending ? 'Saving...' : 'Claim Coupon'}
-            </Button>
-          )}
-
-          {hasClaimExpiry && !isClaimed && isAuthenticated && !isClaimedExpired && (
-            <p className="text-xs text-slate-400 text-center">
-              Valid {coupon.claim_validity_hours}h after claim
-            </p>
+            <div className="space-y-0.5">
+              <Button
+                size="sm"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-[11px] h-7 rounded-lg font-semibold shadow-sm"
+                onClick={handleClaim}
+                disabled={claimMutation.isPending}
+              >
+                <Scissors className="h-3 w-3 -rotate-90" />
+                {claimMutation.isPending ? 'Saving...' : 'Claim Coupon'}
+              </Button>
+              {hasClaimExpiry && (
+                <p className="text-[8px] text-slate-400 text-center tracking-wide">
+                  Valid {coupon.claim_validity_hours}h after claim
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -262,26 +304,78 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
 export function CouponsSection({ slug }: { slug: string }) {
   const { data, isLoading } = useMerchantCoupons(slug);
   const coupons = data?.data ?? [];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    return () => el.removeEventListener('scroll', checkScroll);
+  }, [coupons.length, checkScroll]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction === 'left' ? -312 : 312, behavior: 'smooth' });
+  };
 
   if (isLoading) return null;
   if (coupons.length === 0) return null;
 
   return (
     <div className="animate-fade-in delay-100 space-y-3">
-      <h3 className="font-semibold flex items-center gap-2 text-sm">
-        <Scissors className="h-4 w-4 text-emerald-600 -rotate-90" />
-        Available Coupons
-        <Badge
-          variant="secondary"
-          className="ml-1 bg-emerald-100 text-emerald-700 font-semibold text-xs px-2 py-0"
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold flex items-center gap-2 text-sm">
+          <Scissors className="h-4 w-4 text-emerald-600 -rotate-90" />
+          Available Coupons
+          <span className="ml-1 bg-emerald-100 text-emerald-700 font-semibold text-[10px] px-1.5 py-0.5 rounded-full">
+            {coupons.length}
+          </span>
+        </h3>
+
+        {/* Arrows */}
+        {coupons.length > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => scroll('left')}
+              disabled={!canScrollLeft}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-warm-200/40 bg-card text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-default transition-colors"
+              aria-label="Scroll coupons left"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              disabled={!canScrollRight}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-warm-200/40 bg-card text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-default transition-colors"
+              aria-label="Scroll coupons right"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable row */}
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto scroll-smooth scrollbar-none py-1"
         >
-          {coupons.length}
-        </Badge>
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {coupons.map((coupon) => (
-          <CouponCard key={coupon.id} coupon={coupon} />
-        ))}
+          {coupons.map((coupon) => (
+            <CouponCard key={coupon.id} coupon={coupon} />
+          ))}
+        </div>
       </div>
     </div>
   );
