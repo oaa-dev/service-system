@@ -218,7 +218,7 @@ function AdMarquee({
   className?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(undefined);
   const isPaused = useRef(false);
   const scrollPos = useRef(0);
   const speed = 0.5;
@@ -290,7 +290,7 @@ function AdCarousel({
   className?: string;
 }) {
   const [current, setCurrent] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const isPaused = useRef(false);
   const total = ads.length;
 
