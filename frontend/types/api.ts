@@ -2018,3 +2018,32 @@ export interface AdvertisementQueryParams {
   'filter[is_active]'?: boolean;
   'filter[merchant_id]'?: number | string;
 }
+
+// OTP Management Types
+
+export interface OtpVerification {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    email_verified_at: string | null;
+  };
+  status: 'pending' | 'verified' | 'expired' | 'locked';
+  expires_at: string | null;
+  attempted_count: number;
+  locked_until: string | null;
+  last_resent_at: string | null;
+  verified_at: string | null;
+  created_at: string;
+}
+
+export interface OtpVerificationQueryParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  'filter[status]'?: string;
+  'filter[search]'?: string;
+  'filter[created_from]'?: string;
+  'filter[created_to]'?: string;
+}

@@ -34,6 +34,7 @@ import {
   UserPlus,
   Ticket,
   Megaphone,
+  KeyRound,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -226,6 +227,14 @@ const settingsItems: NavItem[] = [
     color: 'text-sky-500',
     bgColor: 'bg-sky-500/10',
     permission: 'advertisements.view',
+  },
+  {
+    title: 'OTP Management',
+    href: '/otp-management',
+    icon: KeyRound,
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    permission: 'otp_management.view',
   },
 ];
 

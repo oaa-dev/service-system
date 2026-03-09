@@ -164,6 +164,9 @@ class RolePermissionSeeder extends Seeder
                 'advertisements.update',
                 'advertisements.delete',
             ],
+            'otp_management' => [
+                'otp_management.view',
+            ],
         ];
 
         // Create all permissions
@@ -202,6 +205,7 @@ class RolePermissionSeeder extends Seeder
                 'payments.view', 'payments.manage',
                 'coupons.view', 'coupons.create', 'coupons.update', 'coupons.delete',
                 'advertisements.view', 'advertisements.create', 'advertisements.update', 'advertisements.delete',
+                'otp_management.view',
             ],
             'manager' => [
                 'users.view', 'users.create', 'users.update',

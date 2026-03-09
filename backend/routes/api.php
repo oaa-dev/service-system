@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\MerchantServiceController;
 use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\MyMerchantController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OtpManagementController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PaymentMethodController;
 use App\Http\Controllers\Api\V1\PayMongoWebhookController;
@@ -319,6 +320,14 @@ Route::prefix('v1')->group(function () {
                 Route::delete('advertisements/{id}/image', [AdvertisementController::class, 'deleteImage']);
             });
             Route::middleware('permission:advertisements.delete')->delete('advertisements/{id}', [AdvertisementController::class, 'destroy']);
+
+            // OTP Management routes (admin)
+            Route::prefix('otp-management')->middleware('permission:otp_management.view')->group(function () {
+                Route::get('/', [OtpManagementController::class, 'index']);
+                Route::get('/{emailVerification}', [OtpManagementController::class, 'show']);
+                Route::post('/{emailVerification}/verify', [OtpManagementController::class, 'verifyUser']);
+                Route::post('/{emailVerification}/unlock', [OtpManagementController::class, 'unlockUser']);
+            });
 
             // Customer management routes
             Route::middleware('permission:customers.view')->group(function () {
